@@ -32,4 +32,6 @@ FOR THE JAWA
 3. Unzip installer folder
 4. Run install.sh
 5. Navigate to "https://jawa.server.com" to verify connection and completion
-6. Follow the wizard to begin setting up your first webhook or automation
+6. Log in with your Jamf Pro credentials
+7. Follow the wizard to begin setting up your first webhook or automation
+

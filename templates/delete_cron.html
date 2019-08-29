@@ -1,0 +1,62 @@
+{% macro input(name, value='', type='text', size=20) -%}
+<input type="{{ type }}" name="{{ name }}" value="{{value|e }}" size="{{ size }}">
+{%- endmacro %}
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<script>
+  $(document).ready(function() {
+    $(".submit").click(function() {
+      $(".submit").addClass("loading");
+      setTimeout(function() {
+        $(".submit").addClass("hide-loading");
+        $(".done").addClass("finish");
+      }, 1000000);
+      setTimeout(function() {
+        $(".submit").removeClass("loading");
+        $(".submit").removeClass("hide-loading");
+        $(".done").removeClass("finish");
+        $(".failed").removeClass("finish");
+      }, 1000000);
+    })
+  });
+</script>
+<body>
+  {% extends "cronlayout.html" %}
+	{% block content %}
+  
+  <div class="delete">
+    
+    <h1>Delete Timed Job</h1>
+		
+    <form method="post" action="/delete_cron" enctype="multipart/form-data" >
+      
+      <b>Delete Timed Job</b></br>
+      Timed Job to Delete: <select name="timed_job">
+        <option value=""></option>
+        {% for job in content %}
+        <option value="{{ job }}">{{ job }}</option>
+        {% endfor %}
+      </select>
+      
+      <div class="container-fluid row ">
+        <div class="container">
+          <div class="row">
+            <div class="col-xs-12 button-holder">
+              <div class="ajax-button">
+                <div class="fa fa-check done"></div>
+                <div class="fa fa-close failed"></div>
+                <i class="fa fa-templates" aria-hidden="true"></i>
+                <input class="submit" type="submit" value="Delete" />
+              </div>
+            </div>
+          </div>
+        </div>  
+      </div>
+    </form>  
+    {% endblock %}
+  </div>
+</body>
+</html>

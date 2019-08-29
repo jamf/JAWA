@@ -1,0 +1,67 @@
+{% macro input(name, value='', type='text', size=20) -%}
+<input type="{{ type }}" name="{{ name }}" value="{{value|e }}" size="{{ size }}">
+{%- endmacro %}
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<script>
+  $(document).ready(function() {
+    $(".submit").click(function() {
+      $(".submit").addClass("loading");
+      setTimeout(function() {
+        $(".submit").addClass("hide-loading");
+        $(".done").addClass("finish");
+      }, 1000000);
+      setTimeout(function() {
+        $(".submit").removeClass("loading");
+        $(".submit").removeClass("hide-loading");
+        $(".done").removeClass("finish");
+        $(".failed").removeClass("finish");
+      }, 1000000);
+    })
+  });
+</script>
+<body>
+  {% extends "okta_layout.html" %}
+  {% block content %}
+  <div class="okta_new">
+    <h1>New Okta Webhook</h1>
+
+    <form method="post" action="/okta_new" enctype="multipart/form-data">
+      <b>Okta Webhook Name</b></br>
+      New Webhook Name:
+      <input type="text" name="webhookname" required oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')"></br></br></br>
+      
+      <b>Okta Information</b></br>
+      Okta Server URI: <input type="text" name="okta_server" required></br></br>
+      Okta API Token: <input type="text" name="token" required></br></br>
+      Okta Event: <input type="text" name="event" required> </br>
+      <a href="https://developer.okta.com/docs/reference/api/event-types/" style="color:#3c6aa7;" target="_blank">Okta Event Types</a>
+      (example: user.lifecycle.deactivate)</br></br></br>
+      
+      <b>Script:</b></br>
+
+      <input type = "file" name = "script" required oninvalid="this.setCustomValidity('A script is required. Spaces cannot be in the name of the script.')"></b>
+
+
+      <div class="container-fluid row ">
+        <div class="container">
+          <div class="row">
+            <div class="col-xs-12 button-holder">
+              <div class="ajax-button">
+                <div class="fa fa-check done"></div>
+                <div class="fa fa-close failed"></div>
+                <i class="fa fa-templates" aria-hidden="true"></i>
+                <input class="submit" type="submit" value="Submit" />
+              </div>
+            </div>
+          </div>
+        </div>  
+      </div>
+    </form>  
+    {% endblock %}
+   </div>
+  </body>
+</html>

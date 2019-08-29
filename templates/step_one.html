@@ -1,0 +1,47 @@
+{% macro input(name, value='', type='text', size=20) -%}
+<input type="{{ type }}" name="{{ name }}" value="{{value|e }}" size="{{ size }}">
+{%- endmacro %}
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<script>
+  $(document).ready(function() {
+    $(".submit").click(function() {
+      $(".submit").addClass("loading");
+      setTimeout(function() {
+        $(".submit").addClass("hide-loading");
+        $(".done").addClass("finish");
+      }, 1000000);
+      setTimeout(function() {
+        $(".submit").removeClass("loading");
+        $(".submit").removeClass("hide-loading");
+        $(".done").removeClass("finish");
+        $(".failed").removeClass("finish");
+      }, 1000000);
+    })
+  });
+</script>
+<body>
+  {% extends "wizardlayout.html" %}
+	{% block content %}
+  <div class="wizard">
+
+    <form method="post" enctype="multipart/form-data">
+      <h1>JAWA Webhook Wizard</h1>
+
+      Choose the source that will send the webhook:</br></br>
+      <select name="webhook_source" style="font-size:15px;">
+          <option value="">None</option>
+          <option value="jamf">Jamf Pro</option>
+          <option value="okta">Okta (New!)</option>
+      </select></br></br>
+      <input class="submit" type="submit" value="Create" />
+    </br></br></br><hr>
+
+    </form>   
+    {% endblock %}
+  </div>
+</body>
+</html>

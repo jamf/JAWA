@@ -1,0 +1,104 @@
+{% macro input(name, value='', type='text', size=20) -%}
+<input type="{{ type }}" name="{{ name }}" value="{{value|e }}" size="{{ size }}">
+{%- endmacro %}
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<script>
+  $(document).ready(function() {
+    $(".submit").click(function() {
+      $(".submit").addClass("loading");
+      setTimeout(function() {
+        $(".submit").addClass("hide-loading");
+        $(".done").addClass("finish");
+      }, 1000000);
+      setTimeout(function() {
+        $(".submit").removeClass("loading");
+        $(".submit").removeClass("hide-loading");
+        $(".done").removeClass("finish");
+        $(".failed").removeClass("finish");
+      }, 1000000);
+    })
+  });
+</script>
+<body>
+  {% extends "webhooklayout.html" %}
+	{% block content %}
+  <div class="edit">
+    <h1>Edit Webhook</h1>
+
+		<form method="post" action="/edit" enctype="multipart/form-data" >
+      <b>Modify Webhook</b></br> 
+      
+      Installed Webhook to Modify: <select name="webhookname" required>
+        <option value=""></option>
+        {% for webhookname in text %}
+        <option value="{{ webhookname }}">{{ webhookname }}</option>
+        {% endfor %}
+      </select></br></br>
+      <hr>
+      
+      <b>What would you like to change?</b> (Only modify what you'd like to change)</br></br>
+      <b>Script</b> (REQUIRED)</br> 
+      <input type = "file" name = "script" required oninvalid="this.setCustomValidity('A script is required')"></b></br></br>
+      <b>New Webhook Name:</b> (optional)</br>
+      <input type="text" name="new_webhookname"></br></br>   
+      <b>Jamf Event:</b> (optional)</br>
+      <select name="event">
+        <option value="unchanged">...</option>
+        <option value="ComputerAdded">ComputerAdded</option>
+        <option value="ComputerCheckIn">ComputerCheckIn</option>
+        <option value="ComputerInventoryCompleted">ComputerInventoryCompleted</option>
+        <option value="ComputerPathcPolicyCompleted">ComputerPathcPolicyCompleted</option>
+        <option value="ComputerPolicyFinished">ComputerPolicyFinished</option>
+        <option value="ComputerPushCapabilityChanged">ComputerPushCapabilityChanged</option>
+        <option value="DeviceRateLimited">DeviceRateLimited</option>
+        <option value="JSSShutdown">JSSShutdown</option>
+        <option value="JSSStartup">JSSStartup</option>
+        <option value="MobileDeviceCheckIn">MobileDeviceCheckIn</option>
+        <option value="MobileDeviceCommandCompleted">MobileDeviceCommandCompleted</option>
+        <option value="MobileDeviceEnrolled">MobileDeviceEnrolled</option>
+        <option value="MobileDevicePushSent">MobileDevicePushSent</option>
+        <option value="MobileDeviceUnEnrolled">MobileDeviceUnEnrolled</option>
+        <option value="PatchSoftwareTitleUpdated">PatchSoftwareTitleUpdated</option>
+        <option value="PushSent">PushSent</option>
+        <option value="RestAPIOperation">RestAPIOperation</option>
+        <option value="SCEPChallenge">SCEPChallenge</option>
+        <option value="SmartGroupComputerMembershipChange">SmartGroupComputerMembershipChange</option>
+        <option value="SmartGroupMobileDeviceMembershipChange">SmartGroupMobileDeviceMembershipChange</option>
+      </select></br></br>
+
+<!--       IN DEVELOPMENT
+      <b>Field to update?</b></br>
+      <input type="checkbox" name="asset_tag" value="asset_tag"> Asset Tag</br>
+      <input type="checkbox" name="name" value="name"> Computer Name</br>
+      <input type="checkbox" name="serial" value="serial"> Serial Number</br></br>
+
+      or...
+      
+      Custom Attribute: <input type="text" name="custom"></br></br>
+      <b>CSV File</b></br> 
+      <input type = "file" name = "file" /></b></br></br></br></br>
+      IN DEVELOPMENT -->
+
+      <div class="container-fluid row ">
+        <div class="container">
+          <div class="row">
+            <div class="col-xs-12 button-holder">
+              <div class="ajax-button">
+                <div class="fa fa-check done"></div>
+                <div class="fa fa-close failed"></div>
+                <i class="fa fa-templates" aria-hidden="true"></i>
+                <input class="submit" type="submit" value="Submit" />
+              </div>
+            </div>
+          </div>
+        </div>  
+      </div>
+		</form>  
+    {% endblock %}
+  </div>
+</body>
+</html>

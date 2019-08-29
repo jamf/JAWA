@@ -1,0 +1,12 @@
+# ignore all logs
+*.log
+
+# ignore pycache
+*.pyc
+
+# ignore certs
+security/*
+!/security/.git*
+
+# ignore mac .DS_Store
+.DS_Store

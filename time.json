@@ -1,0 +1,182 @@
+{
+	"days": [{
+			"id": "0",
+			"value": "Sunday",
+			"cron": "SUN"
+		},
+		{
+			"id": "1",
+			"value": "Monday",
+			"cron": "MON"
+		},
+		{
+			"id": "2",
+			"value": "Tuesday",
+			"cron": "TUE"
+		},
+		{
+			"id": "3",
+			"value": "Wednesday",
+			"cron": "WED"
+		},
+		{
+			"id": "4",
+			"value": "Thursday",
+			"cron": "THU"
+		},
+		{
+			"id": "5",
+			"value": "Friday",
+			"cron": "FRI"
+		},
+		{
+			"id": "6",
+			"value": "Saturday",
+			"cron": "SAT"
+		}
+
+	],
+	"hours": [{
+			"cron": "idk",
+			"value": "12:00 AM",
+			"id": "0"
+		},
+		{
+			"cron": "idk",
+			"value": "1:00 AM",
+			"id": "1"
+		},
+		{
+			"cron": "idk",
+			"value": "2:00 AM",
+			"id": "2"
+		},
+		{
+			"cron": "idk",
+			"value": "3:00 AM",
+			"id": "3"
+		},
+		{
+			"cron": "idk",
+			"value": "4:00 AM",
+			"id": "4"
+		},
+		{
+			"cron": "idk",
+			"value": "5:00 AM",
+			"id": "5"
+		},
+		{
+			"cron": "idk",
+			"value": "6:00 AM",
+			"id": "6"
+		},
+		{
+			"cron": "idk",
+			"value": "7:00 AM",
+			"id": "7"
+		},
+		{
+			"cron": "idk",
+			"value": "8:00 AM",
+			"id": "8"
+		},
+		{
+			"cron": "idk",
+			"value": "9:00 AM",
+			"id": "9"
+		},
+		{
+			"cron": "idk",
+			"value": "10:00 AM",
+			"id": "10"
+		},
+		{
+			"cron": "idk",
+			"value": "11:00 AM",
+			"id": "11"
+		},
+		{
+			"cron": "idk",
+			"value": "12:00 PM",
+			"id": "12"
+		},
+		{
+			"cron": "idk",
+			"value": "1:00 PM",
+			"id": "13"
+		},
+		{
+			"cron": "idk",
+			"value": "2:00 PM",
+			"id": "14"
+		},
+		{
+			"cron": "idk",
+			"value": "3:00 PM",
+			"id": "15"
+		},
+		{
+			"cron": "idk",
+			"value": "4:00 PM",
+			"id": "16"
+		},
+		{
+			"cron": "idk",
+			"value": "5:00 PM",
+			"id": "17"
+		},
+		{
+			"cron": "idk",
+			"value": "6:00 PM",
+			"id": "18"
+		},
+		{
+			"cron": "idk",
+			"value": "7:00 PM",
+			"id": "19"
+		},
+		{
+			"cron": "idk",
+			"value": "8:00 PM",
+			"id": "20"
+		},
+		{
+			"cron": "idk",
+			"value": "9:00 PM",
+			"id": "21"
+		},
+		{
+			"cron": "idk",
+			"value": "10:00 PM",
+			"id": "22"
+		},
+		{
+			"value": "11:00 PM",
+			"cron": "idk",
+			"id": "23"
+		}
+	],
+		"frequencies": [{
+			"id": "0",
+			"value": "Every Hour",
+			"cron": "idk"
+		},
+		{
+			"id": "1",
+			"value": "Every Day",
+			"cron": "idk"
+		},
+		{
+			"id": "2",
+			"value": "Every Week",
+			"cron": "idk"
+		},
+		{
+			"id": "3",
+			"value": "Every Month",
+			"cron": "idk"
+		}
+
+	]
+}

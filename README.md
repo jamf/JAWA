@@ -1,5 +1,5 @@
-<<<<<<< HEAD
-# JAWA - Jamf Automation and Webhook Assistant
+# JAWA
+Jamf Automation and Webhook Assistant
 
 The JAWA allows a an IT Administrator to focus on providing the best end user experience through automation!
 
@@ -32,8 +32,3 @@ FOR THE JAWA
 3. Unzip installer folder
 4. Run install.sh
 5. Navigate to "https://jawa.server.com" to verify connection and completion
-
-=======
-# JAWA
-Jamf Automation and Webhook Assistant
->>>>>>> 64745d2d185d1bba0ed227e94692e6a793f52411

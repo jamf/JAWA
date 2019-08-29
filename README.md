@@ -1,4 +1,4 @@
-# JAWA 
+# JAWA
 Jamf Automation and Webhook Assistant
 
 The JAWA allows a an IT Administrator to focus on providing the best end user experience through automation!

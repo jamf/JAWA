@@ -32,3 +32,4 @@ FOR THE JAWA
 3. Unzip installer folder
 4. Run install.sh
 5. Navigate to "https://jawa.server.com" to verify connection and completion
+6. Log in with your Jamf Pro credentials

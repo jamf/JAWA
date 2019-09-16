@@ -16,10 +16,10 @@ The JAWA sits on a Linux server and can be accessed via a GUI. Once installed, t
 *NOTE: JAWA and SaaS tools must have networking communication rules in place to properly execute desired automations. (i.e. Inbound from JAWA to Jamf Pro)*
 
 
-## Minimum Server Requriements
+## Recommended Server Requriements
 1. Ubuntu 18.04 or RHEL
-2. 4GB RAM
-3. 50GB Storage
+2. 2GB RAM
+3. 20GB Storage
 4. Inbound accessible from desired devices
 
 *NOTE: Your Jamf Pro server must be able to be accessed with inbound from JAWA.*

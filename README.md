@@ -33,5 +33,5 @@ FOR THE JAWA
 4. Change directories to the recently unzipped folder.
 5. Run the installer with `sudo ./install.run`
 6. Navigate to "https://jawa.server.com" to verify connection and completion
-7. Log in with your Jamf Pro credentials
+7. Log in with your Jamf Pro credentials (account must have access to view Jamf Pro activation code)
 8. Follow the wizard to begin setting up your first webhook or automation

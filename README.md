@@ -38,7 +38,7 @@ General Steps:
 
 General Overview of Installation:
 1. Spin up a UBUNTU/RHEL server
-2. Place installer folder in server
+2. Place installer and certs on server
 3. Unzip installer folder with `tar -xzvf <jawaInstaller>.tar.gz`
 4. Change directories to the recently unzipped folder.
 5. Run the installer with `sudo ./install.run`

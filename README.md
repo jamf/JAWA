@@ -1,52 +1,40 @@
-# JAWA
-Jamf Automation and Webhook Assistant
+# Jamf Automation and Webhook Assistant ("JAWA")
+The JAWA allows an IT Administrator to focus on providing the best end user experience through automation.
 
-The JAWA allows an IT Administrator to focus on providing the best end user experience through automation!
-
-*NOTE: Be advised that due to environmental differences, as always, it is best to test in your dev/eval server before deploying in production.*
+*[!] NOTE: Always test automations in a dev/eval environment before deploying to production.*
 
 ## What is it?
 
-The Jamf Automation and Webhook Assistant, JAWA, is a webapp that hosts various automation tools. Some of these tools include webhooks, cron/timed automations, and report generations.  Completely automated workflows in Jamf Pro can now be accomplished, and IT Administrators can utilize Webhooks and APIs of other SaaS products to automate other multi-step or repetitive tasks.  Thanks to the ease of use and modularity of the JAWA, scripts and workflows can be shared across organizations and teams.
+The Jamf Automation and Webhook Assistant, "JAWA", is an web server for hosting automation tools that interact with Jamf Pro, such as a webhook reciever, cron/timed exectution of scripts, and automated report generation.  JAWA makes it easier to implement automated workflows in Jamf Pro by providing a shared library of common tasks and also lets you use Webhooks and APIs of other SaaS products to automate multi-step or repetitive functions.  Scripts and workflows can be shared across organizations and teams. JAWA can reduce configuration time by reading and/or setting the Jamf Pro configurations required to run your automations. 
 
 ## How it works?
 
-The JAWA sits on a Linux server and can be accessed via a GUI. Once installed, the IT Admin is able to use the JAWA as a one-stop shop/single pane of glass to upload, edit or adjust any automations they choose. The IT Admin gathers scripts or workflows they wish to implement, and using the GUI, they upload the scripts, name the scripts, and click go. It's that easy. The backend of the JAWA will make sure that based on event (time, webhook, etc.) the script/workflow runs and the desired action occurs. For webhooks, the JAWA utilizes a modified version of a the robust and open-source https://github.com/adnanh/webhook/. The webapp itself is built utilizing Python-Flask.
-
-*NOTE: JAWA and SaaS tools must have networking communication rules in place to properly execute desired automations. (i.e. Inbound from JAWA to Jamf Pro)*
-
+The JAWA runs on a Linux server and can be accessed via a GUI. Once installed, the IT Admin is able to use the JAWA as a one-stop shop/single pane of glass to upload, edit or adjust any automations they choose. The IT Admin gathers scripts or workflows they wish to implement, and using the GUI, they upload the scripts, name the scripts, and click go. The backend of the JAWA will make sure that based on event (time, webhook, etc.) the script/workflow runs and the desired action occurs. For webhooks, the JAWA utilizes a modified version of a the robust and open-source https://github.com/adnanh/webhook/. The webapp itself is built utilizing Python-Flask.
 
 ## Recommended Server Requriements
 1. Ubuntu 18.04 or RHEL
 2. 2GB RAM
 3. 20GB Storage
-4. Inbound accessible from desired devices
-
-*NOTE: Your Jamf Pro server must be able to be accessed with inbound from JAWA.*
-
+4. A Jamf Pro account with permisison to perform the desired functions. For example, to configure webhooks, the  account must have access to read the Jamf Pro activation code and write permissions on webhooks. (can we put the lables for the specific check boxes that need to be checked.) Similarly, an API script needs to run as a user with the appropriate create/read/update/delete permissions. 
+5. Firewall rules to allow Inbound and/or outbound communcations to/from Saas and devices. These will depend on the functions you run in JAWA. For example, when imlementing Jamf Pro webhooks, Jamf Pro must be able to initiate connections to JAWA. When implementing a Jamf Pro API script, JAWA will need to initiate connections to Jamf Pro. When hosting a webapp used by devices, those devices must be able to initiate connections to JAWA.  
 
 ## How do I use it?
-Check out the JAWA Administrators Guide for complete installation instructions and how to use The JAWA!
 
-General Steps:
-1. Log in with Jamf Pro Admin credentials
-2. Select Create New Webhook or Automation
-3. Fill in form and attach script
-4. That's it!
+*See the "JAWA Administrators Guide" for more detailed installation and configuration instructions.*
 
-*NOTE: When completing a new webhook configuration, Jamf Pro (or source of webhook) will automatically be configured!*
-
-General Overview of Installation:
-1. Spin up a Ubuntu/RHEL server
-2. Place installer and certs on server
+Installation Steps:
+1. Install an UBUNTU/RHEL server
+2. Copy the JAWA installer folder to the server
 3. Unzip installer folder with `tar -xzvf <jawaInstaller>.tar.gz`
-4. Change directories to the recently unzipped folder.
+4. Change directories to the unzipped folder.
 5. Run the installer with `sudo ./install.run`
 6. Navigate to "https://jawa.server.com" to verify connection and completion
-7. Log in with your Jamf Pro credentials (account must have access to view Jamf Pro activation code and configure webhooks)
+7. Log in with your Jamf Pro credentials
 8. Follow the wizard to begin setting up your first webhook or automation
 
-## Support
-Please open an "Issue" on the JAWA GitHub page!
+Configuration Steps:
+1. Log in with your Jamf Pro Admin credentials
+2. Select "Create New Webhook or Automation"
+3. Fill in the form and attach your script
 
-Thank you, and happy automating!!
+*NOTE: When completing a new webhook configuration, Jamf Pro (or source of webhook) will automatically be configured*

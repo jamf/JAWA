@@ -5,7 +5,7 @@ The JAWA allows an IT Administrator to focus on providing the best end user expe
 
 ## What is it?
 
-The Jamf Automation and Webhook Assistant, "JAWA", is an web server for hosting automation tools that interact with Jamf Pro, such as a webhook reciever, cron/timed exectution of scripts, and automated report generation.  JAWA makes it easier to implement automated workflows in Jamf Pro by providing a shared library of common tasks and also lets you use Webhooks and APIs of other SaaS products to automate multi-step or repetitive functions.  Scripts and workflows can be shared across organizations and teams. JAWA can reduce configuration time by reading and/or setting the Jamf Pro configurations required to run your automations. 
+The Jamf Automation and Webhook Assistant, "JAWA", is a web server for hosting automation tools that interact with Jamf Pro, such as a webhook reciever, cron/timed exectution of scripts, and automated report generation.  JAWA makes it easier to implement automated workflows in Jamf Pro by providing a shared library of common tasks and also lets you use Webhooks and APIs of other SaaS products to automate multi-step or repetitive functions.  Scripts and workflows can be shared across organizations and teams. JAWA can reduce configuration time by reading and/or setting the Jamf Pro configurations required to run your automations. 
 
 ## How it works?
 

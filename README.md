@@ -45,3 +45,8 @@ General Overview of Installation:
 6. Navigate to "https://jawa.server.com" to verify connection and completion
 7. Log in with your Jamf Pro credentials (account must have access to view Jamf Pro activation code and configure webhooks)
 8. Follow the wizard to begin setting up your first webhook or automation
+
+## Support
+Please open an "Issue" on the JAWA GitHub page!
+
+Thank you, and happy automating!!

@@ -37,7 +37,7 @@ General Steps:
 *NOTE: When completing a new webhook configuration, Jamf Pro (or source of webhook) will automatically be configured!*
 
 General Overview of Installation:
-1. Spin up a UBUNTU/RHEL server
+1. Spin up a Ubuntu/RHEL server
 2. Place installer and certs on server
 3. Unzip installer folder with `tar -xzvf <jawaInstaller>.tar.gz`
 4. Change directories to the recently unzipped folder.

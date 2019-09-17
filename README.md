@@ -28,7 +28,7 @@ Installation Steps:
 3. Extract installer folder with `tar -xzvf <jawaInstaller>.tar.gz`
 4. Change directories to the extracted folder
 5. Run the installer with `sudo ./install.run`
-6. Navigate to your FQDN "https://jawa.server.com" to verify connection and completion
+6. Navigate to your FQDN to verify connection and completion
 7. Log in with your Jamf Pro credentials
 8. Follow the wizard to begin setting up your first webhook or automation
 

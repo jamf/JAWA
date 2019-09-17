@@ -18,15 +18,15 @@ from flask import (Flask, request, render_template,
 	send_from_directory, Blueprint, abort)
 
 
-from new_jp_webhook import new_jp
-from edit_jp_webhook import edit_jp
-from delete_jp_webhook import delete_jp
+from webapp.new_jp_webhook import new_jp
+from webapp.edit_jp_webhook import edit_jp
+from webapp.delete_jp_webhook import delete_jp
 
-from new_okta_webhook import new_okta
-from delete_okta_webhook import delete_okta
+from webapp.new_okta_webhook import new_okta
+from webapp.delete_okta_webhook import delete_okta
 
-from new_cron_job import new_cron
-from delete_cron_job import cron_delete
+from webapp.new_cron_job import new_cron
+from webapp.delete_cron_job import cron_delete
 
 # Flask logging
 logging.basicConfig(level=logging.INFO)

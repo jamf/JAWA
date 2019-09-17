@@ -26,7 +26,17 @@ The JAWA sits on a Linux server and can be accessed via a GUI. Once installed, t
 
 
 ## How do I use it?
-FOR THE JAWA
+Check out the JAWA Administrators Guide for complete installation instructions and how to use The JAWA!
+
+General Steps:
+1. Log in with Jamf Pro Admin credentials
+2. Select Create New Webhook or Automation
+3. Fill in form and attach script
+4. That's it!
+
+*NOTE: When completing a new webhook configuration, Jamf Pro (or source of webhook) will automatically be configured!*
+
+General Overview of Installation:
 1. Spin up a UBUNTU/RHEL server
 2. Place installer folder in server
 3. Unzip installer folder with `tar -xzvf <jawaInstaller>.tar.gz`

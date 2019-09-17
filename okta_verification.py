@@ -3,7 +3,7 @@
 import json
 import sys
 
-challenge = sys.argv[1]
+challenge = sys.argv[2]
 
 json_text = {"verification": "{}".format(challenge)}
 

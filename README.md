@@ -37,10 +37,11 @@ Configuration Steps:
 2. Select "Create New Webhook or Automation"
 3. Fill in the form and attach your script
 
-*NOTE: When completing a new webhook configuration, Jamf Pro (or source of webhook) will automatically be configured*
-
 When scripting for webhooks, verifiy JSON structure sent from source:
 1. [Jamf Pro Webhook Event Info](https://developer.jamf.com/webhooks)
 2. [Okta Webhook Event Info](https://developer.okta.com/docs/reference/api/event-types/?q=event-hook-eligible)
 
-Find realeases [here.](https://github.com/jamf/JAWA/releases)
+*NOTE: When completing a new webhook configuration, Jamf Pro (or source of webhook) will automatically be configured*
+
+
+Find JAWA realeases [here.](https://github.com/jamf/JAWA/releases)

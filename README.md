@@ -20,7 +20,7 @@ The JAWA runs on a Linux server and can be accessed via a GUI. Once installed, t
 
 ## How do I use it?
 
-*See the "JAWA Administrators Guide" for more detailed installation and configuration instructions.*
+*See the "JAWA Administrators Guide" found in the [release](https://github.com/jamf/JAWA/releases) for more detailed installation and configuration instructions.*
 
 Installation Steps:
 1. Install an Ubuntu/RHEL server
@@ -38,3 +38,5 @@ Configuration Steps:
 3. Fill in the form and attach your script
 
 *NOTE: When completing a new webhook configuration, Jamf Pro (or source of webhook) will automatically be configured*
+
+Find realeases [here.](https://github.com/jamf/JAWA/releases)

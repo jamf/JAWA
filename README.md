@@ -39,4 +39,8 @@ Configuration Steps:
 
 *NOTE: When completing a new webhook configuration, Jamf Pro (or source of webhook) will automatically be configured*
 
+When scripting for webhooks, verifiy JSON structure sent from source:
+[Jamf Pro Webhook Event Info](https://developer.jamf.com/webhooks)
+[Okta Webhook Event Info](https://developer.okta.com/docs/reference/api/event-types/?q=event-hook-eligible)
+
 Find realeases [here.](https://github.com/jamf/JAWA/releases)

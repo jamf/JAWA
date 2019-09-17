@@ -15,7 +15,7 @@ The JAWA runs on a Linux server and can be accessed via a GUI. Once installed, t
 1. Ubuntu 18.04 or RHEL
 2. 2GB RAM
 3. 20GB Storage
-4. A Jamf Pro account with permisison to perform the desired functions. For example, to configure webhooks, the  account must have access to read the Jamf Pro activation code and write permissions on webhooks. (can we put the lables for the specific check boxes that need to be checked.) Similarly, an API script needs to run as a user with the appropriate create/read/update/delete permissions. 
+4. A Jamf Pro account with permisison to perform the desired functions. For example, to configure webhooks, the  account must have access to read the Jamf Pro activation code and write permissions on webhooks. Similarly, an API script needs to run as a user with the appropriate create/read/update/delete permissions. 
 5. Firewall rules to allow Inbound and/or outbound communcations to/from Saas and devices. These will depend on the functions you run in JAWA. For example, when imlementing Jamf Pro webhooks, Jamf Pro must be able to initiate connections to JAWA. When implementing a Jamf Pro API script, JAWA will need to initiate connections to Jamf Pro. When hosting a webapp used by devices, those devices must be able to initiate connections to JAWA.  
 
 ## How do I use it?

@@ -23,12 +23,12 @@ The JAWA runs on a Linux server and can be accessed via a GUI. Once installed, t
 *See the "JAWA Administrators Guide" for more detailed installation and configuration instructions.*
 
 Installation Steps:
-1. Install an UBUNTU/RHEL server
-2. Copy the JAWA installer folder to the server
-3. Unzip installer folder with `tar -xzvf <jawaInstaller>.tar.gz`
-4. Change directories to the unzipped folder.
+1. Install an Ubuntu/RHEL server
+2. Copy the JAWA installer to the server
+3. Extract installer folder with `tar -xzvf <jawaInstaller>.tar.gz`
+4. Change directories to the extracted folder
 5. Run the installer with `sudo ./install.run`
-6. Navigate to "https://jawa.server.com" to verify connection and completion
+6. Navigate to your FQDN "https://jawa.server.com" to verify connection and completion
 7. Log in with your Jamf Pro credentials
 8. Follow the wizard to begin setting up your first webhook or automation
 

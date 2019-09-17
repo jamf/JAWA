@@ -41,7 +41,7 @@ When scripting for webhooks, verifiy JSON structure sent from source:
 1. [Jamf Pro Webhook Event Info](https://developer.jamf.com/webhooks)
 2. [Okta Webhook Event Info](https://developer.okta.com/docs/reference/api/event-types/?q=event-hook-eligible)
 
-*NOTE: When completing a new webhook configuration, Jamf Pro (or source of webhook) will automatically be configured*
+*NOTE: To ensure continuity, webhooks created via JAWA should be modified and deleted from JAWA as Jamf Pro (or source of webhook) will automatically be configured/adjusted appropriately.*
 
 
 Find JAWA realeases [here.](https://github.com/jamf/JAWA/releases)

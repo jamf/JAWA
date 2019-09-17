@@ -228,7 +228,7 @@ def wizard():
 				response_json = response.json()
 
 				jamf_event = response_json['webhook']['event']
-				jamf_id = response_json['webhook']['name']
+				jamf_id = response_json['webhook']['id']
 
 				script = webhook['script'].rsplit('/', 1)
 				webhook_json.append({"name": webhook['name'],

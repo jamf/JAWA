@@ -145,6 +145,17 @@ def edit():
 				if request.form.get('event') != 'unchanged':
 					new_event = request.form.get('event')
 					add_event = '<event>{}</event>'.format(new_event)
+					if (
+						request.form.get('event') == 'SmartGroupMobileDeviceMembershipChange' or 
+						request.form.get('event') == 'SmartGroupComputerMembershipChange'):
+
+						smart_group_notice = "NOTICE!  This webhooks is not yet enabled."
+						smart_group_instructions = "Specify desired Smart Group and enable: "
+						webhook_enablement = 'false'
+					
+					else:
+						smart_group_instructions = ""
+						webhook_enablement = 'true'
 
 				if add_name == '' and add_event == '':
 					print "No Jamf Change Needed"
@@ -152,6 +163,7 @@ def edit():
 				else:
 					data = '<webhook>'
 					data += add_name
+					data += '<enabled>' + webhook_enablement + '</enabled>'
 					data += add_event
 					data += '</webhook>'
 					full_url = session['url'] + '/JSSResource/webhooks/name/' + webhookname

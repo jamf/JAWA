@@ -13,7 +13,7 @@ The Jamf Automation and Webhook Assistant, "JAWA", is a web server for hosting a
 
 The JAWA runs on a Linux server and can be accessed via a GUI. Once installed, the IT Admin is able to use the JAWA as a one-stop shop/single pane of glass to upload, edit or adjust any automations they choose. The IT Admin gathers scripts or workflows they wish to implement, and using the GUI, they upload the scripts, name the scripts, and click go. The backend of the JAWA will make sure that based on event (time, webhook, etc.) the script/workflow runs and the desired action occurs. For webhooks, the JAWA utilizes a modified version of a the robust and open-source https://github.com/adnanh/webhook/. The webapp itself is built utilizing Python-Flask.
 
-## Recommended Server Requriements
+## Recommended Server Requirements
 1. Ubuntu 18.04 or RHEL
 2. 2GB RAM
 3. 20GB Storage

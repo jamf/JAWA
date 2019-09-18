@@ -7,6 +7,8 @@ The JAWA allows an IT Administrator to focus on providing the best end user expe
 
 The Jamf Automation and Webhook Assistant, "JAWA", is a web server for hosting automation tools that interact with Jamf Pro, such as a webhook reciever, cron/timed exectution of scripts, and automated report generation.  JAWA makes it easier to implement automated workflows in Jamf Pro by providing a shared library of common tasks and also lets you use Webhooks and APIs of other SaaS products to automate multi-step or repetitive functions.  Scripts and workflows can be shared across organizations and teams. JAWA can reduce configuration time by reading and/or setting the Jamf Pro configurations required to run your automations. 
 
+*Check out [screenshots.](https://github.com/jamf/JAWA/wiki/JAWA-Screenshots)*
+
 ## How it works?
 
 The JAWA runs on a Linux server and can be accessed via a GUI. Once installed, the IT Admin is able to use the JAWA as a one-stop shop/single pane of glass to upload, edit or adjust any automations they choose. The IT Admin gathers scripts or workflows they wish to implement, and using the GUI, they upload the scripts, name the scripts, and click go. The backend of the JAWA will make sure that based on event (time, webhook, etc.) the script/workflow runs and the desired action occurs. For webhooks, the JAWA utilizes a modified version of a the robust and open-source https://github.com/adnanh/webhook/. The webapp itself is built utilizing Python-Flask.
@@ -42,6 +44,5 @@ When scripting for webhooks, verifiy JSON structure sent from source:
 2. [Okta Webhook Event Info](https://developer.okta.com/docs/reference/api/event-types/?q=event-hook-eligible)
 
 *NOTE: To ensure continuity, webhooks created via JAWA should be modified and deleted from JAWA as Jamf Pro (or source of webhook) will automatically be configured/adjusted appropriately.*
-
 
 Find JAWA realeases [here.](https://github.com/jamf/JAWA/releases)

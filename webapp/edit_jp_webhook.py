@@ -149,7 +149,7 @@ def edit():
 						request.form.get('event') == 'SmartGroupMobileDeviceMembershipChange' or 
 						request.form.get('event') == 'SmartGroupComputerMembershipChange'):
 
-						smart_group_notice = "NOTICE!  This webhooks is not yet enabled."
+						smart_group_notice = "NOTICE!  This webhook is not yet enabled."
 						smart_group_instructions = "Specify desired Smart Group and enable: "
 						webhook_enablement = 'false'
 					
@@ -171,10 +171,18 @@ def edit():
 						auth=(session['username'], session['password']), 
 						headers={'Content-Type': 'application/xml'}, 
 						data=data)
+					result = re.search('<id>(.*)</id>', response.text)
+					new_link = "{}/webhooks.html?id={}".format(session['url'],result.group(1))
+					new_here = "Link"
+					
 
 
 			return render_template('success.html', 
 				webhooks="success", 
+				smart_group_instructions=smart_group_instructions,
+				smart_group_notice=smart_group_notice,
+				new_link=new_link,
+				new_here=new_here,
 				username=str(escape(session['username'])))
 
 		else:

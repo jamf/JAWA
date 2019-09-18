@@ -149,7 +149,7 @@ def webhooks():
 					request.form.get('event') == 'SmartGroupMobileDeviceMembershipChange' or 
 					request.form.get('event') == 'SmartGroupComputerMembershipChange'):
 
-					smart_group_notice = "NOTICE!  This webhooks is not yet enabled."
+					smart_group_notice = "NOTICE!  This webhook is not yet enabled."
 					smart_group_instructions = "Specify desired Smart Group and enable: "
 					webhook_enablement = 'false'
 					

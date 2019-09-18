@@ -145,10 +145,21 @@ def webhooks():
 				with open(hooks_file, 'w') as outfile:
 					json.dump(data, outfile)
 				
+				if (
+					request.form.get('event') == 'SmartGroupMobileDeviceMembershipChange' or 
+					request.form.get('event') == 'SmartGroupComputerMembershipChange'):
+
+					smart_group_notice = "NOTICE!  This webhooks is not yet enabled."
+					smart_group_instructions = "Specify desired Smart Group and enable: "
+					webhook_enablement = 'false'
+					
+				else:
+					smart_group_instructions = ""
+					webhook_enablement = 'true'
 				data = '<webhook>'
 				data += '<name>'
 				data += request.form.get('webhookname')
-				data += '</name><enabled>true</enabled><url>'
+				data += '</name><enabled>' + webhook_enablement + '</enabled><url>'
 				data += "{}/hooks/{}".format(server_address, request.form.get('webhookname'))
 				data += '</url><content_type>application/json</content_type>'
 				data += '<event>{}</event>'.format(request.form.get('event'))
@@ -174,14 +185,7 @@ def webhooks():
 				with open('/usr/local/jawa/jp_webhooks.json', 'w') as outfile:
 					json.dump(data, outfile)	
 
-				if (
-					request.form.get('event') == 'SmartGroupMobileDeviceMembershipChange' or 
-					request.form.get('event') == 'SmartGroupComputerMembershipChange'):
-
-					smart_group_instructions = "Specify Desired Smart Group: "
-					
-				else:
-					smart_group_instructions = ""
+				
 
 				new_here = "Link"
 				new_webhook = "New webhook created."
@@ -189,6 +193,7 @@ def webhooks():
 			return render_template('success.html', 
 				webhooks="success", 
 				smart_group_instructions=smart_group_instructions,
+				smart_group_notice=smart_group_notice,
 				new_link=new_link,
 				new_here=new_here,
 				new_webhook=new_webhook,

@@ -154,6 +154,7 @@ def edit():
 						webhook_enablement = 'false'
 					
 					else:
+						smart_group_notice = ""
 						smart_group_instructions = ""
 						webhook_enablement = 'true'
 

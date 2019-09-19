@@ -75,7 +75,7 @@ data += serial_number
 data += '&lt;/name&gt;&lt;/general&gt;&lt;/computer&gt;'
 
 # Forms the Jamf Pro API URL and endpoint
-full_url = jamfpro_url + '/JSSResource/computers/serialNumber/' + serial_number
+full_url = jamfpro_url + '/JSSResource/computers/serialnumber/' + serial_number
 
 # Updates the device record
 response = requests.put(full_url, 

@@ -94,8 +94,13 @@ def edit():
 					f.filename = f.filename.replace(" ", "-")
 
 				f.save(secure_filename(f.filename))
-
-				script_file = "/usr/local/jawa/scripts/{}".format(f.filename)
+				old_script_file = "/usr/local/jawa/scripts/{}".format(f.filename)
+				if request.form.get('new_webhookname') == '':
+					new_script_file = "/usr/local/jawa/scripts/{}-{}".format(request.form.get('webhookname'), f.filename)
+				else:
+					new_script_file = "/usr/local/jawa/scripts/{}-{}".format(request.form.get('new_webhookname'), f.filename)
+				os.rename(old_script_file, new_script_file)
+				script_file = new_script_file
 				hooks_file = '/etc/webhook.conf'
 
 				os.chmod(script_file, 0755)
@@ -145,6 +150,7 @@ def edit():
 				if request.form.get('event') != 'unchanged':
 					new_event = request.form.get('event')
 					add_event = '<event>{}</event>'.format(new_event)
+				
 					if (
 						request.form.get('event') == 'SmartGroupMobileDeviceMembershipChange' or 
 						request.form.get('event') == 'SmartGroupComputerMembershipChange'):
@@ -152,14 +158,23 @@ def edit():
 						smart_group_notice = "NOTICE!  This webhook is not yet enabled."
 						smart_group_instructions = "Specify desired Smart Group and enable: "
 						webhook_enablement = 'false'
-					
+				
 					else:
 						smart_group_notice = ""
 						smart_group_instructions = ""
 						webhook_enablement = 'true'
+				
+				else:
+					smart_group_notice = ""
+					smart_group_instructions = ""
+					webhook_enablement = 'true'
 
 				if add_name == '' and add_event == '':
 					print "No Jamf Change Needed"
+					smart_group_instructions = ""
+					smart_group_notice = ""
+					new_link = ""
+					new_here = ""			
 				
 				else:
 					data = '<webhook>'
@@ -175,8 +190,6 @@ def edit():
 					result = re.search('<id>(.*)</id>', response.text)
 					new_link = "{}/webhooks.html?id={}".format(session['url'],result.group(1))
 					new_here = "Link"
-					
-
 
 			return render_template('success.html', 
 				webhooks="success", 

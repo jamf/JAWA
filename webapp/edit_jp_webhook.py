@@ -157,9 +157,19 @@ def edit():
 						smart_group_notice = ""
 						smart_group_instructions = ""
 						webhook_enablement = 'true'
+				else:
+					smart_group_notice = ""
+					smart_group_instructions = ""
+					webhook_enablement = 'true'
 
 				if add_name == '' and add_event == '':
 					print "No Jamf Change Needed"
+					smart_group_instructions = ""
+					smart_group_notice = ""
+					new_link = ""
+					new_here = ""
+
+
 				
 				else:
 					data = '<webhook>'

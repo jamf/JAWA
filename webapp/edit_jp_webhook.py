@@ -94,8 +94,13 @@ def edit():
 					f.filename = f.filename.replace(" ", "-")
 
 				f.save(secure_filename(f.filename))
-
-				script_file = "/usr/local/jawa/scripts/{}".format(f.filename)
+				old_script_file = "/usr/local/jawa/scripts/{}".format(f.filename)
+				if request.form.get('new_webhookname') == '':
+					new_script_file = "/usr/local/jawa/scripts/{}-{}".format(request.form.get('webhookname'), f.filename)
+				else:
+					new_script_file = "/usr/local/jawa/scripts/{}-{}".format(request.form.get('new_webhookname'), f.filename)
+				os.rename(old_script_file, new_script_file)
+				script_file = new_script_file
 				hooks_file = '/etc/webhook.conf'
 
 				os.chmod(script_file, 0755)

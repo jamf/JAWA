@@ -1,9 +1,7 @@
 # Jamf Automation and Webhook Assistant ("JAWA")
 The JAWA allows an IT Administrator to focus on providing the best end user experience through automation.
 
-![Dashboard](https://www.dropbox.com/s/hufh7wo1wsr4z2q/dashboard.png?dl=0)
-
-![How-to-use](https://www.dropbox.com/s/4j15in3opy887va/create_jamf_pro_webhook.png?dl=0)
+*Check out [screenshots.](https://github.com/jamf/JAWA/wiki/JAWA-Screenshots)*
 
 *[!] NOTE: Always test automations in a dev/eval environment before deploying to production.*
 

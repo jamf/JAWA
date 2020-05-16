@@ -8,10 +8,12 @@ from time import sleep
 import signal
 import requests
 import re
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 from flask import (Flask, request, render_template, 
 	session, redirect, url_for, escape, 
 	send_from_directory, Blueprint, abort)
+
+verify_ssl = True
 
 delete_jp = Blueprint('delete', __name__)
 
@@ -54,8 +56,8 @@ def delete():
 				full_url = session['url'] + '/JSSResource/webhooks/name/' + webhookname
 				response = requests.put(full_url, 
 					auth=(session['username'], session['password']), 
-					headers={'Content-Type': 'application/xml'}, 
-					data=data)
+					headers={'Content-Type': 'application/xml'},
+					verify=verify_ssl, data=data)
 
 				hooks_file = '/etc/webhook.conf'
 				data = json.load(open(hooks_file))

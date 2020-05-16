@@ -6,7 +6,7 @@ import time
 from time import sleep
 import requests
 import re
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 from flask import (Flask, request, render_template, 
 	session, redirect, url_for, escape, 
 	send_from_directory, Blueprint, abort)

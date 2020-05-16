@@ -6,11 +6,11 @@ from time import sleep
 import signal
 import requests
 import re
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 from flask import (Flask, request, render_template, 
 	session, redirect, url_for, escape, 
 	send_from_directory, Blueprint, abort)
-
+verify_ssl = True
 new_jp = Blueprint('webhooks', __name__)
 
 @new_jp.route('/webhooks', methods=['GET','POST'])
@@ -18,7 +18,8 @@ def webhooks():
 	exists = os.path.isfile('/usr/local/jawa/webapp/server.json')
 	if exists == False:
 		return render_template('setup.html', 
-			setup="setup", 
+			setup="setup",
+			jps_url=str(escape(session['url'])),
 			username=str(escape(session['username'])))
 	exists = os.path.isfile('/usr/local/jawa/jpwebhooks.json')	
 	if exists == False:
@@ -79,11 +80,11 @@ def webhooks():
 							str_error = None
 						except Exception as str_error:
 							pass
-						if str_error:
-							sleep(2)
-							break
-						else:
-							continue
+							if str_error:
+								sleep(2)
+								break
+							else:
+								continue
 
 					for id_name in id_list:
 						if id_name == request.form.get('webhookname'):
@@ -124,7 +125,7 @@ def webhooks():
 
 				new_id = request.form.get('new_webhookname')
 
-				os.chmod(new_script_file, 0755)
+				os.chmod(new_script_file, mode=0o0755)
 
 				if type(data) is dict:
 					data = [data]
@@ -169,7 +170,8 @@ def webhooks():
 
 				response = requests.post(full_url, 
 					auth=(session['username'], session['password']), 
-					headers={'Content-Type': 'application/xml'}, data=data)
+					headers={'Content-Type': 'application/xml'}, data=data,
+					verify=verify_ssl)
 
 				result = re.search('<id>(.*)</id>', response.text)
 				new_link = "{}/webhooks.html?id={}".format(session['url'],result.group(1))

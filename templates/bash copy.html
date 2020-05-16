@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block custom_styles %}
+nav {
+    background-color: #5B6982;
+    min-height: 40px;
+}
+{% endblock %}
+{% block title %}
+<h1 style="font-family: Helvetica Neue; font-size: 40px; color: #5B6982;">Virtual Visits</h1>
+<hr style="height: 2px; background-color: #E7E6E6;"/>
+{% endblock %}
+{% block reset_meeting_success_alert_text %}
+Your new meeting link was successfully created.
+{% endblock %}
+{% block reset_meeting_failure_alert_text %}
+Whoops! Something went wrong.\nPlease wait a moment and try again.
+{% endblock %}
+{% block reset_meeting_button_text %}
+Create New Meeting Link
+{% endblock %}
+{% block device_setup_instructions %}
+<p><i>Use the copy options below to setup your device.</i></p>
+{% endblock %}
+{% block send_email_failure_alert_text %}
+There was a problem sending your invite.\n\nCheck that you have correctly filled out the form and try again.
+{% endblock %}
+{% block send_email_button_text %}
+Send Email
+{% endblock %}
+{% block start_meeting_button_text %}
+Start Meeting
+{% endblock %}
+{% block email_instructions %}
+<p>Use the form below to send your meeting URL to your family and friends.</p>
+<p><i>The meeting link will be included below your message.</i></p>
+{% endblock %}
+{% block email_recipients_label %}
+<b>Recipient's e-mail address:</b>
+{% endblock %}
+{% block email_message_label %}
+<label for="message"><b>Message:</b></label>
+{% endblock %}
+{% block email_message %}
+Please join my video conferencing call.
+{% endblock %}

@@ -7,7 +7,7 @@ import time
 from time import sleep
 import requests
 import re
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 from flask import (Flask, request, render_template, 
 	session, redirect, url_for, escape, 
 	send_from_directory, Blueprint, abort)
@@ -17,7 +17,7 @@ new_okta = Blueprint('okta_new', __name__)
 @new_okta.route('/okta_new', methods=['GET','POST'])
 def okta_new():
 	if 'username' in session:	
-		os.chmod("/usr/local/jawa/okta_verification.py", 0755)
+		os.chmod("/usr/local/jawa/okta_verification.py", mode=0o0755)
 		okta_json = '/usr/local/jawa/okta_json.json'
 		
 		if not os.path.isfile('/usr/local/jawa/okta_json.json'):
@@ -76,7 +76,7 @@ def okta_new():
 						error="error", 
 						username=str(escape(session['username'])))
 
-			os.chmod(new_file, 0755)
+			os.chmod(new_file, mode=0o0755)
 
 			data = {
 				"name" : okta_name,

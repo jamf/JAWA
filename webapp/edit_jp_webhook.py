@@ -5,20 +5,21 @@ import json
 from time import sleep, time
 import requests
 import re
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 from flask import (Flask, request, render_template, 
 	session, redirect, url_for, escape, 
 	send_from_directory, Blueprint, abort)
 
 edit_jp = Blueprint('edit', __name__)
-
+verify_ssl = True
 # Edit Existing Webhook
 @edit_jp.route('/edit', methods=['GET','POST'])
 def edit():
 	exists = os.path.isfile('/usr/local/jawa/webapp/server.json')
 	if exists == False:
 		return render_template('setup.html', 
-			setup="setup", 
+			setup="setup",
+			jps_url=str(escape(session['url'])), 
 			username=str(escape(session['username'])))
 	
 	if 'username' in session:
@@ -58,11 +59,11 @@ def edit():
 							str_error = None
 						except Exception as str_error:
 							pass
-						if str_error:
-							sleep(2)
-							break
-						else:
-							continue
+							if str_error:
+								sleep(2)
+								break
+							else:
+								continue
 
 					for id_name in id_list:
 						if id_name == request.form.get('new_webhookname'):
@@ -103,7 +104,7 @@ def edit():
 				script_file = new_script_file
 				hooks_file = '/etc/webhook.conf'
 
-				os.chmod(script_file, 0755)
+				os.chmod(script_file, mode=0o0755)
 				
 				with open(hooks_file) as json_file:  
 					data = json.load(json_file)
@@ -170,7 +171,7 @@ def edit():
 					webhook_enablement = 'true'
 
 				if add_name == '' and add_event == '':
-					print "No Jamf Change Needed"
+					print("No Jamf Change Needed")
 					smart_group_instructions = ""
 					smart_group_notice = ""
 					new_link = ""
@@ -185,7 +186,8 @@ def edit():
 					full_url = session['url'] + '/JSSResource/webhooks/name/' + webhookname
 					response = requests.put(full_url, 
 						auth=(session['username'], session['password']), 
-						headers={'Content-Type': 'application/xml'}, 
+						headers={'Content-Type': 'application/xml'},
+						verify = verify_ssl, 
 						data=data)
 					result = re.search('<id>(.*)</id>', response.text)
 					new_link = "{}/webhooks.html?id={}".format(session['url'],result.group(1))

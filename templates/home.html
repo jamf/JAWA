@@ -11,7 +11,10 @@
 
     <p>Please log in.</p>
     <form action="/login" method="post">
+      {% if jsslock %}
+      {% else %}
       <p>Jamf Pro URL: {{ input('url') }}</p>
+      {% endif %}
       <p>Username: {{ input('username') }}</p>
       <p>Passcode: {{ input('password', type='password') }}</p>
       <input type=submit value=Login></br></br></br></br>

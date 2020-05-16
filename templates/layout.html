@@ -1,0 +1,47 @@
+{% macro input(name, value='', type='text', size=20) -%}
+<input type="{{ type }}" name="{{ name }}" value="{{value|e }}" size="{{ size }}">
+{%- endmacro %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Directory</title>
+  <script>
+    $(document).ready(function() {
+      $(".submit").click(function() {
+        $(".submit").addClass("loading");
+        setTimeout(function() {
+          $(".submit").addClass("hide-loading");
+          $(".done").addClass("finish");
+        }, 1000000);
+        setTimeout(function() {
+          $(".submit").removeClass("loading");
+          $(".submit").removeClass("hide-loading");
+          $(".done").removeClass("finish");
+          $(".failed").removeClass("finish");
+        }, 1000000);
+      })
+    });
+  </script>
+  <meta name="msapplication-TileColor" content="#ffffff">
+	<meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
+	<meta name="theme-color" content="#ffffff">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main2.css') }}">
+</head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<body>
+  <header>
+    <div class="container">
+      <h1 class="logo"></h1>
+    </div>
+  </header>
+  <div class="container">
+    
+    {% block content %}
+    {% endblock %}
+  </div>
+</body>
+<footer>
+  {% if username %}
+  {% endif %}
+</footer>
+</html>

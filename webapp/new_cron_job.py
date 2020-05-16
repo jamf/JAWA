@@ -4,7 +4,7 @@ import os
 import json
 from time import sleep
 import re
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 from flask import (Flask, request, render_template, 
 	session, redirect, url_for, escape, 
 	send_from_directory, Blueprint, abort)
@@ -63,12 +63,12 @@ def cron():
 			script = request.files['script']
 			if ' ' in script.filename:
 				script.filename = script.filename.replace(" ", "-")
-				print str(script.filename)
+				print(str(script.filename))
 				
 			script.save(secure_filename(script.filename))
 			script_file = "/usr/local/jawa/scripts/{}".format(script.filename)
 
-			os.chmod(script_file, 0755)
+			os.chmod(script_file, mode=0o0755)
 
 			frequency = request.form.get('frequency')
 
@@ -82,8 +82,8 @@ def cron():
 			data = json.load(open(cron_json))
 
 			for i in data:
-				print i
-				print " ~ ~ ~ ~ ~"
+				print(i)
+				print(" ~ ~ ~ ~ ~")
 				if str(i['name']) == cron_name:
 					error_message = "Name already exists!"
 					return render_template('error.html', 

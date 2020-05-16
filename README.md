@@ -60,6 +60,6 @@ When scripting for webhooks, verifiy JSON structure sent from source:
 - SSL Termination with NGINX
 - JAWA and webhook moved to systemd
 - Create and Delete Timed Automations
-- Ability to lock authentication to specific jamf pro instance
+- Ability to lock authentication to specific Jamf Pro instance
 
 Find JAWA realeases [here.](https://github.com/jamf/JAWA/releases)

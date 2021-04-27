@@ -10,6 +10,40 @@ from flask import (Flask, request, render_template,
                    session, redirect, url_for, escape)
 from waitress import serve
 
+# Flask logging
+logger = logging.getLogger('waitress')
+logger.setLevel(logging.INFO)
+error_message = ""
+verify_ssl = True  # Enables Jamf Pro SSL certificate verification
+
+# global jamf_url
+# global jamf_username
+# global jamf_password
+# global distilled_serial
+app = Flask(__name__)
+
+# Initiate Flask
+
+
+def main():
+    base_dir = os.path.dirname(__file__)
+    print(base_dir)
+    environment_setup(base_dir)
+    register_blueprints()
+    app.secret_key = "*"
+    serve(app, url_scheme='http', host='0.0.0.0', port=8000)
+
+
+def environment_setup(project_dir):
+    global webhook_file, jp_file, okta_file, cron_file, server_json_file, scripts_directory
+    webhook_file = "/etc/webhook.conf"
+    jp_file = os.path.join(project_dir, 'data/jp_webhooks.json')
+    okta_file = os.path.join(project_dir, 'data/okta_json.json')
+    cron_file = os.path.join(project_dir, 'data/cron.json')
+    server_json_file = os.path.join(os.path.join(project_dir, 'webapp'), 'data/jp_webhooks.json')
+    scripts_directory = os.path.join(project_dir, 'scripts')
+    # return webhook_file, jp_file, okta_file, cron_file, server_json_file, scripts_directory
+
 
 def register_blueprints():
     # New Jamf Pro Webhook
@@ -35,34 +69,9 @@ def register_blueprints():
     app.register_blueprint(cron_delete)
 
 
-# Flask logging
-logger = logging.getLogger('waitress')
-logger.setLevel(logging.INFO)
-error_message = ""
-
-global jamf_url
-global jamf_username
-global jamf_password
-global distilled_serial
-verify_ssl = True  # Enables Jamf Pro SSL certificate verification
-
-# Initiate Flask
-app = Flask(__name__)
-
-
-def environment_setup(project_dir):
-    global webhook_file, jp_file, okta_file, cron_file, server_json_file, scripts_directory
-    webhook_file = "/etc/webhook.conf"
-    jp_file = os.path.join(project_dir, 'jp_webhooks.json')
-    okta_file = os.path.join(project_dir, 'okta_json.json')
-    cron_file = os.path.join(project_dir, 'cron.json')
-    server_json_file = os.path.join(os.path.join(project_dir, 'webapp'), 'jp_webhooks.json')
-    scripts_directory = os.path.join(project_dir, 'scripts')
-
-
-
-
 # Server setup including making .json file necessary for webhooks
+
+
 @app.route('/setup', methods=['GET', 'POST'])
 def setup():
     if 'username' in session:
@@ -126,6 +135,12 @@ def cleanup():
 
 
 # Login page verifying communication/permissions to Jamf Pro
+
+
+#########################
+# General Webapp Settings
+#########################
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -172,10 +187,6 @@ def login():
 
     return render_template('home.html', login="true")
 
-
-#########################
-# General Webapp Settings
-#########################
 
 @app.route('/')
 def index():
@@ -408,15 +419,6 @@ def logout():
     session.pop('username', None)
 
     return redirect(url_for('index'))
-
-
-def main():
-    base_dir = os.path.dirname(__file__)
-    print(base_dir)
-    environment_setup(base_dir)
-    register_blueprints()
-    app.secret_key = "*"
-    serve(app, url_scheme='https', host='0.0.0.0', port=8000)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 # encoding: utf-8
+import io
 import os
 import json
 import glob
@@ -36,16 +37,19 @@ def main():
 
 def environment_setup(project_dir):
     global webhook_file, jp_file, okta_file, cron_file, server_json_file, scripts_directory
-    webhook_file = "/etc/webhook.conf"
-    jp_file = os.path.join(project_dir, 'data/jp_webhooks.json')
-    okta_file = os.path.join(project_dir, 'data/okta_json.json')
-    cron_file = os.path.join(project_dir, 'data/cron.json')
-    server_json_file = os.path.join(os.path.join(project_dir, 'webapp'), 'data/jp_webhooks.json')
+    webhook_file = os.path.join(project_dir, 'data', 'webhook.conf')
+    jp_file = os.path.join(project_dir, 'data', 'jp_webhooks.json')
+    okta_file = os.path.join(project_dir, 'data', 'okta_json.json')
+    cron_file = os.path.join(project_dir, 'data', 'cron.json')
+    server_json_file = os.path.join(project_dir, 'data', 'server.json')
     scripts_directory = os.path.join(project_dir, 'scripts')
     # return webhook_file, jp_file, okta_file, cron_file, server_json_file, scripts_directory
 
 
 def register_blueprints():
+    # JAWA Receiver
+    from webhook import jawa_receiver
+    app.register_blueprint(jawa_receiver.blueprint)
     # New Jamf Pro Webhook
     from webapp.new_jp_webhook import new_jp
     app.register_blueprint(new_jp)
@@ -93,8 +97,11 @@ def setup():
                     server_json = [{'jawa_address': server_url, 'jps_url': jps_url}]
                     json.dump(server_json, outfile)
             if os.path.isfile(server_json_file):
-                with open(server_json_file) as outfile:
-                    data = json.load(outfile)
+                with open(server_json_file, "w") as outfile:
+                    server_json = [{'jawa_address': server_url, 'jps_url': jps_url}]
+                    json.dump(server_json, outfile)
+                with open(server_json_file, "r") as fin:
+                    data = json.load(fin)
                 data[0].update(new_json)
                 with open(server_json_file, "w+") as outfile:
                     json.dump(data, outfile)
@@ -239,12 +246,12 @@ def home():
 
 @app.route("/wizard")
 def wizard():
-    if not os.path.isfile(webhook_file):
-        return redirect(url_for('setup'))
+    # if not os.path.isfile(webhook_file):
+    #     return redirect(url_for('setup'))
 
     with open(jp_file) as webhook_json:
         webhooks_installed = json.load(webhook_json)
-        webhook_json = []
+        webhook_json = webhooks_installed
 
         response = requests.get(
             session['url'] + '/JSSResource/webhooks',
@@ -323,11 +330,11 @@ def wizard():
 
     webhook_url = session['url']
 
-    if webhook_json == []:
+    if not webhook_json:
         webhook_json = ''
-    if crons_json == []:
+    if not crons_json:
         crons_json = ''
-    if oktas_json == []:
+    if not oktas_json:
         oktas_json = ''
 
     if webhook_json == crons_json == oktas_json:
@@ -345,8 +352,12 @@ def wizard():
 
 @app.route("/first_automation")
 def first_automation():
-    if not os.path.isfile(webhook_file):
-        return redirect(url_for('setup'))
+    # if not os.path.isfile(webhook_file):
+    #     return redirect(url_for('setup'))
+    # with open(webhook_file, "r") as fin:
+    #     webhook_json = json.load(fin)
+    # if not webhook_json:
+    #     return redirect(url_for('setup'))
 
     if 'username' in session:
         return render_template(

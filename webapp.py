@@ -23,6 +23,7 @@ verify_ssl = True  # Enables Jamf Pro SSL certificate verification
 # global distilled_serial
 app = Flask(__name__)
 
+
 # Initiate Flask
 
 
@@ -32,7 +33,7 @@ def main():
     environment_setup(base_dir)
     register_blueprints()
     app.secret_key = "*"
-    serve(app, url_scheme='http', host='0.0.0.0', port=8000)
+    serve(app, url_scheme='https', host='0.0.0.0', port=8000)
 
 
 def environment_setup(project_dir):
@@ -155,8 +156,8 @@ def login():
             with open(server_json_file) as json_file:
                 server_json = json.load(json_file)
 
-            if 'jps_url' in server_json[0]:
-                if server_json[0]['jps_url'] != None and len(server_json[0]['jps_url']) != 0:
+            if server_json.get('jps_url', 0):
+                if server_json['jps_url'] != None and len(server_json[0]['jps_url']) != 0:
                     session['url'] = str(server_json[0]['jps_url'])
             else:
                 session['url'] = request.form['url']
@@ -199,10 +200,15 @@ def login():
 def index():
     if not os.path.isfile(server_json_file):
         return render_template('home.html')
+    with open(server_json_file, "r") as fin:
+        server_json = json.load(fin)
+    if not server_json:
+        return render_template('home.html')
     else:
         with open(server_json_file) as json_file:
             server_json = json.load(json_file)
         print(server_json)
+
         if not 'jps_url' in server_json[0]:
             return render_template('home.html')
         elif server_json[0]['jps_url'] == None:
@@ -230,7 +236,7 @@ def home():
             print(server_json)
             if not 'jps_url' in server_json[0]:
                 return render_template('home.html')
-            elif server_json[0]['jps_url'] == None:
+            elif server_json[0]['jps_url'] is None:
                 return render_template('home.html')
             elif len(server_json[0]['jps_url']) == 0:
                 return render_template('home.html')
@@ -307,6 +313,7 @@ def wizard():
         crons_installed = json.load(cron_json)
         crons_json = []
         for cron in crons_installed:
+
             script = cron['script'].rsplit('/', 1)
             crons_json.append({"name": cron['name'],
                                "frequency": cron['frequency'],

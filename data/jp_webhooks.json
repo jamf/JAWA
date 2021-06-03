@@ -1,12 +1,1 @@
-[
-    {
-        "url": "https://shinra.jamfcloud.com",
-        "jawa_admin": "hojo",
-        "name": "my_brand_new_webhook",
-        "webhook_username": "itsnot",
-        "webhook_password": "wednesday",
-        "event": "RestAPIOperation",
-        "script": "/Users/ball/PycharmProjects/JAWA/scripts/my_brand_new_webhook-print.py",
-        "description": "check it out"
-    }
-]
+[]

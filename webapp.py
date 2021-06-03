@@ -33,7 +33,7 @@ def main():
     environment_setup(base_dir)
     register_blueprints()
     app.secret_key = "*"
-    serve(app, url_scheme='http', host='0.0.0.0', port=8000)
+    serve(app, url_scheme='https', host='0.0.0.0', port=8000)
 
 
 def environment_setup(project_dir):

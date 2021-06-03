@@ -112,7 +112,7 @@ def webhooks():
 
                 with open(server_json_file) as json_file:
                     data = json.load(json_file)
-                    server_address = data[0]['jawa_address']
+                    server_address = data['jawa_address']
 
                 # if not os.path.isdir('/usr/local/jawa/'):
                 #     os.mkdir('/usr/local/jawa/')
@@ -174,14 +174,33 @@ def webhooks():
                     smart_group_notice = ""
                     smart_group_instructions = ""
                     webhook_enablement = 'true'
-                data = '<webhook>'
-                data += '<name>'
-                data += request.form.get('webhookname')
-                data += '</name><enabled>' + webhook_enablement + '</enabled><url>'
-                data += "{}/hooks/{}".format(server_address, request.form.get('webhookname'))
-                data += '</url><content_type>application/json</content_type>'
-                data += '<event>{}</event>'.format(request.form.get('event'))
-                data += '</webhook>'
+
+                # Check for auth values
+                auth_xml = "<authentication_type>NONE</authentication_type>"
+                if (
+                        request.form.get('username') != '' or
+                        request.form.get('password') != '' ):
+                    auth_xml = f"<authentication_type>BASIC</authentication_type>"
+                    if request.form.get('username') == '':
+                        auth_xml += "<username>null</username>"
+                    else:
+                        auth_xml += f"<username>{request.form.get('username')}</username>"
+                    if request.form.get('password') == '':
+                        auth_xml += "<password>null</password>"
+                    else:
+                        auth_xml += f"<password>{request.form.get('password')}</password>"
+
+
+
+                data = f"<webhook>" \
+                       f"<name>{request.form.get('webhookname')}</name>" \
+                       f"<enabled>{webhook_enablement}</enabled>" \
+                       f"<url>{server_json['jawa_address']}/hooks/{request.form.get('webhookname')}</url>" \
+                       f"<content_type>application/json</content_type>" \
+                       f"<event>{request.form.get('event')}</event>" \
+                       f"{auth_xml}" \
+                       f"</webhook>"
+
                 full_url = session['url'] + '/JSSResource/webhooks/id/0'
 
                 response = requests.post(full_url,
@@ -189,14 +208,17 @@ def webhooks():
                                          headers={'Content-Type': 'application/xml'}, data=data,
                                          verify=verify_ssl)
 
+
                 result = re.search('<id>(.*)</id>', response.text)
                 new_link = "{}/webhooks.html?id={}".format(session['url'], result.group(1))
 
                 data = json.load(open(jp_webhooks_file))
 
                 data.append({"url": str(session['url']),
-                             "username": str(session['username']),
+                             "jawa_admin": str(session['username']),
                              "name": request.form.get('webhookname'),
+                             "webhook_username": request.form.get('username'),
+                             "webhook_password": request.form.get('password'),
                              "event": request.form.get('event'),
                              "script": new_script_file,
                              "description": request.form.get('description')})

@@ -33,7 +33,7 @@ def main():
     environment_setup(base_dir)
     register_blueprints()
     app.secret_key = "*"
-    serve(app, url_scheme='https', host='0.0.0.0', port=8000)
+    serve(app, url_scheme='http', host='0.0.0.0', port=8000)
 
 
 def environment_setup(project_dir):
@@ -95,7 +95,7 @@ def setup():
             print(new_json)
             if not os.path.isfile(server_json_file):
                 with open(server_json_file, "w") as outfile:
-                    server_json = [{'jawa_address': server_url, 'jps_url': jps_url}]
+                    server_json = {'jawa_address': server_url, 'jps_url': jps_url}
                     json.dump(server_json, outfile)
             if os.path.isfile(server_json_file):
                 with open(server_json_file, "w") as outfile:
@@ -103,7 +103,7 @@ def setup():
                     json.dump(server_json, outfile)
                 with open(server_json_file, "r") as fin:
                     data = json.load(fin)
-                data[0].update(new_json)
+                data.update(new_json)
                 with open(server_json_file, "w+") as outfile:
                     json.dump(data, outfile)
 
@@ -157,8 +157,8 @@ def login():
                 server_json = json.load(json_file)
 
             if server_json.get('jps_url', 0):
-                if server_json['jps_url'] != None and len(server_json[0]['jps_url']) != 0:
-                    session['url'] = str(server_json[0]['jps_url'])
+                if server_json['jps_url'] != None and len(server_json['jps_url']) != 0:
+                    session['url'] = str(server_json['jps_url'])
             else:
                 session['url'] = request.form['url']
         else:
@@ -209,14 +209,14 @@ def index():
             server_json = json.load(json_file)
         print(server_json)
 
-        if not 'jps_url' in server_json[0]:
+        if not 'jps_url' in server_json:
             return render_template('home.html')
-        elif server_json[0]['jps_url'] == None:
+        elif server_json['jps_url'] == None:
             return render_template('home.html')
-        elif len(server_json[0]['jps_url']) == 0:
+        elif len(server_json['jps_url']) == 0:
             return render_template('home.html')
         else:
-            session['url'] = server_json[0]['jps_url']
+            session['url'] = server_json['jps_url']
             return render_template('home.html',
                                    jps_url=str(escape(session['url'])),
                                    welcome="true", jsslock="true")
@@ -234,14 +234,14 @@ def home():
             with open(server_json_file) as json_file:
                 server_json = json.load(json_file)
             print(server_json)
-            if not 'jps_url' in server_json[0]:
+            if not 'jps_url' in server_json:
                 return render_template('home.html')
-            elif server_json[0]['jps_url'] is None:
+            elif server_json['jps_url'] is None:
                 return render_template('home.html')
-            elif len(server_json[0]['jps_url']) == 0:
+            elif len(server_json['jps_url']) == 0:
                 return render_template('home.html')
             else:
-                session['url'] = server_json[0]['jps_url']
+                session['url'] = server_json['jps_url']
                 return render_template('home.html',
                                        jps_url=str(escape(session['url'])),
                                        welcome="true", jsslock="true")
@@ -295,13 +295,13 @@ def wizard():
 
                 jamf_event = response_json['webhook']['event']
                 jamf_id = response_json['webhook']['id']
-
-                script = webhook['script'].rsplit('/', 1)
-                webhook_json.append({"name": webhook['name'],
-                                     "jamf_id": jamf_id,
-                                     "event": jamf_event,
-                                     "script": script[1],
-                                     "description": webhook['description']})
+                print(webhook['script'])
+                script = webhook['script']
+                # webhook_json.append({"name": webhook['name'],
+                #                      "jamf_id": jamf_id,
+                #                      "event": jamf_event,
+                #                      "script": script,
+                #                      "description": webhook['description']})
 
     data = []
 

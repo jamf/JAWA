@@ -12,7 +12,6 @@ from flask import (Flask, request, render_template,
 
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
 jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'jp_webhooks.json'))
-webhook_conf = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhook.conf'))
 scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
 edit_jp = Blueprint('edit', __name__)
@@ -58,7 +57,7 @@ def edit():
 
                 check = 0
 
-                with open(webhook_conf) as json_file:
+                with open(jp_webhooks_file) as json_file:
                     data = json.load(json_file)
 
                     x = 0
@@ -66,7 +65,7 @@ def edit():
 
                     while True:
                         try:
-                            id_list.append(data[x]['id'])
+                            id_list.append(data[x]['name'])
                             x += 1
                             str_error = None
                         except Exception as str_error:
@@ -92,7 +91,7 @@ def edit():
 
                 with open(server_json_file) as json_file:
                     data = json.load(json_file)
-                    server_address = data[0]['jawa_address']
+                    server_address = data['jawa_address']
 
                 if not os.path.isdir(scripts_dir):
                     os.mkdir(scripts_dir)
@@ -111,34 +110,20 @@ def edit():
 
                 os.rename(old_script_file, new_script_file)
                 script_file = new_script_file
-                # webhook_conf = webhook_conf
 
                 os.chmod(script_file, mode=0o0755)
-
-                with open(webhook_conf) as json_file:
-                    data = json.load(json_file)
-
-                    for x in data:
-                        if request.form.get('webhookname') in x['id']:
-                            x['execute-command'] = str(script_file)
-                            if request.form.get('new_webhookname') != '':
-                                x['id'] = str(request.form.get('new_webhookname'))
-                            x['event'] = str(request.form.get('event'))
-                            # if request.form.get('event') != '':
-                            #     pass
-
-                    with open(webhook_conf, 'w') as outfile:
-                        json.dump(data, outfile, indent=4)
 
                 with open(jp_webhooks_file) as json_file:
                     data = json.load(json_file)
 
                     for x in data:
-                        if request.form.get('webhookname') in x['name']:
+                        if request.form.get('webhookname') == x['name']:
                             x['script'] = str(script_file)
-                            x['event'] = str(request.form.get('event'))
                             if request.form.get('new_webhookname') != '':
                                 x['name'] = str(request.form.get('new_webhookname'))
+                            x['event'] = str(request.form.get('event'))
+                            x['webhook_username'] = str(request.form.get('username'))
+                            x['webhook_password'] = str(request.form.get('password'))
 
                     with open(jp_webhooks_file, 'w') as outfile:
                         json.dump(data, outfile, indent=4)
@@ -148,7 +133,7 @@ def edit():
                 new_webhookname = webhookname
                 with open(server_json_file) as json_file:
                     data = json.load(json_file)
-                    server_address = data[0]['jawa_address']
+                    server_address = data['jawa_address']
 
                 add_name = ''
                 if request.form.get('new_webhookname') != "":
@@ -179,6 +164,19 @@ def edit():
                     smart_group_notice = ""
                     smart_group_instructions = ""
                     webhook_enablement = 'true'
+                auth_xml = "<authentication_type>NONE</authentication_type>"
+                if (
+                        request.form.get('username') != '' or
+                        request.form.get('password') != ''):
+                    auth_xml = f"<authentication_type>BASIC</authentication_type>"
+                    if request.form.get('username') == '':
+                        auth_xml += "<username>null</username>"
+                    else:
+                        auth_xml += f"<username>{request.form.get('username')}</username>"
+                    if request.form.get('password') == '':
+                        auth_xml += "<password>null</password>"
+                    else:
+                        auth_xml += f"<password>{request.form.get('password')}</password>"
 
                 if add_name == '' and add_event == '':
                     print("No Jamf Change Needed")
@@ -192,6 +190,7 @@ def edit():
                     data += add_name
                     data += '<enabled>' + webhook_enablement + '</enabled>'
                     data += add_event
+                    data += auth_xml
                     data += '</webhook>'
                     full_url = session['url'] + '/JSSResource/webhooks/name/' + webhookname
                     response = requests.put(full_url,

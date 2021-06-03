@@ -37,8 +37,8 @@ def main():
 
 
 def environment_setup(project_dir):
-    global webhook_file, jp_file, okta_file, cron_file, server_json_file, scripts_directory
-    webhook_file = os.path.join(project_dir, 'data', 'webhook.conf')
+    global jp_file, okta_file, cron_file, server_json_file, scripts_directory
+    # webhook_file = os.path.join(project_dir, 'data', 'webhook.conf')
     jp_file = os.path.join(project_dir, 'data', 'jp_webhooks.json')
     okta_file = os.path.join(project_dir, 'data', 'okta_json.json')
     cron_file = os.path.join(project_dir, 'data', 'cron.json')
@@ -97,7 +97,7 @@ def setup():
                 with open(server_json_file, "w") as outfile:
                     server_json = {'jawa_address': server_url, 'jps_url': jps_url}
                     json.dump(server_json, outfile)
-            if os.path.isfile(server_json_file):
+            elif os.path.isfile(server_json_file):
                 with open(server_json_file, "w") as outfile:
                     server_json = [{'jawa_address': server_url, 'jps_url': jps_url}]
                     json.dump(server_json, outfile)
@@ -252,9 +252,6 @@ def home():
 
 @app.route("/wizard")
 def wizard():
-    # if not os.path.isfile(webhook_file):
-    #     return redirect(url_for('setup'))
-
     with open(jp_file) as webhook_json:
         webhooks_installed = json.load(webhook_json)
         webhook_json = webhooks_installed
@@ -313,7 +310,6 @@ def wizard():
         crons_installed = json.load(cron_json)
         crons_json = []
         for cron in crons_installed:
-
             script = cron['script'].rsplit('/', 1)
             crons_json.append({"name": cron['name'],
                                "frequency": cron['frequency'],
@@ -359,13 +355,6 @@ def wizard():
 
 @app.route("/first_automation")
 def first_automation():
-    # if not os.path.isfile(webhook_file):
-    #     return redirect(url_for('setup'))
-    # with open(webhook_file, "r") as fin:
-    #     webhook_json = json.load(fin)
-    # if not webhook_json:
-    #     return redirect(url_for('setup'))
-
     if 'username' in session:
         return render_template(
             'first_automation.html',

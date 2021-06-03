@@ -11,11 +11,10 @@ from flask import (Flask, request, render_template,
                    session, redirect, url_for, escape,
                    send_from_directory, Blueprint, abort)
 
-webhook_conf = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhook.conf'))
+
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
 jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'jp_webhooks.json'))
 scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
-print(server_json_file, jp_webhooks_file)
 verify_ssl = True
 new_jp = Blueprint('webhooks', __name__)
 
@@ -40,35 +39,6 @@ def webhooks():
             json.dump(data, outfile, indent=4)
 
     if 'username' in session:
-
-        # response = requests.get(session['url'] + '/JSSResource/computergroups',
-        # 	auth=(session['username'], session['password']),
-        # 	headers={'Accept': 'application/json'})
-
-        # response_json = response.json()
-
-        # computer_groups = response_json['computer_groups']
-        # found_computer_groups = []
-        # for computer_group in computer_groups:
-        # 	if computer_group['is_smart'] is True:
-        # 		found_computer_groups.append(computer_group)
-
-        # print found_computer_groups
-
-        # response = requests.get(session['url'] + '/JSSResource/mobiledevicegroups',
-        # 	auth=(session['username'], session['password']),
-        # 	headers={'Accept': 'application/json'})
-
-        # response_json = response.json()
-
-        # mobile_device_groups = response_json['mobile_device_groups']
-        # found_mobile_device_groups = []
-        # for mobile_device_group in mobile_device_groups:
-        # 	if mobile_device_group['is_smart'] is True:
-        # 		found_mobile_device_groups.append(mobile_device_group)
-
-        # print found_mobile_device_groups
-
         if request.method == 'POST':
             if request.form.get('webhookname') != '':
                 check = 0
@@ -79,14 +49,14 @@ def webhooks():
                                            error="error",
                                            username=str(escape(session['username'])))
 
-                with open(webhook_conf) as json_file:
+                with open(jp_webhooks_file) as json_file:
                     data = json.load(json_file)
 
                     x = 0
                     id_list = []
                     while True:
                         try:
-                            id_list.append(data[x]['id'])
+                            id_list.append(data[x]['name'])
                             x += 1
                             str_error = None
                         except Exception as str_error:
@@ -132,35 +102,23 @@ def webhooks():
                 new_script_file = (os.path.join(scripts_dir,
                                                 f"{request.form.get('webhookname')}-{f.filename}"))
                 os.rename(old_script_file, new_script_file)
-                hooks_file = (os.path.join(os.path.join(os.path.dirname(__file__), "..", "data"), "webhook.conf"))
-
-                if not os.path.exists(hooks_file):
-                    with open(hooks_file, "w") as fout:
-                        fout.write("[]")
-                data = json.load(open(hooks_file))
+                #
+                # if not os.path.exists(jp_webhooks_file):
+                #     with open(jp_webhooks_file, "w") as fout:
+                #         fout.write("[]")
+                # data = json.load(open(jp_webhooks_file))
 
                 new_id = request.form.get('new_webhookname')
 
                 os.chmod(new_script_file, mode=0o0755)
 
-                if type(data) is dict:
-                    data = [data]
-
-                data.append({"id": request.form.get('webhookname'),
-                             "execute-command": new_script_file,
-                             "command-working-directory": "/",
-                             "pass-arguments-to-command": [{"source": "entire-payload"}]})
-
+                # if type(data) is dict:
+                #     data = [data]
+                #
+                # data[:] = [d for d in data if d.get('id') != 'none']
+                #
                 # with open(hooks_file, 'w') as outfile:
-                #     json.dump(data, outfile)
-
-                # hooks_file = '/etc/webhook.conf'
-                data = json.load(open(hooks_file))
-
-                data[:] = [d for d in data if d.get('id') != 'none']
-
-                with open(hooks_file, 'w') as outfile:
-                    json.dump(data, outfile, indent=4)
+                #     json.dump(data, outfile, indent=4)
 
                 if (
                         request.form.get('event') == 'SmartGroupMobileDeviceMembershipChange' or
@@ -207,7 +165,12 @@ def webhooks():
                                          auth=(session['username'], session['password']),
                                          headers={'Content-Type': 'application/xml'}, data=data,
                                          verify=verify_ssl)
-
+                if response.status_code == 409:
+                    error_message = f"The webhook name \"{request.form.get('webhookname')}\" already exists in your Jamf Pro Server."
+                    return render_template('error.html',
+                                           error_message=error_message,
+                                           error="error",
+                                           username=str(escape(session['username'])))
 
                 result = re.search('<id>(.*)</id>', response.text)
                 new_link = "{}/webhooks.html?id={}".format(session['url'], result.group(1))

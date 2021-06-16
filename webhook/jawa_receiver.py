@@ -1,15 +1,16 @@
+from bin import okta_verification
 import flask
 from flask import session, request, redirect, url_for, render_template
-from glob import escape
+# from glob import escape
 import json
 import logging
 import os
-import requests
+# import requests
 import subprocess
 
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
-jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'jp_webhooks.json'))
-webhook_conf = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhook.conf'))
+jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))
+# webhook_conf = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhook.conf'))
 scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
 blueprint = flask.Blueprint('jawa_receiver', __name__, template_folder='templates')
@@ -39,23 +40,27 @@ def run_script(webhook_data, webhook_name):
             subprocess.Popen([each_webhook['script'], f"{webhook_data}"])
 
 
-@blueprint.route('/hooks/<webhook_name>', methods=['POST'])
+@blueprint.route('/hooks/<webhook_name>', methods=['POST', 'GET'])
 def jamf_webhook_handler(webhook_name):
     print(webhook_name)
     webhook_data = request.get_json()
+    if request.headers.get('x-okta-verification-challenge'):
+        print("This is an Okta verification challenge...")
+        return okta_verification.verify_new_webhook(request.headers.get('x-okta-verification-challenge'))
+
     auth = request.authorization
     webhook_user = "null"
     webhook_pass = "null"
     if auth:  # .get("username"):
         webhook_user = auth.get("username")
         webhook_pass = auth.get("password")
-    print(f"Webhook user: {webhook_user}\n"  # todo: check username from new webhook.conf
-          f"Webhook password: {webhook_pass}\n"  # todo: check password from new webhook.conf
-          f"Webhook name: {webhook_name}\n"
-          f"Webhook data: {webhook_data}")
 
-    print(webhook_data)
-    print(webhook_name)
+    # Debug
+    # print(f"Webhook user: {webhook_user}\n"
+    #       f"Webhook password: {webhook_pass}\n"
+    #       f"Webhook name: {webhook_name}\n"
+    #       f"Webhook data: {webhook_data}")
+
     if validate_webhook(webhook_data, webhook_name, webhook_user, webhook_pass):
         print(f"{webhook_name} validated!")
         run_script(webhook_data, webhook_name)

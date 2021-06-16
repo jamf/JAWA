@@ -70,9 +70,9 @@ def cron():
             if ' ' in script.filename:
                 script.filename = script.filename.replace(" ", "-")
                 print(str(script.filename))
-
-            script.save(secure_filename(script.filename))
-            script_file = os.path.join(scripts_dir, script.filename)
+            new_script_name = f"cron_{cron_name}_{script.filename}"
+            script.save(secure_filename(new_script_name))
+            script_file = os.path.join(scripts_dir, new_script_name)
 
             os.chmod(script_file, mode=0o0755)
 

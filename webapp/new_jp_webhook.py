@@ -13,7 +13,7 @@ from flask import (Flask, request, render_template,
 
 
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
-jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'jp_webhooks.json'))
+jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))
 scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 verify_ssl = True
 new_jp = Blueprint('webhooks', __name__)
@@ -73,7 +73,7 @@ def webhooks():
                         else:
                             check = 0
 
-                if check is not 0:
+                if check != 0:
                     error_message = "Name already exists!"
                     return render_template('error.html',
                                            error_message=error_message,
@@ -184,7 +184,8 @@ def webhooks():
                              "webhook_password": request.form.get('password'),
                              "event": request.form.get('event'),
                              "script": new_script_file,
-                             "description": request.form.get('description')})
+                             "description": request.form.get('description'),
+                             "tag": "jamfpro"})
 
                 with open(jp_webhooks_file, 'w') as outfile:
                     json.dump(data, outfile, indent=4)

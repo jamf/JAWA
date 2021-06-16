@@ -50,7 +50,9 @@ def delete_cron():
 
             for job in cron:
                 if job.comment == timed_job:
+                    print(f"Removing Cron job {timed_job}")
                     cron.remove(job)
+                    cron.write()
 
             data[:] = [d for d in data if d.get('name') != timed_job]
 

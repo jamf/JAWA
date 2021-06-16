@@ -16,7 +16,7 @@ from flask import (Flask, request, render_template,
 verify_ssl = True
 
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
-jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'jp_webhooks.json'))
+jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))
 scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
 delete_jp = Blueprint('delete', __name__)
@@ -24,7 +24,7 @@ delete_jp = Blueprint('delete', __name__)
 
 @delete_jp.route('/delete', methods=['GET', 'POST'])
 def delete():
-    jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'jp_webhooks.json'))
+    jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))
     if not os.path.isfile(server_json_file):
         return render_template('setup.html',
                                setup="setup",
@@ -38,7 +38,7 @@ def delete():
                                jps_url=str(escape(session['url'])),
                                username=str(escape(session['username'])))
     if 'username' in session:
-        with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'jp_webhooks.json')), 'r+') as fin:
+        with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json')), 'r+') as fin:
             # content = fin.read()
             webhook_data = json.load(fin)
         # text = open(jp_webhooks_file, 'r+')

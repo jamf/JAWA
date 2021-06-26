@@ -40,7 +40,7 @@ def run_script(webhook_data, webhook_name):
 
 
 @blueprint.route('/hooks/<webhook_name>', methods=['POST', 'GET'])
-def jamf_webhook_handler(webhook_name):
+def webhook_handler(webhook_name):
     print(webhook_name)
     webhook_data = request.get_json()
     if request.headers.get('x-okta-verification-challenge'):

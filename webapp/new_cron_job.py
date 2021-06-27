@@ -5,147 +5,150 @@ import json
 from time import sleep
 import re
 from werkzeug.utils import secure_filename
-from flask import (Flask, request, render_template, 
-	session, redirect, url_for, escape, 
-	send_from_directory, Blueprint, abort)
+from flask import (Flask, request, render_template,
+                   session, redirect, url_for, escape,
+                   send_from_directory, Blueprint, abort)
 
 from crontab import CronTab
 
+cron_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'cron.json'))
+time_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'time.json'))
+scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
+
 new_cron = Blueprint('cron', __name__)
 
-@new_cron.route('/cron', methods=['GET','POST'])
+
+@new_cron.route('/cron', methods=['GET', 'POST'])
 def cron():
-	global days
-	global hours
-	global frequencies
+    global days
+    global hours
+    global frequencies
 
-	text = open('/usr/local/jawa/time.json', 'r+')
-	content = text.read()
-	time_data = json.loads(content)
-	days_data = time_data['days']
-	hours_data = time_data['hours']
-	frequencies_data = time_data['frequencies']
+    with open(time_json_file, 'r+') as fin:
+        content = fin.read()
+        time_data = json.loads(content)
 
-	i = 0
-	days = []
-	for item in days_data:
-		days.append(days_data[i])
-		i += 1
-			
-	i = 0
-	hours = []
-	for item in hours_data:
-		hours.append(hours_data[i])
-		i += 1
-			
-	i = 0
-	frequencies = []
-	for item in frequencies_data:
-		frequencies.append(frequencies_data[i])
-		i += 1
+    days_data = time_data['days']
+    hours_data = time_data['hours']
+    frequencies_data = time_data['frequencies']
 
-	if 'username' in session:
-		if request.method == 'POST':
-			if ' ' in request.form.get('cron_name'):
-				error_message = "Single-string name only."
-				return render_template('error.html', 
-					error_message=error_message,
-					error="error", 
-					username=str(escape(session['username'])))
+    i = 0
+    days = []
+    for item in days_data:
+        days.append(days_data[i])
+        i += 1
 
-			cron_description = request.form.get('cron_description')
-			cron_name = request.form.get('cron_name')
-			
-			if not os.path.isdir('/usr/local/jawa/scripts'):
-				os.mkdir('/usr/local/jawa/scripts')
-			
-			os.chdir('/usr/local/jawa/scripts')
-			script = request.files['script']
-			if ' ' in script.filename:
-				script.filename = script.filename.replace(" ", "-")
-				print(str(script.filename))
-				
-			script.save(secure_filename(script.filename))
-			script_file = "/usr/local/jawa/scripts/{}".format(script.filename)
+    i = 0
+    hours = []
+    for item in hours_data:
+        hours.append(hours_data[i])
+        i += 1
 
-			os.chmod(script_file, mode=0o0755)
+    i = 0
+    frequencies = []
+    for item in frequencies_data:
+        frequencies.append(frequencies_data[i])
+        i += 1
 
-			frequency = request.form.get('frequency')
+    if 'username' in session:
+        if request.method == 'POST':
+            if ' ' in request.form.get('cron_name'):
+                error_message = "Single-string name only."
+                return render_template('error.html',
+                                       error_message=error_message,
+                                       error="error",
+                                       username=str(escape(session['username'])))
 
-			cron_json = '/usr/local/jawa/cron.json'
-			
-			if not os.path.isfile('/usr/local/jawa/cron.json'):
-				data = []
-				with open(cron_json, 'w') as outfile:
-					json.dump(data, outfile)
-			
-			data = json.load(open(cron_json))
+            cron_description = request.form.get('cron_description')
+            cron_name = request.form.get('cron_name')
 
-			for i in data:
-				print(i)
-				print(" ~ ~ ~ ~ ~")
-				if str(i['name']) == cron_name:
-					error_message = "Name already exists!"
-					return render_template('error.html', 
-						error_message=error_message,
-						error="error", 
-						username=str(escape(session['username'])))
+            if not os.path.isdir(scripts_dir):
+                os.mkdir(scripts_dir)
 
-			data.append({"name": cron_name,
-				"description": cron_description,
-				"frequency": frequency,
-				"script": script_file})
+            os.chdir(scripts_dir)
+            script = request.files['script']
+            if ' ' in script.filename:
+                script.filename = script.filename.replace(" ", "-")
+                print(str(script.filename))
+            new_script_name = f"cron_{cron_name}_{script.filename}"
+            script.save(secure_filename(new_script_name))
+            script_file = os.path.join(scripts_dir, new_script_name)
 
-			with open(cron_json, 'w') as outfile:
-				json.dump(data, outfile)
-			
-			cron = CronTab(user='root')
+            os.chmod(script_file, mode=0o0755)
 
-			if frequency == "everyhour":
-				job1 = cron.new(command=script_file, comment=cron_name)
-				job1.every().hours()
-				job1.minute.on(0)
-				cron.write()
+            frequency = request.form.get('frequency')
 
+            if not os.path.isfile(cron_json_file):
+                data = []
+                with open(cron_json_file, 'w') as outfile:
+                    json.dump(data, outfile)
 
-			if frequency == "everyday":
-				time = request.form.get('daytime')
-				job1 = cron.new(command=script_file, comment=cron_name)
-				job1.day.every(1)
-				job1.hour.on(time)
-				job1.minute.on(0)
-				cron.write()
+            data = json.load(open(cron_json_file))
 
-			if frequency == "everyweek":
-				day = request.form.get('weekday')
-				time = request.form.get('weektime')
-				job1 = cron.new(command=script_file, comment=cron_name)
-				job1.dow.on(day)
-				job1.hour.on(time)
-				job1.minute.on(0)
-				cron.write()
+            for i in data:
+                print(i)
+                print(" ~ ~ ~ ~ ~") # Mister Krabs
+                if str(i['name']) == cron_name:
+                    error_message = "Name already exists!"
+                    return render_template('error.html',
+                                           error_message=error_message,
+                                           error="error",
+                                           username=str(escape(session['username'])))
 
-			if frequency == "everymonth":
-				day = request.form.get('monthday')
-				time = request.form.get('monthtime')
-				job1 = cron.new(command=script_file, comment=cron_name)
-				job1.day.on(day)
-				job1.hour.on(time)
-				job1.minute.on(0)
-				cron.write()
+            data.append({"name": cron_name,
+                         "description": cron_description,
+                         "frequency": frequency,
+                         "script": script_file})
 
-			return render_template('success.html', 
-				webhooks="success", 
-				username=str(escape(session['username'])))
+            with open(cron_json_file, 'w') as outfile:
+                json.dump(data, outfile)
 
-		else:
-			return render_template('cron.html', 
-				cron="cron",
-				frequencies=frequencies,
-				days=days,
-				hours=hours,
-				username=str(escape(session['username'])))
+            cron = CronTab(user='root')
 
-	else:
-		return render_template('home.html', 
-			login="false")
+            if frequency == "everyhour":
+                job1 = cron.new(command=script_file, comment=cron_name)
+                job1.every().hours()
+                job1.minute.on(0)
+                cron.write()
+
+            if frequency == "everyday":
+                time = request.form.get('daytime')
+                job1 = cron.new(command=script_file, comment=cron_name)
+                job1.day.every(1)
+                job1.hour.on(time)
+                job1.minute.on(0)
+                cron.write()
+
+            if frequency == "everyweek":
+                day = request.form.get('weekday')
+                time = request.form.get('weektime')
+                job1 = cron.new(command=script_file, comment=cron_name)
+                job1.dow.on(day)
+                job1.hour.on(time)
+                job1.minute.on(0)
+                cron.write()
+
+            if frequency == "everymonth":
+                day = request.form.get('monthday')
+                time = request.form.get('monthtime')
+                job1 = cron.new(command=script_file, comment=cron_name)
+                job1.day.on(day)
+                job1.hour.on(time)
+                job1.minute.on(0)
+                cron.write()
+
+            return render_template('success.html',
+                                   webhooks="success",
+                                   username=str(escape(session['username'])))
+
+        else:
+            return render_template('cron.html',
+                                   cron="cron",
+                                   frequencies=frequencies,
+                                   days=days,
+                                   hours=hours,
+                                   username=str(escape(session['username'])))
+
+    else:
+        return render_template('home.html',
+                               login="false")

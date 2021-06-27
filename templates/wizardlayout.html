@@ -34,6 +34,10 @@
       <strong><nav>
         <ul class="menu">
           <li><a href="{{ url_for('wizard') }}">JAWA</a></li>
+                        {% if username %}
+          <li><a href="{{ url_for('wizard') }}">Wizard</a></li>
+          <li><a href="{{ url_for('setup') }}">Setup</a></li>
+            {% endif %}
         </ul>
       </nav></strong>
     </div>

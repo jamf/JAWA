@@ -1,69 +1,72 @@
 #!/usr/bin/python
 # encoding: utf-8
-import os
 import json
-from time import sleep
-import re
+import os
+
 from crontab import CronTab
-from werkzeug.utils import secure_filename
-from flask import (Flask, request, render_template, 
-	session, redirect, url_for, escape, 
-	send_from_directory, Blueprint, abort)
+from flask import (request, render_template,
+                   session, escape,
+                   Blueprint)
+
+cron_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'cron.json'))
+scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
 cron_delete = Blueprint('delete_cron', __name__)
 
-@cron_delete.route('/delete_cron', methods=['GET','POST'])
+
+@cron_delete.route('/delete_cron', methods=['GET', 'POST'])
 def delete_cron():
-	exists = os.path.isfile('/usr/local/jawa/cron.json')
-	if exists == False:
-		return render_template('cron.html', 
-			cron="cron", 
-			username=str(escape(session['username'])))
-	
-	if 'username' in session:
-		text = open('/usr/local/jawa/cron.json', 'r+')
-		content = text.read()
-		webhook_data = json.loads(content)
-		i = 0
-		names = []
-		for item in webhook_data:
-			names.append(str(webhook_data[i]['name']))
-			i += 1
-		
-		content = names
+    exists = os.path.isfile(cron_json_file)
+    if not exists:
+        return render_template('cron.html',
+                               cron="cron",
+                               username=str(escape(session['username'])))
 
-		if request.method == 'POST':
+    if 'username' in session:
+        text = open(cron_json_file, 'r+')
+        content = text.read()
+        webhook_data = json.loads(content)
+        i = 0
+        names = []
+        for item in webhook_data:
+            names.append(str(webhook_data[i]['name']))
+            i += 1
 
-			timed_job = request.form.get('timed_job')
+        content = names
 
-			cron_file = '/usr/local/jawa/cron.json'
-			data = json.load(open(cron_file))
+        if request.method == 'POST':
 
-			for d in data :
-				if d['name'] == timed_job:
-					scriptPath=(d['script'])
-					newScriptPath = scriptPath +  '.old'
-					os.rename(scriptPath, newScriptPath)
+            timed_job = request.form.get('timed_job')
 
-			cron = CronTab(user='root')
-			
-			for job in cron:
-				if job.comment == timed_job:
-					cron.remove(job)
+            data = json.load(open(cron_json_file))
 
-			data[:] = [d for d in data if d.get('name') != timed_job ]
+            for d in data:
+                if d['name'] == timed_job:
+                    script_path = (d['script'])
+                    new_script_path = script_path + '.old'
+                    os.rename(script_path, new_script_path)
 
-			with open(cron_file, 'w') as outfile:
-				json.dump(data, outfile)
+            cron = CronTab(user='root')
 
-			return render_template('success.html', 
-				webhooks="success", 
-				username=str(escape(session['username'])))
-		else:
-			return render_template('delete_cron.html', 
-				content=content, 
-				delete_cron="delete_cron", 
-				username=str(escape(session['username'])))
-	else:
-		return render_template('home.html', 
-			login="false")
+            for job in cron:
+                if job.comment == timed_job:
+                    print(f"Removing Cron job {timed_job}")
+                    cron.remove(job)
+                    cron.write()
+
+            data[:] = [d for d in data if d.get('name') != timed_job]
+
+            with open(cron_json_file, 'w') as outfile:
+                json.dump(data, outfile)
+
+            return render_template('success.html',
+                                   webhooks="success",
+                                   username=str(escape(session['username'])))
+        else:
+            return render_template('delete_cron.html',
+                                   content=content,
+                                   delete_cron="delete_cron",
+                                   username=str(escape(session['username'])))
+    else:
+        return render_template('home.html',
+                               login="false")

@@ -108,9 +108,13 @@ def setup():
             with open(server_json_file, "r") as fin:
                 server_json = json.load(fin)
             jps_url2 = server_json['alternate_jps']
+            if jps_url2 == str(escape(session['url'])):
+                primary_jps = server_json['jps_url']
+            else:
+                primary_jps = str(escape(session['url']))
             jawa_url = server_json['jawa_address']
             return render_template('setup.html',
-                                   login="false", jps_url=str(escape(session['url'])), jps_url2=jps_url2,
+                                   login="false", jps_url=primary_jps, jps_url2=jps_url2,
                                    jawa_url=jawa_url)
     else:
         return render_template('home.html',

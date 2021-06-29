@@ -12,6 +12,13 @@
     <p>Please log in.</p>
     <form action="/login" method="post">
         {% if jsslock %}
+            {% if jps_url2 %}
+                Choose your JPS instance:
+                <select name="active_url" id="active_url">
+                    <option value="{{ jps_url }}">{{ jps_url }}</option>
+                    <option value="{{ jps_url2 }}">{{ jps_url2 }}</option>
+                </select>
+            {% endif %}
         {% else %}
             <p>Jamf Pro URL: {{ input('url') }}</p>
         {% endif %}

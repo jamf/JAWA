@@ -73,6 +73,9 @@ def setup():
         if request.method == 'POST':
             server_url = request.form.get('address')
             jps_url = request.form.get('jss-lock')
+            jps2_check = request.form.get('alternate-jps')
+            print(jps2_check)
+            jps_url2 = request.form.get('alternate')
             new_json = {}
             if server_url != '':
                 new_json['jawa_address'] = server_url
@@ -82,11 +85,11 @@ def setup():
             # print(new_json)
             if not os.path.isfile(server_json_file):
                 with open(server_json_file, "w") as outfile:
-                    server_json = {'jawa_address': server_url, 'jps_url': jps_url}
+                    server_json = {'jawa_address': server_url, 'jps_url': jps_url, 'alternate_jps': jps_url2}
                     json.dump(server_json, outfile)
             elif os.path.isfile(server_json_file):
                 with open(server_json_file, "w") as outfile:
-                    server_json = {'jawa_address': server_url, 'jps_url': jps_url}
+                    server_json = {'jawa_address': server_url, 'jps_url': jps_url, 'alternate_jps': jps_url2}
                     json.dump(server_json, outfile)
                 with open(server_json_file, "r") as fin:
                     data = json.load(fin)
@@ -98,8 +101,17 @@ def setup():
                                    webhooks="success",
                                    username=str(escape(session['username'])))
         else:
+            if not os.path.isfile(server_json_file):
+                with open(server_json_file, "w") as outfile:
+                    server_json = {'jawa_address': '', 'jps_url': '', 'alternate_jps': ''}
+                    json.dump(server_json, outfile)
+            with open(server_json_file, "r") as fin:
+                server_json = json.load(fin)
+            jps_url2 = server_json['alternate_jps']
+            jawa_url = server_json['jawa_address']
             return render_template('setup.html',
-                                   login="false", jps_url=str(escape(session['url'])))
+                                   login="false", jps_url=str(escape(session['url'])), jps_url2=jps_url2,
+                                   jawa_url=jawa_url)
     else:
         return render_template('home.html',
                                login="false")
@@ -142,12 +154,14 @@ def login():
         if os.path.isfile(server_json_file):
             with open(server_json_file) as json_file:
                 server_json = json.load(json_file)
-
-            if server_json.get('jps_url', 0):
-                if server_json['jps_url'] != None and len(server_json['jps_url']) != 0:
-                    session['url'] = str(server_json['jps_url'])
+            if request.form['active_url'] != '':
+                session['url'] = str(request.form.get('active_url'))
             else:
-                session['url'] = request.form['url']
+                if server_json.get('jps_url', 0):
+                    if server_json['jps_url'] is not None and len(server_json['jps_url']) != 0:
+                        session['url'] = str(server_json['jps_url'])
+                else:
+                    session['url'] = request.form['url']
         else:
             session['url'] = request.form['url']
         session['username'] = request.form['username']
@@ -203,6 +217,15 @@ def index():
         elif len(server_json['jps_url']) == 0:
             return render_template('home.html')
         else:
+            if not 'alternate_jps' in server_json:
+                return render_template('home.html')
+
+            if server_json['alternate_jps'] != "":
+                return render_template('home.html',
+                                       jps_url=server_json['jps_url'],
+                                       jps_url2=server_json['alternate_jps'],
+                                       welcome="true", jsslock="true")
+
             session['url'] = server_json['jps_url']
             return render_template('home.html',
                                    jps_url=str(escape(session['url'])),

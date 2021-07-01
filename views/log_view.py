@@ -4,6 +4,7 @@ import subprocess
 from time import sleep
 
 from bin.load_home import load_home
+from bin.view_modifiers import response
 from main import jawa_logger
 
 import flask
@@ -28,25 +29,27 @@ def log_page():
 
 @blueprint.route('/log/view', methods=['GET'])
 def log_view():
+    if not 'username' in session:
+        return load_home()
     jawa_logger().info(f"/log/view accessed by {session.get('username') or 'nobody'}")
     with open(log_file, 'r') as fin:
         lines = [re.sub('\n', '', line) for line in fin.readlines()]
+    return render_template('log/home.html', username=session.get('username'), log=lines)
 
-    return render_template('log/view.html', log=lines, username=(session.get('username') or 'nobody'))
 
-
-@blueprint.route('/log/live/stream', methods=['GET'])
+@blueprint.route('/log/live.html', methods=['GET'])
+@response(template_file="log/live.html")
 def stream():
     if not 'username' in session:
         return render_template('home.html')
     current_user = session.get('username') or 'nobody'
     jawa_logger().info(f"/logview accessed by {session.get('username') or 'nobody'}")
 
+
     def generate():
         with open(log_file) as f:
             while True:
                 yield f.read()
-                sleep(1)
 
     return current_app.response_class(generate(), mimetype='text/plain')
 

@@ -21,7 +21,7 @@ def jawa_logger():
     handler.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
-    if (logger.hasHandlers()):
+    if logger.hasHandlers():
         logger.handlers.clear()
     logger.addHandler(handler)
     return logger
@@ -191,7 +191,7 @@ def login():
         if os.path.isfile(server_json_file):
             with open(server_json_file) as json_file:
                 server_json = json.load(json_file)
-            if request.form['active_url'] != '':
+            if request.form.get('active_url'):
                 session['url'] = str(request.form.get('active_url'))
             else:
                 if server_json.get('jps_url', 0):

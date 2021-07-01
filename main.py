@@ -10,9 +10,26 @@ import os
 import requests
 from waitress import serve
 
+
+
+def jawa_logger():
+    global logger
+    log_file = os.path.abspath(os.path.join(os.path.dirname(__file__), 'data', 'jawa.log'))
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger('waitress')
+    logger.setLevel(logging.INFO)
+    handler = logging.FileHandler(log_file)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    if (logger.hasHandlers()):
+        logger.handlers.clear()
+    logger.addHandler(handler)
+    return logger
+
+
 # Flask logging
-logger = logging.getLogger('waitress')
-logger.setLevel(logging.INFO)
+jawa_logger()
 error_message = ""
 verify_ssl = True  # Enables Jamf Pro SSL certificate verification
 
@@ -22,7 +39,7 @@ app = Flask(__name__)
 
 def main():
     base_dir = os.path.dirname(__file__)
-    print(base_dir)
+    jawa_logger().info(f"JAWA initializing...\n Sandcrawler home:  {base_dir}")
     environment_setup(base_dir)
     register_blueprints()
     app.secret_key = "untini"
@@ -35,6 +52,11 @@ def environment_setup(project_dir):
     cron_file = os.path.join(project_dir, 'data', 'cron.json')
     server_json_file = os.path.join(project_dir, 'data', 'server.json')
     scripts_directory = os.path.join(project_dir, 'scripts')
+    jawa_logger().info(f"Detecting JAWA environment:\n"
+                       f"Webhooks configuration file: {jp_file}\n"
+                       f"Cron configuration file: {cron_file}\n"
+                       f"Server configuration file: {server_json_file}\n"
+                       f"Scripts directory: {scripts_directory}")
 
 
 def register_blueprints():
@@ -42,27 +64,32 @@ def register_blueprints():
     from webhook import jawa_receiver
     app.register_blueprint(jawa_receiver.blueprint)
     # New Jamf Pro Webhook
-    from webapp.new_jp_webhook import new_jp
+    from views.new_jp_webhook import new_jp
     app.register_blueprint(new_jp)
     # Edit Jamf Pro Webhook
-    from webapp.edit_jp_webhook import edit_jp
+    from views.edit_jp_webhook import edit_jp
     app.register_blueprint(edit_jp)
     # Delete Jamf Pro Webhook
-    from webapp.delete_jp_webhook import delete_jp
+    from views.delete_jp_webhook import delete_jp
     app.register_blueprint(delete_jp)
     # New Okta Webhook
-    from webapp.new_okta_webhook import new_okta
+    from views.new_okta_webhook import new_okta
     app.register_blueprint(new_okta)
     # Delete Existing Webhook
-    from webapp.delete_okta_webhook import delete_okta
+    from views.delete_okta_webhook import delete_okta
     app.register_blueprint(delete_okta)
     # Create a new Cron Job
-    from webapp.new_cron_job import new_cron
+    from views.new_cron_job import new_cron
     app.register_blueprint(new_cron)
     # Delete a Cron Job
-    from webapp.delete_cron_job import cron_delete
+    from views.delete_cron_job import cron_delete
     app.register_blueprint(cron_delete)
-
+    # Log view
+    from views import log_view
+    app.register_blueprint(log_view.blueprint)
+    # Resources (aka files) view
+    from views import resource_view
+    app.register_blueprint(resource_view.blueprint)
 
 # Server setup including making .json file necessary for webhooks
 
@@ -71,11 +98,16 @@ def register_blueprints():
 def setup():
     if 'username' in session:
         if request.method == 'POST':
+            jawa_logger().info(f"{session.get('username')} - /setup - POST")
             server_url = request.form.get('address')
             jps_url = request.form.get('jss-lock')
             jps2_check = request.form.get('alternate-jps')
-            print(jps2_check)
             jps_url2 = request.form.get('alternate')
+            jawa_logger().info(f"{session.get('username')} made JAWA Setup Changes\n"
+                               f"JAWA URL: {server_url}\n"
+                               f"Primary JPS: {jps_url}\n"
+                               f"Alternate JPS: {jps_url2}\n"
+                               f"Alternate enabled?: {jps2_check}")
             new_json = {}
             if server_url != '':
                 new_json['jawa_address'] = server_url
@@ -101,6 +133,7 @@ def setup():
                                    webhooks="success",
                                    username=str(escape(session['username'])))
         else:
+            jawa_logger().info(f"{session.get('username')} - /setup - GET")
             if not os.path.isfile(server_json_file):
                 with open(server_json_file, "w") as outfile:
                     server_json = {'jawa_address': '', 'jps_url': '', 'alternate_jps': ''}
@@ -202,7 +235,12 @@ def login():
 
 
 @app.route('/')
+@app.route('/home.html')
 def index():
+    return load_home()
+
+
+def load_home():
     if not os.path.isfile(server_json_file):
         return render_template('home.html')
     with open(server_json_file, "r") as fin:
@@ -234,7 +272,6 @@ def index():
             return render_template('home.html',
                                    jps_url=str(escape(session['url'])),
                                    welcome="true", jsslock="true")
-
     session.pop('username', None)
     return render_template('home.html', login="true")
 
@@ -408,27 +445,25 @@ def success():
 @app.route('/error', methods=['GET', 'POST'])
 def error():
     if 'username' in session:
-        return render_template('home.html', login="false")
+        return render_template('wizard.html', login="false")
 
 
 @app.errorhandler(404)
 def page_not_found(error):
     if 'username' in session:
-        return render_template('home.html',
+        return render_template('wizard.html',
                                error="true",
                                username=str(escape(session['username']))), 404
 
-    return render_template('home.html',
-                           error="true",
-                           login="true"), 404
+    return load_home()
 
 
 @app.route('/logout')
 def logout():
-    logger.info("Logging Out: " + str(escape(session['username'])))
-    session.pop('username', None)
-
-    return redirect(url_for('index'))
+    if session.get('username'):
+        logger.info("Logging Out: " + str(escape(session['username'])))
+        session.pop('username', None)
+    return render_template('home.html')
 
 
 if __name__ == '__main__':

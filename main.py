@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # encoding: utf-8
 from collections import defaultdict
+from datetime import timedelta
 from flask import (Flask, request, render_template,
                    session, redirect, url_for, escape)
 import glob
@@ -9,6 +10,29 @@ import logging
 import os
 import requests
 from waitress import serve
+
+# Flask logging
+error_message = ""
+verify_ssl = True  # Enables Jamf Pro SSL certificate verification
+
+# Initiate Flask
+app = Flask(__name__)
+
+
+def main():
+    base_dir = os.path.dirname(__file__)
+    jawa_logger().info(f"JAWA initializing...\n Sandcrawler home:  {base_dir}")
+    environment_setup(base_dir)
+    register_blueprints()
+    app.secret_key = "untini"
+    app.permanent_session_lifetime = timedelta(minutes=10)
+    serve(app, url_scheme='https', host='0.0.0.0', port=8000)
+
+
+# Session heartbeat
+@app.before_request
+def func():
+    session.modified = True
 
 
 def jawa_logger():
@@ -25,24 +49,6 @@ def jawa_logger():
         logger.handlers.clear()
     logger.addHandler(handler)
     return logger
-
-
-# Flask logging
-jawa_logger()
-error_message = ""
-verify_ssl = True  # Enables Jamf Pro SSL certificate verification
-
-# Initiate Flask
-app = Flask(__name__)
-
-
-def main():
-    base_dir = os.path.dirname(__file__)
-    jawa_logger().info(f"JAWA initializing...\n Sandcrawler home:  {base_dir}")
-    environment_setup(base_dir)
-    register_blueprints()
-    app.secret_key = "untini"
-    serve(app, url_scheme='https', host='0.0.0.0', port=8000)
 
 
 def environment_setup(project_dir):
@@ -228,8 +234,9 @@ def login():
             return redirect(url_for('wizard'))
 
         else:
-            return render_template('home.html',
-                                   login="failed")
+            return load_home()
+    else:
+        return load_home()
 
     return render_template('home.html', login="true")
 

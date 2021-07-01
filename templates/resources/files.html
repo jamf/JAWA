@@ -1,0 +1,76 @@
+{% extends "shared/_layout.html" %}
+{% block title %}JAWA Resource Files{% endblock %}
+{% block content %}
+    <div class="test-links sub_links">
+        {#        <div class="stat"><a href="/log/yield" target="_blank">Live View</a></div>#}
+        <form action="#" method="post" enctype="multipart/form-data">
+            <input id="upload" type="file" name="upload" formenctype="multipart/form-data" multiple/>
+            <a href="#" id="upload_link">Upload files</a>
+            <input type="submit" value="submit" disabled/></form>
+        {#        <div class="stat" ><a href="/resources/files/upload" id="upload_link" target="_blank" ">Upload</a></div>#}
+    </div>
+    <div class="log-background">
+        Files repository location:
+        <pre><code>{{ files_repo }}/</code></pre>
+        <br>
+    {% if not files %}
+    No files uploaded
+    {% endif %}
+        <div class="form-container"></div>
+        {#        <form class=" alert-warning account-form ">#}
+        {% if files %}
+            <form class="files-form alert-warning">
+
+
+            <div class="alert-soft alert-dark success-wrap">
+            <table id="files_table" class="table">
+            <tr>
+                <th>Name</th>
+                <th>Date Modified</th>
+
+            </tr>
+            {% for file in files %}
+                <tr>
+                    <td><input type="radio" id="{{ file.name }}" name="target_file"
+                               value="{{ file.name }}"> {{ file.name }}</td>
+                    <td>{{ file.mtime }}</td>
+
+                </tr>
+            {% endfor %}
+
+        {% endif %}
+        </table>
+{#        {% for file in files %}#}
+{#            <input type="radio" id="{{ file.name }}" name="target_file" value="{{ file.name }}">#}
+{#            <label for="{{ file.name }}">{{ file.name }}</label><br>#}
+{#        {% endfor %}#}
+        </div>
+    </div>
+    <div class="form-container test-links">
+        <input type=submit value=Download class="btn btn-secondary button-align alert-soft" style="margin-bottom: 25px">
+        </form>
+
+    </div>
+{% endblock %}
+{% block additional_js %}
+    <script>
+        $(function () {
+            $("#upload_link").on('click', function (e) {
+                e.preventDefault();
+                $("#upload:hidden").trigger('click');
+            });
+        });
+        $(document).ready(
+            function () {
+                $('input:file').change(
+                    function () {
+                        if ($(this).val()) {
+                            $('input:submit').attr('disabled', false);
+                            // or, as has been pointed out elsewhere:
+                            // $('input:submit').removeAttr('disabled');
+                        }
+                    }
+                );
+            });</script>
+{% endblock %}
+</body>

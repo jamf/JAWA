@@ -34,10 +34,9 @@ def files_download():
             each_upload.save(os.path.join(files_dir, secure_filename(each_upload.filename)))
     jawa_logger().info(f"/resources/files.html accessed by {session.get('username') or 'nobody'}")
     files = os.listdir(files_dir)
-    if '.gitignore' in files:
-        files.remove('.gitignore')
-    if '.DS_Store' in files:
-        files.remove('.DS_Store')
+    for file in files:
+        if file[0] == '.':
+            files.remove(file)
     print(files)
     files_list = []
     for each_file in files:

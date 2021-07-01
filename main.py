@@ -11,7 +11,6 @@ import requests
 from waitress import serve
 
 
-
 def jawa_logger():
     global logger
     log_file = os.path.abspath(os.path.join(os.path.dirname(__file__), 'data', 'jawa.log'))
@@ -90,6 +89,7 @@ def register_blueprints():
     # Resources (aka files) view
     from views import resource_view
     app.register_blueprint(resource_view.blueprint)
+
 
 # Server setup including making .json file necessary for webhooks
 
@@ -463,7 +463,7 @@ def logout():
     if session.get('username'):
         logger.info("Logging Out: " + str(escape(session['username'])))
         session.pop('username', None)
-    return render_template('home.html')
+    return load_home()
 
 
 if __name__ == '__main__':

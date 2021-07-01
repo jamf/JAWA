@@ -1,0 +1,18 @@
+{% extends "shared/_layout.html" %}
+{% block content %}
+<p>This is all the output:</p>
+<iframe src="{{ url_for("stream") }}"></iframe>
+{% endblock %}
+{% block additional_js %}
+    <script>
+        var output = document.getElementById('output');
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '{{ url_for('stream') }}');
+        xhr.send();
+
+        setInterval(function () {
+            output.textContent = xhr.responseText;
+        }, 1000);
+    </script>
+{% endblock %}

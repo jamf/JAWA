@@ -1,0 +1,49 @@
+{% extends "shared/_layout.html" %}
+{% block title %}Custom Webhook{% endblock %}
+{% block content %}
+    <div class="test-links sub_links">
+        <div class="stat"><a href="/webhooks">All Webhooks</a></div>
+        <div class="stat"><a href="/webhooks/okta/new">Create</a></div>
+        <div class="stat"><a href="/webhooks/okta">View</a></div>
+    </div>
+    <div class="form-container">
+
+        {#        <div class="account-form">#}
+
+        <div class="table-view">
+            <h4>Okta Webhooks Summary</h4></div>
+        <div class="table-view">
+            {% if okta_list %}
+                <div class="table-responsive">
+                    <table id="Jamf Pro Webhooks Table" class="table">
+                        <thead class="thead-dark table-bordered">
+                        <tr>
+                            <th>Name</th>
+                            <th>Script</th>
+                            <th>Description</th>
+                        </tr>
+                        </thead>
+                        {% for row in okta_list %}
+
+                                <tr>
+                                    <td>{{ row.name }} (<a href="../webhooks/delete?target_webhook={{ row.name }}"
+                                                           style="color:#3c6aa7;">delete</a>)
+                                    </td>
+                                    <td>
+                                        <div class="overflow-auto log-frame success-wrap"
+                                             style=" max-height: 20vh"> {{ row.script }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="overflow-auto log-frame"
+                                             style="max-width: 50vh; max-height: 20vh"> {{ row.description }}</div>
+                                    </td>
+                                </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            {% else %}
+                No Jamf Pro webhooks to display.  <a href="/webhooks/jamf/new">Create one now.</a>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

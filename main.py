@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 # encoding: utf-8
 from collections import defaultdict
+from datetime import timedelta
+
 from flask import (Flask, request, render_template,
                    session, redirect, url_for, escape)
 import glob
@@ -36,18 +38,25 @@ verify_ssl = True  # Enables Jamf Pro SSL certificate verification
 app = Flask(__name__)
 
 
+# Session heartbeat
+@app.before_request
+def func():
+    session.modified = True
+
+
 def main():
     base_dir = os.path.dirname(__file__)
     jawa_logger().info(f"JAWA initializing...\n Sandcrawler home:  {base_dir}")
     environment_setup(base_dir)
     register_blueprints()
     app.secret_key = "untini"
+    app.permanent_session_lifetime = timedelta(minutes=10)
     serve(app, url_scheme='https', host='0.0.0.0', port=8000)
 
 
 def environment_setup(project_dir):
     global jp_file, cron_file, server_json_file, scripts_directory
-    jp_file = os.path.join(project_dir, 'data', 'webhooks.json')
+    jp_file = os.path.abspath(os.path.join(project_dir, 'data', 'webhooks.json'))
     cron_file = os.path.join(project_dir, 'data', 'cron.json')
     server_json_file = os.path.join(project_dir, 'data', 'server.json')
     scripts_directory = os.path.join(project_dir, 'scripts')
@@ -62,21 +71,12 @@ def register_blueprints():
     # JAWA Receiver
     from webhook import jawa_receiver
     app.register_blueprint(jawa_receiver.blueprint)
-    # New Jamf Pro Webhook
-    from views.new_jp_webhook import new_jp
-    app.register_blueprint(new_jp)
-    # Edit Jamf Pro Webhook
-    from views.edit_jp_webhook import edit_jp
-    app.register_blueprint(edit_jp)
-    # Delete Jamf Pro Webhook
-    from views.delete_jp_webhook import delete_jp
-    app.register_blueprint(delete_jp)
-    # New Okta Webhook
-    from views.new_okta_webhook import new_okta
-    app.register_blueprint(new_okta)
-    # Delete Existing Webhook
-    from views.delete_okta_webhook import delete_okta
-    app.register_blueprint(delete_okta)
+    # Jamf Pro Webhooks view
+    from views import jamf_webhook
+    app.register_blueprint(jamf_webhook.blueprint)
+    # Okta Webhooks view
+    from views.okta_webhook import blueprint
+    app.register_blueprint(blueprint)
     # Create a new Cron Job
     from views.new_cron_job import new_cron
     app.register_blueprint(new_cron)
@@ -89,6 +89,12 @@ def register_blueprints():
     # Resources (aka files) view
     from views import resource_view
     app.register_blueprint(resource_view.blueprint)
+    # Custom Webhooks view
+    from views import custom_webhook
+    app.register_blueprint(custom_webhook.blueprint)
+    # Webhooks Base view
+    from views import webhook_view
+    app.register_blueprint(webhook_view.blueprint)
 
 
 # Server setup including making .json file necessary for webhooks
@@ -101,7 +107,7 @@ def setup():
             jawa_logger().info(f"{session.get('username')} - /setup - POST")
             server_url = request.form.get('address')
             jps_url = request.form.get('jss-lock')
-            jps2_check = request.form.get('alternate-jps')
+            jps2_check = request.form.get('alternate-jamf')
             jps_url2 = request.form.get('alternate')
             jawa_logger().info(f"{session.get('username')} made JAWA Setup Changes\n"
                                f"JAWA URL: {server_url}\n"
@@ -204,8 +210,7 @@ def login():
         session['username'] = request.form['username']
         session['password'] = request.form['password']
 
-        jamfurl = session['url']
-        logger.info("Logging In: " + str(escape(session['username'])))
+        logger.info(f"[{session.get('url')}] Logging In: {session.get('username')}")
 
         if request.form['password'] != "":
             try:
@@ -218,18 +223,17 @@ def login():
                 response.raise_for_status()
 
             except requests.exceptions.HTTPError as err:
-                return render_template('home.html', login="failed")
+                return redirect(url_for('logout'))
 
             response_json = response.json()
 
             logger.info(
-                "Logging In: " + str(escape(session['username'])))
+                f"[{session.get('url')}] Logging In: " + str(escape(session['username'])))
 
             return redirect(url_for('wizard'))
 
         else:
-            return render_template('home.html',
-                                   login="failed")
+            return redirect(url_for('logout'))
 
     return render_template('home.html', login="true")
 
@@ -303,6 +307,8 @@ def home():
 
 @app.route("/wizard")
 def wizard():
+    if 'username' not in session:
+        return redirect(url_for('logout'))
     with open(jp_file) as webhook_json:
         webhooks_installed = json.load(webhook_json)
     jamf_pro_webhooks = []
@@ -318,7 +324,7 @@ def wizard():
     # print(f"Full JP Webhook list: {jamf_pro_webhooks}")
 
     response = requests.get(
-        session['url'] + '/JSSResource/webhooks',
+        session.get('url') + '/JSSResource/webhooks',
         auth=(session['username'], session['password']),
         headers={'Accept': 'application/json'},
         verify=verify_ssl)
@@ -352,9 +358,6 @@ def wizard():
 
             response_json = response.json()
 
-            jamf_event = response_json['webhook']['event']
-            jamf_id = response_json['webhook']['id']
-            script = webhook['script']
 
     data = []
 
@@ -406,10 +409,10 @@ def first_automation():
 def step_one():
     if request.method == 'POST':
         if request.form['webhook_source'] == 'jamf':
-            return redirect(url_for('webhooks.webhooks'))
+            return redirect(url_for('jamf_pro_webhooks.jp_new'))
 
         if request.form['webhook_source'] == 'okta':
-            return redirect(url_for('okta_new.okta_new'))
+            return redirect(url_for('okta_webhook.okta_new'))
 
     return render_template(
         'step_one.html',
@@ -444,8 +447,9 @@ def success():
 
 @app.route('/error', methods=['GET', 'POST'])
 def error():
-    if 'username' in session:
-        return render_template('wizard.html', login="false")
+    if not 'username' in session:
+        return redirect(url_for('logout'))
+    return render_template('error.html', username=session.get('username'))
 
 
 @app.errorhandler(404)

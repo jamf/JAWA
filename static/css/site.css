@@ -149,6 +149,12 @@ footer a {
     padding: 10px;
 }
 
+.log-frame {
+    max-height: 50vh;
+    /*height: 50%;*/
+    /*min-height: 50%;*/
+}
+
 .log-form {
     margin-top: auto;
     margin-left: auto;
@@ -161,17 +167,13 @@ footer a {
 }
 
 .log-background {
-    margin-top: auto;
-    margin-left: auto;
-    margin-right: auto;
-    /*max-width: 1000px;*/
     background-color: #c9c9c9;
     border: 1px solid gray;
-    border-radius: 5px;
-    padding: 10px;
+    /*border-radius: 5x;*/
+    /*padding: 10px;*/
 }
 .download-button {
-    margin-top: 50px;
+    margin-top: auto;
     margin-left: auto;
     margin-right: auto;
     text-align: center;
@@ -179,8 +181,8 @@ footer a {
     background-color: #c9c9c9;
     /*border: 1px solid gray;*/
     /*border-radius: 5px;*/
-    padding-top: 5px;
-    padding-bottom: 25px;
+    padding-top: 15px;
+    padding-bottom: 15px;
 }
 .sub_links {
     padding-top: 90px;
@@ -192,6 +194,13 @@ footer a {
     }
 }
 
+.sub_links.affix {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index:10;
+}
+
 #upload{
     display:none
 }
@@ -199,3 +208,4 @@ footer a {
 #upload_link{
     text-decoration:none;
 }
+

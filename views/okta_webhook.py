@@ -42,6 +42,7 @@ def okta_webhook():
     return {'key': "Have a good weekend my dude.", 'username': session.get('username'),
             'okta_list': okta_webhooks_list}
 
+
 @blueprint.route('/webhooks/okta/new', methods=['GET', 'POST'])
 def okta_new():
     if 'username' in session:
@@ -180,69 +181,4 @@ def okta_new():
         return render_template('home.html', login="false")
 
 
-@blueprint.route('/okta_delete', methods=['GET', 'POST'])
-def okta_delete():
-    exists = os.path.isfile(server_json_file)
-    if exists == False:
-        return render_template('setup.html',
-                               setup="setup",
-                               username=str(escape(session['username'])))
-    if 'username' not in session:
-        return redirect(url_for('logout'))
 
-    with open(webhooks_json, 'r+') as fin:
-        content = fin.read()
-    webhook_data = json.loads(content)
-    i = 0
-    names = []
-    for item in webhook_data:
-        data = defaultdict(lambda: "MISSING", item)
-        tag = item['tag']
-        if tag == "okta":
-            names.append(str(webhook_data[i]['name']))
-        i += 1
-
-    content = names
-
-    if request.method == 'POST':
-        if request.form.get('webhookname') != '':
-
-            webhookname = request.form.get('webhookname')
-            ts = time.time()
-
-            data = json.load(open(webhooks_json))
-
-            for d in data:
-                if d['name'] == webhookname:
-                    scriptPath = (d['script'])
-                    newScriptPath = scriptPath + '.old'
-                    if os.path.exists(scriptPath):
-                        os.rename(scriptPath, newScriptPath)
-
-            data[:] = [d for d in data if d.get('id') != webhookname]
-
-            with open(webhooks_json, 'w') as outfile:
-                json.dump(data, outfile)
-
-            data = json.load(open(webhooks_json))
-
-            for d in data:
-                if d['name'] == webhookname:
-                    response = requests.post(
-                        d['okta_url'] + '/api/v1/eventHooks/{}/lifecycle/deactivate'.format(d['okta_id']),
-                        headers={"Authorization": "SSWS {}".format(d['okta_token'])})
-
-                    response = requests.delete(d['okta_url'] + '/api/v1/eventHooks/{}'.format(d['okta_id']),
-                                               headers={"Authorization": "SSWS {}".format(d['okta_token'])})
-
-            data[:] = [d for d in data if d.get('name') != webhookname]
-
-            with open(webhooks_json, 'w') as outfile:
-                json.dump(data, outfile)
-
-        return redirect(url_for('success'))
-
-    else:
-        return render_template('okta_delete.html',
-                               text=content, delete="delete",
-                               username=str(escape(session['username'])))

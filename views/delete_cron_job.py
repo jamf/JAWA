@@ -18,7 +18,7 @@ cron_delete = Blueprint('delete_cron', __name__)
 def delete_cron():
     exists = os.path.isfile(cron_json_file)
     if not exists:
-        return render_template('cron.html',
+        return render_template('cron/cron.html',
                                cron="cron",
                                username=str(escape(session['username'])))
 
@@ -63,7 +63,7 @@ def delete_cron():
                                    webhooks="success",
                                    username=str(escape(session['username'])))
         else:
-            return render_template('delete_cron.html',
+            return render_template('cron/delete_cron.html',
                                    content=content,
                                    delete_cron="delete_cron",
                                    username=str(escape(session['username'])))

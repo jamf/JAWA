@@ -142,7 +142,7 @@ def cron():
                                    username=str(escape(session['username'])))
 
         else:
-            return render_template('cron.html',
+            return render_template('cron/cron.html',
                                    cron="cron",
                                    frequencies=frequencies,
                                    days=days,

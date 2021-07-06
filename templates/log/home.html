@@ -1,24 +1,25 @@
 {% extends "shared/_layout.html" %}
-<link rel="stylesheet" href="/static/css/tester.css">
-
 {% block title %}JAWA Log{% endblock %}
 {% block content %}
-    <div class="test-links sub_links">
+    <div class="test-links sub_links sticky-top">
         <div class="stat"><a href="/log/live.html" target="_blank">Live View</a></div>
-        <div class="stat"><a href="/log/download" target="_blank" >Download</a></div>
+        <div class="stat"><a href="/log/download" target="_blank">Download</a></div>
     </div>
     <div class="log-background">
-    <div class="form-container container-fluid ">
+        <div class="form-container">
 
-        <div class="alert-warning  success-wrap">
-            {% for line in log %}
-                {{ line }}<br>
-            {% endfor %}
+            <div class="  table-view ">
+                <div class="alert-warning overflow-auto log-frame success-wrap">
+                    {% for line in log %}
+                        {{ line }}<br>
+                    {% endfor %}
+                </div>
+                <div class="download-button">
+                    <a href="/log/download" button type=submit class="btn btn-success button-align">Download &raquo;</a>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="download-button">
-        <a href="/log/download" button type=submit class="btn btn-success button-align">Download &raquo;</a>
-    </div></div>
 {% endblock %}
 </body>

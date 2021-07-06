@@ -3,24 +3,24 @@
     padding: 25px;
 }
 
-form.account-form > * {
+form.table-view > * {
     margin-top: 5px;
     margin-bottom: 5px;
 }
 
-form.account-form h1 {
+form.table-view h1 {
     text-align: center;
 }
 
-form.account-form button {
+form.table-view button {
     float: right;
 }
 
-form.account-form select {
+form.table-view select {
     padding: 0;
 }
 
-form.account-form {
+form.table-view {
     margin-top: auto;
     margin-left: auto;
     margin-right: auto;
@@ -99,3 +99,13 @@ form.files-form {
     }
 }
 
+.table-view {
+    margin-top: auto;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100vh;
+    background-color: #c9c9c9;
+    border: 1px solid gray;
+    border-radius: 5px;
+    padding: 10px;
+}

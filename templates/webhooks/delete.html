@@ -1,60 +1,36 @@
 {% extends "shared/_layout.html" %}
-{% block title %}JAWA Log{% endblock %}
+{% block title %}Confirm Delete{% endblock %}
 {% block content %}
-          <div class="test-links sub_links sticky-top">
+    <div class="test-links sub_links sticky-top">
         <div class="stat"><a href="/webhooks/jamf">Jamf Pro</a></div>
-        <div class="stat"><a href="/okta_new">Okta</a></div>
+        <div class="stat"><a href="/webhooks/okta">Okta</a></div>
         <div class="stat"><a href="/webhooks/custom">Custom</a></div>
     </div>
-{#    <div class="log-background">#}
-{#        <div class="form-container">#}
-{##}
-{#            <div class="alert-warning  table-view ">#}
-{#                <div class="overflow-auto log-frame success-wrap">#}
-{#                    {{ target_webhook }}#}
-{#                </div>#}
-{#                <div class="download-button">#}
-{#                    <a href="/log/download" button type=submit class="btn btn-alert button-align">Delete &raquo;</a>#}
-{#                </div>#}
-{#            </div>#}
-{#        </div>#}
-{#    </div>#}
-<div class="form-container">
+
+    <div class="form-container">
         <form action="#" method="POST" class="table-view"
               enctype="multipart/form-data">
 
             <h1>Confirm Delete:</h1>
-            {{ tag.title() }} Webhook - {% if target_webhook %}{{ target_webhook }}{% else %}Custom Webhook{% endif %}</h1>
-{#            <input name="custom_name" type="text" pattern="[^' ']+" placeholder="Edit Webhook Name (optional)"#}
-{#                   title="No spaces, please." class="form-control" value="{{ name }}">#}
-{#            {% if error %}#}
-{#                <div class="alert-danger">{{ error }}</div>#}
-{#            {% endif %}#}
-{#            <textarea name="description" rows=3 type="text" placeholder="Description (optional)"#}
-{#                      class="form-control">{{ description }}</textarea><br>#}
-{#            Script file: <input type="file" name="new_file" pattern="[^' ']+"#}
-{#                                title="No Spaces in the filename!"></b>#}
-            {#            <form action="#" method="post" enctype="multipart/form-data">#}
-            {#                <input id="upload" type="file" name="upload" formenctype="multipart/form-data"/>#}
-            {#                <a href="#" id="upload_link">Upload files</a>#}
+            {{ tag.title() }} Webhook -
+            {% if target_webhook %}{{ target_webhook }}{% else %}Custom Webhook{% endif %}</h1>
 
 
             <br>
             <div class="d-flex justify-content-center">
-{#                <p></p>#}
-{#                <button type=submit name="button_choice" value="Custom_Edit" class="btn btn-secondary" style="margin: 5px">#}
-{##}
-{#                    Edit#}
-{##}
-{#                </button>#}
- <div class="log-view">Sir, the possibility of successfully navigating an asteroid field is approximately 3,720 to 1.</div>
+
+                <div class="log-view">Sir, the possibility of successfully navigating an asteroid field is approximately
+                    3,720 to 1.
+                </div>
                 <button type=submit name="button_choice" value="Delete" class="btn btn-danger" style="margin: 5px">
 
                     Delete
 
                 </button>
                 </p>
-            </div></form></div>
+            </div>
+        </form>
+    </div>
 
     </div>
 {% endblock %}

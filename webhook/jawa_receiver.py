@@ -1,4 +1,3 @@
-
 from bin import okta_verification
 import flask
 from flask import session, request, redirect, url_for, render_template, current_app
@@ -14,9 +13,7 @@ server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))
 scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
-
 blueprint = flask.Blueprint('jawa_receiver', __name__, template_folder='templates')
-
 
 
 def validate_webhook(webhook_data, webhook_name, webhook_user, webhook_pass):
@@ -26,6 +23,7 @@ def validate_webhook(webhook_data, webhook_name, webhook_user, webhook_pass):
     for each_webhook in webhooks_json:
         if each_webhook['name'] == webhook_name:
             truth_test = True
+
             if (
                     each_webhook['webhook_username'] != webhook_user or
                     each_webhook['webhook_password'] != webhook_pass):
@@ -42,11 +40,13 @@ def run_script(webhook_data, webhook_name):
             proc = subprocess.Popen([each_webhook['script'], f"{webhook_data}"], stdout=subprocess.PIPE)
             output = proc.stdout.read()
             jawa_logger().info(output)
+            return output
 
 
 @blueprint.route('/hooks/<webhook_name>', methods=['POST', 'GET'])
 def webhook_handler(webhook_name):
     jawa_logger().info(webhook_name)
+    # print(request.data)
     webhook_data = request.get_json()
     if request.headers.get('x-okta-verification-challenge'):
         jawa_logger().info("This is an Okta verification challenge...")
@@ -70,5 +70,5 @@ def webhook_handler(webhook_name):
         run_script(webhook_data, webhook_name)
     else:
         jawa_logger().info(f"{webhook_name} not validated!")
-
+        return "Unauthorized", 401
     return webhook_data

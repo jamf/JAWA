@@ -4,6 +4,7 @@ import os
 import json
 import glob
 import time
+from collections import defaultdict
 from time import sleep
 import requests
 import re
@@ -12,24 +13,45 @@ from flask import (Flask, request, render_template,
                    session, redirect, url_for, escape,
                    send_from_directory, Blueprint, abort)
 
-new_okta = Blueprint('okta_new', __name__)
+from bin.view_modifiers import response
+
+blueprint = Blueprint('okta_webhook', __name__)
 
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
 okta_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'okta_json.json'))
 okta_verification_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'bin', 'okta_verification.py'))
-jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))
+webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))
 scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
 
-@new_okta.route('/okta_new', methods=['GET', 'POST'])
+@blueprint.route('/webhooks/okta', methods=['GET', 'POST'])
+@response(template_file='webhooks/okta/home.html')
+def okta_webhook():
+    if not 'username' in session:
+        return redirect(url_for('logout'))
+    with open(webhooks_file, 'r') as fin:
+        webhooks_json = json.load(fin)
+    okta_webhooks_list = []
+    for each_webhook in webhooks_json:
+        data = defaultdict(lambda: "MISSING", each_webhook)
+        tag = data['tag']
+        if tag == "okta":
+            okta_webhooks_list.append(each_webhook)
+    print(okta_webhooks_list)
+
+    return {'key': "Have a good weekend my dude.", 'username': session.get('username'),
+            'okta_list': okta_webhooks_list}
+
+
+@blueprint.route('/webhooks/okta/new', methods=['GET', 'POST'])
 def okta_new():
     if 'username' in session:
         os.chmod(okta_verification_file, mode=0o0755)
         # okta_json = '/usr/local/jawa/okta_json.json'
 
-        if not os.path.isfile(jp_webhooks_file):
+        if not os.path.isfile(webhooks_file):
             data = []
-            with open(jp_webhooks_file, 'w') as outfile:
+            with open(webhooks_file, 'w') as outfile:
                 json.dump(data, outfile, indent=4)
 
         if request.method == 'POST':
@@ -43,8 +65,8 @@ def okta_new():
             with open(server_json_file) as json_file:
                 data = json.load(json_file)
                 server_address = data['jawa_address']
-            if not os.path.isdir('/usr/local/jawa/'):
-                os.mkdir('/usr/local/jawa/')
+            # if not os.path.isdir('/usr/local/jawa/'):
+            #     os.mkdir('/usr/local/jawa/')
 
             if not os.path.isdir(scripts_dir):
                 os.mkdir(scripts_dir)
@@ -65,8 +87,8 @@ def okta_new():
 
             old_script_file = os.path.join(scripts_dir, f.filename)
 
-            # hooks_file = '/etc/webhook.conf'
-            data = json.load(open(jp_webhooks_file))
+            # hooks_file = '/etc/webhooks.conf'
+            data = json.load(open(webhooks_file))
 
             new_id = okta_name
             script_file = os.path.join(scripts_dir, okta_name + "_" + f.filename)
@@ -74,7 +96,7 @@ def okta_new():
             os.rename(old_script_file, script_file)
             new_file = script_file
 
-            okta_info = json.load(open(jp_webhooks_file))
+            okta_info = json.load(open(webhooks_file))
 
             for i in data:
                 if str(i['name']) == okta_name:
@@ -134,7 +156,7 @@ def okta_new():
                               "webhook_password": "null",
                               "tag": "okta"})
 
-            with open(jp_webhooks_file, 'w') as outfile:
+            with open(webhooks_file, 'w') as outfile:
                 json.dump(okta_info, outfile, indent=4)
 
             # Verify/activate
@@ -152,7 +174,11 @@ def okta_new():
             return render_template('success.html', login="true")
 
         else:
-            return render_template('okta_new.html', setup="setup", username=str(escape(session['username'])))
+            return render_template('webhooks/okta/new.html', setup="setup",
+                                   username=str(escape(session['username'])))
 
     else:
         return render_template('home.html', login="false")
+
+
+

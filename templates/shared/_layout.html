@@ -25,7 +25,7 @@
 <div>
 
     <nav class="navbar fixed-top navbar-toggleable-md navbar-inverse bg-inverse navbar-expand-md">
-        <a class="navbar-brand" href="/"><img src="/static/img/jawa_icon.png"/></a>
+        <a class="navbar-brand" href="/wizard"><img src="/static/img/jawa_icon.png"/></a>
 
         <button class="navbar-toggler navbar-toggle" type="button" data-toggle="collapse"
                 data-target="#navbarSupportedContent"
@@ -40,11 +40,13 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav ml-auto">
                 {% if username %}
-                    <li class="nav-item"><a class="nav-link" href="/wizard.html">Wizard</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/setup">Setup</a></li>
+{#                    <li class="nav-item"><a class="nav-link" href="/wizard.html">Wizard</a></li>#}
+                    <li class="nav-item"><a class="nav-link" href="/webhooks">Webhooks</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/cron">Cron</a></li>
                     <li class="nav-item"><a class="nav-link" href="/resources/files">Files</a></li>
                     <li class="nav-item"><a class="nav-link" href="/log/home.html">Log</a></li>
-{#                    <li class="nav-item"><a target="_blank" class="nav-link"#}
+                    <li class="nav-item"><a class="nav-link" href="/setup">Setup</a></li>
+                    {#                    <li class="nav-item"><a target="_blank" class="nav-link"#}
 {#                                            href="http://jamf.io/patient-bedside/">Demo</a></li>#}
                     <li class="nav-item"><a class="nav-link" href="/logout" id="last_nav_link">Logout</a></li>
 
@@ -65,10 +67,10 @@
 {#            <div class="align-content-center text-center">#}
 
             {% if username %}
-                 {{ username.title() }}. <br>
+                 Welcome, {{ username.title() }}. <br>
             {% endif %}
-            Call your doctor about JAWA today.<br>
-            Discover what's possible with Jamf&.<br>
+            Discover what's possible with Jamf &.<br>
+            Jamf Automation + Webhook Assistant.<br>
             </div>
             {% block footer %}
             {% endblock %}

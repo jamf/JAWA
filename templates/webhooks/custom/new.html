@@ -1,0 +1,39 @@
+{% extends "shared/_layout.html" %}
+{% block title %}Custom Webhook{% endblock %}
+{% block content %}
+    <div class="test-links sub_links">
+        <div class="stat"><a href="/webhooks">All Webhooks</a></div>
+        <div class="stat"><a href="/webhooks/custom/new">Create</a></div>
+        <div class="stat"><a href="/webhooks/custom">View</a></div>
+    </div>
+    <div class="form-container">
+
+        <form action="/webhooks/custom/new" method="POST" class="table-view" enctype="multipart/form-data">
+            <h1>New Custom Webhook</h1>
+            <input name="custom_name" type="text" pattern="[^' ']+" placeholder="New Webhook Name" required
+                   title="No spaces, please." class="form-control" value="{{ name }}">
+            {% if error %}
+                <div class="alert-danger">{{ error }}</div>
+            {% endif %}
+            <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
+                      class="form-control">{{ description }}</textarea><br>
+            Script file: <input type="file" name="new_file" pattern="[^' ']+" required
+                                title="No Spaces in the filename!"></b>
+            {#            <form action="#" method="post" enctype="multipart/form-data">#}
+            {#                <input id="upload" type="file" name="upload" formenctype="multipart/form-data"/>#}
+            {#                <a href="#" id="upload_link">Upload files</a>#}
+
+
+            <br>
+            <div class="d-flex justify-content-center">
+                <p></p>
+                <button type=submit value="Custom_New" class="btn btn-secondary ">
+
+                    Create
+
+                </button>
+                </p>
+            </div>
+
+    </div>
+{% endblock %}

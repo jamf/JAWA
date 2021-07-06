@@ -109,9 +109,9 @@
 </style>
 
 <body>
-{% extends "wizardlayout.html" %}
+{% extends "shared/_layout.html" %}
 {% block content %}
-    <div class="wizard">
+    <div class="form-container">
 
     <h1>JAWA Dashboard</h1>
     Active JPS: {{ session['url'] }} <br><br>
@@ -146,7 +146,7 @@
                         {% endif %}
                     {% endfor %}
                 </table>
-                <a href="{{ url_for('edit.edit') }}" style="color:#3c6aa7;">Adjust Webhooks</a>
+                <a href="{{ url_for('jamf_pro_webhooks.edit') }}" style="color:#3c6aa7;">Adjust Webhooks</a>
                 </br></br></br>
             </div>
         </div>
@@ -199,7 +199,7 @@
                         </tr>
                     {% endfor %}
                 </table>
-                <a href="{{ url_for('okta_delete.okta_delete') }}" style="color:#3c6aa7;">Modify Okta Webhooks</a>
+                <a href="/webhooks/okta" style="color:#3c6aa7;">Modify Okta Webhooks</a>
                 </br></br></br>
             </div>
 

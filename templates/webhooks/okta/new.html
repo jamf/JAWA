@@ -6,31 +6,20 @@
 <head>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 </head>
-<script>
-  $(document).ready(function() {
-    $(".submit").click(function() {
-      $(".submit").addClass("loading");
-      setTimeout(function() {
-        $(".submit").addClass("hide-loading");
-        $(".done").addClass("finish");
-      }, 1000000);
-      setTimeout(function() {
-        $(".submit").removeClass("loading");
-        $(".submit").removeClass("hide-loading");
-        $(".done").removeClass("finish");
-        $(".failed").removeClass("finish");
-      }, 1000000);
-    })
-  });
-</script>
-<body>
-  {% extends "okta_layout.html" %}
-  {% block content %}
-  <div class="okta_new">
-    <h1>New Okta Webhook</h1>
 
-    <form method="post" action="/okta_new" enctype="multipart/form-data">
-      <b>Okta Webhook Name</b></br>
+<body>
+  {% extends "shared/_layout.html" %}
+  {% block content %}
+          <div class="test-links sub_links sticky-top">
+        <div class="stat"><a href="/webhooks">All Webhooks</a></div>
+        <div class="stat"><a href="/webhooks/okta/new">Create</a></div>
+        <div class="stat"><a href="/webhooks/okta">View</a></div>
+    </div>
+  <div class="form-container">
+
+      <form method="post" class="table-view" enctype="multipart/form-data">
+          <h1>New Okta Webhook</h1>
+          <b>Okta Webhook Name</b></br>
       New Webhook Name:
       <input type="text" name="webhookname" required oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')"></br></br></br>
       
@@ -62,6 +51,25 @@
       </div>
     </form>  
     {% endblock %}
+  {% block additional_js %}
+  <script>
+  $(document).ready(function() {
+    $(".submit").click(function() {
+      $(".submit").addClass("loading");
+      setTimeout(function() {
+        $(".submit").addClass("hide-loading");
+        $(".done").addClass("finish");
+      }, 1000000);
+      setTimeout(function() {
+        $(".submit").removeClass("loading");
+        $(".submit").removeClass("hide-loading");
+        $(".done").removeClass("finish");
+        $(".failed").removeClass("finish");
+      }, 1000000);
+    })
+  });
+</script>
+  {% endblock %}
    </div>
   </body>
 </html>

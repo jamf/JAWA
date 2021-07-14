@@ -75,6 +75,7 @@ def edit_webhook():
                 description = request.form.get('description')
                 if request.files.get('new_file'):
                     new_script = request.files.get('new_file')
+                    owd = os.getcwd()
                     os.chdir(scripts_dir)
 
                     if ' ' in new_script.filename:
@@ -84,6 +85,7 @@ def edit_webhook():
                     new_script.save(secure_filename(new_filename))
                     new_filename = os.path.join(scripts_dir, f"{new_custom_name}-{new_script.filename}")
                     os.chmod(new_filename, mode=0o0755)
+                    os.chdir(owd)
                     each_webhook['script'] = new_filename
                 if new_custom_name:
                     each_webhook['name'] = new_custom_name
@@ -116,6 +118,7 @@ def new_webhook():
 
                     if each_webhook.get('name') == new_custom_name:
                         check = 1
+            owd = os.getcwd()
             os.chdir(scripts_dir)
             target_file = request.files.get('new_file')
 
@@ -126,6 +129,7 @@ def new_webhook():
             target_file.save(secure_filename(new_filename))
             new_filename = os.path.join(scripts_dir, f"{new_custom_name}-{target_file.filename}")
             os.chmod(new_filename, mode=0o0755)
+            os.chdir(owd)
             if check != 0:
                 error_message = "Name already exists!"
                 print(error_message)

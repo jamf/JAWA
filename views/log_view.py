@@ -18,13 +18,14 @@ blueprint = Blueprint('log_view', __name__, template_folder='templates')
 
 
 @blueprint.route('/log/home.html', methods=['GET'])
-def log_page():
-    if not 'username' in session:
+def log_home():
+    if 'username' not in session:
         return load_home()
     jawa_logger().info(f"/log/view accessed by {session.get('username') or 'nobody'}")
     with open(log_file, 'r') as fin:
         lines = [re.sub('\n', '', line) for line in fin.readlines()]
-    return render_template('log/home.html', username=session.get('username'), log=lines)
+        lines.reverse()
+    return render_template('log/home.html', username=session.get('username'), log=lines[:500])
 
 
 @blueprint.route('/log/view', methods=['GET'])
@@ -41,7 +42,7 @@ def log_view():
 @response(template_file="log/live.html")
 def stream():
     if not 'username' in session:
-        return render_template('home.html')
+        return flask.redirect(flask.url_for('logout'))
     current_user = session.get('username') or 'nobody'
     jawa_logger().info(f"/logview accessed by {session.get('username') or 'nobody'}")
 

@@ -3,12 +3,12 @@ import flask
 from flask import session, request, redirect, url_for, render_template, current_app
 # from glob import escape
 import json
-
-from main import jawa_logger
 import os
 # import requests
+import re
 import subprocess
 
+from main import jawa_logger
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
 jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))
 scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
@@ -37,9 +37,11 @@ def run_script(webhook_data, webhook_name):
         webhooks_json = json.load(fin)
     for each_webhook in webhooks_json:
         if each_webhook['name'] == webhook_name:
+            print(webhook_data)
+            webhook_data = json.dumps(webhook_data)
             proc = subprocess.Popen([each_webhook['script'], f"{webhook_data}"], stdout=subprocess.PIPE)
             output = proc.stdout.read()
-            jawa_logger().info(output)
+            jawa_logger().info(output.decode())
             return output
 
 

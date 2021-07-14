@@ -64,5 +64,5 @@ When scripting for webhooks, verifiy JSON structure sent from source:
 
 Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
 
-###Acknowledgments:
+### Acknowledgments:
  Icon file ["Jawa star wars Icon"](https://icon-icons.com/icon/jawa-star-wars/76960) by [Sensible World](https://icon-icons.com/users/TTIQFLxRVkBQ8aKKlSTRZ/icon-sets/) is licensed under [CC BY-ND 4.0](https://creativecommons.org/licenses/by/4.0/).

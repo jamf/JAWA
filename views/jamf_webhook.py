@@ -38,20 +38,20 @@ def jamf_webhook():
     print(jamf_pro_list)
 
     return {'username': session.get('username'),
-            'jamf_pro_list': jamf_pro_list, 'url': session.get('url')}
+            'jamf_list': jamf_pro_list, 'url': session.get('url')}
 
 
 @blueprint.route('/webhooks/jamf/new', methods=['GET', 'POST'])
 def jp_new():
     if not os.path.isfile(server_json_file):
-        return render_template('setup.html',
+        return render_template('setup/setup.html',
                                setup="setup",
                                jps_url=str(escape(session['url'])),
                                username=str(escape(session['username'])))
     with open(server_json_file, "r") as fin:
         server_json = json.load(fin)
     if server_json == []:
-        return render_template('setup.html',
+        return render_template('setup/setup.html',
                                setup="setup",
                                jps_url=str(escape(session['url'])),
                                username=str(escape(session['username'])))
@@ -108,6 +108,7 @@ def jp_new():
                     server_address = data['jawa_address']
                 if not os.path.isdir(scripts_dir):
                     os.mkdir(scripts_dir)
+                owd = os.getcwd()
                 os.chdir(scripts_dir)
 
                 new_file = request.files.get('new_file')
@@ -123,7 +124,7 @@ def jp_new():
                 os.rename(old_script_file, new_script_file)
 
                 os.chmod(new_script_file, mode=0o0755)
-
+                os.chdir(owd)
                 if (
                         request.form.get('event') == 'SmartGroupMobileDeviceMembershipChange' or
                         request.form.get('event') == 'SmartGroupComputerMembershipChange'):
@@ -181,12 +182,18 @@ def jp_new():
                 new_link = "{}/webhooks.html?id={}&o=r".format(session['url'], result.group(1))
 
                 data = json.load(open(webhooks_file))
+                webhook_username = request.form.get('username')
+                webhook_password = request.form.get('password')
+                if webhook_username == "":
+                    webhook_username = "null"
+                if webhook_password == "":
+                    webhook_password = "null"
 
                 data.append({"url": str(session['url']),
                              "jawa_admin": str(session['username']),
                              "name": request.form.get('webhook_name'),
-                             "webhook_username": request.form.get('username'),
-                             "webhook_password": request.form.get('password'),
+                             "webhook_username": webhook_username,
+                             "webhook_password": webhook_password,
                              "event": request.form.get('event'),
                              "script": new_script_file,
                              "description": request.form.get('description'),
@@ -196,8 +203,8 @@ def jp_new():
                 with open(webhooks_file, 'w') as outfile:
                     json.dump(data, outfile, indent=4)
 
-                new_here = "Link"
-                new_webhook = "New webhooks created."
+                new_here = request.form.get('webhook_name')
+                success_msg = "New webhook created:"
 
             return render_template('success.html',
                                    webhooks="success",
@@ -205,7 +212,7 @@ def jp_new():
                                    smart_group_notice=smart_group_notice,
                                    new_link=new_link,
                                    new_here=new_here,
-                                   new_webhook=new_webhook,
+                                   success_msg=success_msg,
                                    username=str(escape(session['username'])))
 
 
@@ -256,6 +263,7 @@ def edit():
                 print(webhook_user, webhook_pass)
                 if request.files.get('new_file'):
                     new_script = request.files.get('new_file')
+                    owd = os.getcwd()
                     os.chdir(scripts_dir)
 
                     if ' ' in new_script.filename:
@@ -265,6 +273,7 @@ def edit():
                     new_script.save(secure_filename(new_filename))
                     new_filename = os.path.join(scripts_dir, f"{new_webhook_name}-{new_script.filename}")
                     os.chmod(new_filename, mode=0o0755)
+                    os.chdir(owd)
                     each_webhook['script'] = new_filename
                 if new_webhook_name:
                     each_webhook['name'] = new_webhook_name
@@ -272,11 +281,11 @@ def edit():
                     each_webhook['description'] = description
                 if new_event:
                     each_webhook['event'] = new_event
-                if webhook_user:
+                if webhook_user and webhook_user != "":
                     each_webhook['webhook_username'] = webhook_user
                 else:
                     each_webhook['webhook_username'] = 'null'
-                if webhook_pass:
+                if webhook_pass and webhook_pass != "":
                     each_webhook['webhook_password'] = webhook_pass
                 else:
                     each_webhook['webhook_password'] = 'null'
@@ -337,4 +346,8 @@ def edit():
                     json.dump(webhooks_json, fout, indent=4)
                 return redirect(url_for('jamf_pro_webhooks.jamf_webhook'))
 
-    return {'username': session.get('username'), 'webhook_name': name, 'url': session.get('url')}
+    #GET
+    webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
+    print(webhook_info)
+    return {'username': session.get('username'), 'webhook_name': name, 'url': session.get('url'),
+            'webhook_info': webhook_info}

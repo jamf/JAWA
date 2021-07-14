@@ -1,33 +1,33 @@
-{% macro input(name, value='', type='text', size=20) -%}
-    <input type="{{ type }}" name="{{ name }}" value="{{ value|e }}" size="{{ size }}">
-{%- endmacro %}
-<!DOCTYPE html>
-<html>
-<body>
-{% extends "homelayout.html" %}
+{% extends "shared/_layout.html" %}
+{% block title %}JAWA Login{% endblock %}
 {% block content %}
-    <div class="login">
-    <h1>JAWA</h1>
 
-    <p>Please log in.</p>
-    <form action="/login" method="post">
+    <div class="form-container"><br><br><br>
+    <form action="/login" class="table-view" method="post">
+        <h1>JAWA</h1>
+
         {% if jsslock %}
             {% if jps_url2 %}
                 Choose your JPS instance:
-                <select name="active_url" id="active_url">
+                <select class="form-control" name="active_url" id="active_url">
                     <option value="{{ jps_url }}">{{ jps_url }}</option>
                     <option value="{{ jps_url2 }}">{{ jps_url2 }}</option>
                 </select>
             {% endif %}
         {% else %}
-            <p>Jamf Pro URL: {{ input('url') }}</p>
+            <input name="url" type="url" placeholder="Jamf Pro URL" pattern="https?://.+" title="Use https://" required
+                   class="form-control">
         {% endif %}
-        <p>Username: {{ input('username') }}</p>
-        <p>Passcode: {{ input('password', type='password') }}</p>
-        <input type=submit value=Login><br><br><br><br>
+        <input name="username" type="text" placeholder="Username" required class="form-control">
+        <input name="password" type="password" placeholder="Password" required class="form-control">
 
-        Please read the <a href="https://github.com/jamf/jawa/blob/master/README.md" style="color:#3c6aa7;"
-                           target="_blank">documentation</a> prior to using JAWA!
+        <p>
+        <div class="d-flex justify-content-center">
+            <input class="btn btn-primary" type=submit value=Login>
+        </div>
+        </p>
+        <p>Please read the <a href="https://github.com/jamf/jawa/blob/master/README.md" style="color:#3c6aa7;"
+                              target="_blank">documentation</a> prior to using JAWA!</p>
 
     </form>
 {% endblock %}

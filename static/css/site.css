@@ -58,8 +58,8 @@ nav > a {
 }
 
 .test-links {
-    background-color: #ececec;
-    padding: 10px 0px;
+    /*background-color: #ececec;*/
+    /*padding: 10px 10px;*/
     text-align: center;
     border-bottom: 1px solid #d3d3d3;
     border-top: 1px solid #d3d3d3;
@@ -119,7 +119,7 @@ footer {
     color: white;
     margin: 0px;
     background-color: #6b7078;
-    box-shadow: 0 50vh 0 50vh #6b7078;
+    /*box-shadow: 0 50vh 0 50vh #6b7078;*/
 }
 
 footer a {
@@ -185,8 +185,10 @@ footer a {
     padding-bottom: 15px;
 }
 .sub_links {
-    padding-top: 90px;
-}
+    padding-top: 66px;
+    background-color: #ececec;
+    padding: 10px, 0px;
+/*}*/
 
 @media (max-width: 979px) {
     body {
@@ -209,3 +211,23 @@ footer a {
     text-decoration:none;
 }
 
+/*tr {*/
+/*width: 100%;*/
+/*display: inline-table;*/
+/*height:30px;*/
+
+/*}*/
+
+
+/*table{*/
+/* height:300px;              // <-- Select the height of the table;*/
+/*    width: 300px;*/
+/* display: -moz-groupbox;    // For firefox bad effect*/
+/*}*/
+/*tbody{*/
+/*  overflow-y: scroll;*/
+/*  height: 200px;            //  <-- Select the height of the body*/
+/*  width: 100%;*/
+
+/*  position: absolute;*/
+/*}*/

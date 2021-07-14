@@ -1,14 +1,7 @@
-{% macro input(name, value='', type='text', size=20) -%}
-<input type="{{ type }}" name="{{ name }}" value="{{value|e }}" size="{{ size }}">
-{%- endmacro %}
 <!DOCTYPE html>
 <html>
-<head>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-</head>
-<pre>
-<code>
-#!/bin/bash
+<pre><code>#!/usr/bin/python
+# encoding: utf-8
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
@@ -38,7 +31,6 @@
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # PURPOSE
-# - Requires jq to be installed on the machine
 # - Template/example for building script for the JAWA.
 # - The variable: $@ is the response that JAWA receives from Jamf Pro
 # - This working script, when connected with JAWA and a webhook, will update device serial.
@@ -54,38 +46,42 @@
 # 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+import json
+import base64
+import requests
+import sys
+
 ######################
 # JAMF PRO VARIABLES #
 ######################
 
-jamfProUrl=""
-jamfProUser=""
-jamfProPass=""
+jamfpro_username = ''
+jamfpro_password = ''
+jamfpro_url = ''
 
 # Creating a variable called $tempJson to be used to parse
-/bin/echo $@ > $tempJson # "$@" is the response that JAWA receives from Jamf Pro 
+webhook_content = sys.argv[1] # "sys.argv[1]" is the response that JAWA receives from Jamf Pro
 
-# Serial Number is gathered from $tempJson
-serialNo=`jq '.event.serialNumber' $tempJson | tr -d \"`
+# JSON is created from gathered response
+json_data = json.loads(webhook_content)
 
-# Create a temporary xml file
-touch /tmp/name.xml
+# Serial Number is extracted
+serial_number = json_data['event']['serialNumber']
 
-# Fill temporary xml file with desired xml that will be used in the cURL
-cat << EOF > /tmp/name.xml
-&lt;computer&gt;
-	&lt;general&gt;
-		&lt;name&gt;$serialNo&lt;/name&gt;
-	&lt;/general&gt;
-&lt;/computer&gt;
+# Creating the xml of data used to update the device record
+data = '&lt;computer&gt;&lt;general&gt;&lt;name&gt;'
+data += serial_number
+data += '&lt;/name&gt;&lt;/general&gt;&lt;/computer&gt;'
 
-EOF
+# Forms the Jamf Pro API URL and endpoint
+full_url = jamfpro_url + '/JSSResource/computers/serialnumber/' + serial_number
 
-# cURL command that does the updating (PUT) of the device record with the temporary xml as the data
-curl -sfku "${jamfProUser}":"${jamfProPass}" "${jamfProUrl}/JSSResource/computers/serialnumber/${serialNo}" -T /tmp/name.xml -X PUT
+# Updates the device record
+response = requests.put(full_url, 
+	auth=(jamfpro_username, jamfpro_password), 
+	headers={'Content-Type': 'application/xml'}, 
+	data=data)
 
-# Removes temporary xml file after record is updated
-rm /tmp/name.xml
 </code>
 </pre>
 </html>

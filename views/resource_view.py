@@ -10,17 +10,24 @@ from bin.view_modifiers import response
 log_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'jawa.log'))
 resources_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'resources'))
 files_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'resources', 'files'))
+img_dir =  os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static', 'img'))
 
 blueprint = Blueprint('resources_view', __name__, template_folder='templates')
 
 
 @blueprint.route('/resources/files', methods=['GET', 'POST'])
-def files_download():
-    if not 'username' in session:
+def files():
+    if 'username' not in session:
         return load_home()
     target_file = request.args.get('target_file')
+    button_choice = request.args.get('button_choice')
+    print(button_choice)
     if target_file:
-        return send_file(f'{files_dir}/{target_file}', as_attachment=True)
+        if button_choice == "Download":
+            return send_file(f'{files_dir}/{target_file}', as_attachment=True)
+        elif button_choice == "Delete":
+            if os.path.exists(os.path.join(files_dir, target_file)):
+                os.remove(os.path.join(files_dir, target_file))
     if request.method == "POST":
         print(request)
         print("POST")
@@ -46,3 +53,21 @@ def files_download():
     print(files_list)
     return render_template('resources/files.html', username=session.get('username'), files_repo=files_dir,
                            files=files_list)
+
+
+@blueprint.route('/branding', methods=['GET', 'POST'])
+@response(template_file='setup/branding.html')
+def rebrand():
+    if 'username' not in session:
+        return redirect(url_for('logout'))
+    if request.method == "POST":
+        print("POST")
+        upload_files_list = request.files.getlist('upload')
+        target_file = upload_files_list[0]
+        # print(target_file)
+        if target_file:
+            os.rename(f"{img_dir}/jawa_icon.png", f"{img_dir}/old_jawa_icon_{datetime.now()}.png")
+            target_file.save(os.path.join(img_dir, "jawa_icon.png"))
+            return redirect(url_for('resources_view.rebrand'))
+        return {'username': session.get('username')}
+    return {'username': session.get('username')}

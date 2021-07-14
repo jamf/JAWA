@@ -1,0 +1,40 @@
+{% extends "shared/_layout.html" %}
+{% block title %}JAWA Resource Files{% endblock %}
+{% block content %}
+
+    <div class="test-links sub_links sticky-top">
+        <div class="stat"><a href="/setup">Setup</a></div>
+        <div class="stat"><a href="/cleanup">Cleanup</a></div>
+        <div class="stat"><a href="/branding">Branding</a></div>
+    </div>
+    <form action="#" method="post" enctype="multipart/form-data">
+        <input id="upload" type="file" accept="image/*" name="upload" formenctype="multipart/form-data"/>
+        {#            <a href="#" id="upload_link">Upload files</a>#}Change Icon
+        <input type="submit" value="Upload" disabled/></form>
+
+    </div>
+    <img class="img-thumbnail align-items-center" src="/static/img/jawa_icon.png">
+    </div>
+{% endblock %}
+{% block additional_js %}
+    <script>
+        $(function () {
+            $("#upload_link").on('click', function (e) {
+                e.preventDefault();
+                $("#upload:hidden").trigger('click');
+            });
+        });
+        $(document).ready(
+            function () {
+                $('input:file').change(
+                    function () {
+                        if ($(this).val()) {
+                            $('input:submit').attr('disabled', false);
+                            // or, as has been pointed out elsewhere:
+                            // $('input:submit').removeAttr('disabled');
+                        }
+                    }
+                );
+            });</script>
+{% endblock %}
+</body>

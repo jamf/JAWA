@@ -1,5 +1,10 @@
 {% extends "shared/_layout.html" %}
-{% block title %}JAWA Webhooks{% endblock %}
+
+{% block additional_css %}
+
+{% endblock %}
+{% block title %}Webhooks Dashboard{% endblock %}
+
 {% block content %}
     <div class="test-links sub_links sticky-top">
         <div class="stat"><a href="/webhooks/jamf">Jamf Pro</a></div>
@@ -7,102 +12,144 @@
         <div class="stat"><a href="/webhooks/custom">Custom</a></div>
     </div>
 
-
     <div class="form-container">
+        <div class="table-view overflow-auto" style="max-width: 55vh">
 
-        {#        <div class="account-form">#}
+            <h4 class="d-flex justify-content-center">Webhooks Dashboard</h4>
+            <div class="d-flex justify-content-center">
+                <b>Active JPS</b>: &nbsp; <a class="alert-link" href="{{ session.get('url') }}" target="_blank">{{ session['url'] }}</a> <br>
+            </div>
+            <div class="d-flex justify-content-center">
+                <b>Total webhooks installed</b>: {{ jamf_list|length + okta_list|length + custom_list|length or '0' }}
+            </div>
+            <div class="d-flex justify-content-center">
+                <a href="/webhooks/jamf"><b>Jamf Pro</b></a>: {{ jamf_list|length or '0' }} &nbsp;&nbsp;&nbsp; &nbsp; <a
+                    href="/webhooks/okta"><b>Okta</a></b>:
+                {{ okta_list|length or '0' }} &nbsp;&nbsp;&nbsp;&nbsp; <a
+                    href="/webhooks/custom"><b>Custom</b></a>: {{ custom_list|length or '0' }}</div>
+        </div>
+    </div>
 
 
-        <h4>
-            <div style="text-align: center;">Jamf Pro Webhooks Summary</div>
-        </h4>
-        <div class="table-view">
-            {% if jamfpro_list %}
+    {% if not jamf_list and not okta_list and not custom_list %}
+        <div class="form-container">
+            <div class="table-view" style="max-width: fit-content; text-align: center; min-width: 55vh">
                 <div class="table-responsive">
-                    <table id="Jamf Pro Webhooks Table" class="table">
+                    No Jamf Pro webhooks to display. <a href="/webhooks/jamf/new">Create one now.</a>
+                </div>
+            </div>
+            <div class="table-view" style="max-width: fit-content; text-align: center; min-width: 55vh">
+                <div class="table-responsive">
+                    No Okta webhooks to display. <a href="/webhooks/okta/new">Create one now.</a>
+                </div>
+            </div>
+            <div class="table-view" style="max-width: fit-content; text-align: center; min-width: 55vh">
+                <div class="table-responsive">
+                    No Custom webhooks to display. <a href="/webhooks/custom/new">Create one now.</a>
+                </div>
+            </div>
+
+        </div></div>
+    {% else %}
+        <div class="form-container">
+        <div class="table-view overflow-auto" style="max-height: 46vh; max-width: fit-content; text-align: center;">
+
+
+            {% if jamf_list %}
+                <div class="table-responsive">
+                    <table id="Jamf Pro Webhooks Table" class="table"
+                           style="max-height: 66vh; max-width: fit-content; text-align: center;">
                         <thead class="thead-dark table-bordered">
                         <tr>
-                            <th>Name</th>
+                            <th>Jamf Pro Webhook</th>
+                            <th>Event</th>
                             <th>Script</th>
                             <th>Description</th>
                         </tr>
                         </thead>
-                        {% for row in jamfpro_list %}
+                        {% for row in jamf_list %}
                             {% if row.url == session['url'] %}
                                 <tr>
-                                    {#                                <td>{{ row.name }} (<a href="{{ webhook_url }}/webhooks.html?id={{ row.jamf_id }}"#}
+
                                     <td>{{ row.name }} (<a href="../webhooks/jamf/edit?name={{ row.name }}"
                                                            style="color:#3c6aa7;">Edit</a>) (<a
-                                            href="{{ url }}/webhooks.html?id={{ row.jamf_id }}" target="_blank">View in
+                                            href="{{ url }}/webhooks.html?id={{ row.jamf_id }}" target="_blank">View
+                                        in
                                         Jamf</a>)
                                     </td>
-                                    <td>{{ row.script }}</td>
-                                    <td>{{ row.description }}</td>
+                                    <td>
+                                        <div class="overflow-auto log-frame"
+                                             style="max-width: 50vh; max-height: 10vh">
+                                            {{ row.event }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="overflow-auto log-frame"
+                                             style="max-width: 50vh; max-height: 10vh"> {{ row.script }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="overflow-auto log-frame"
+                                             style="max-width: 50vh; max-height: 10vh"> {{ row.description }}</div>
+                                    </td>
                                 </tr>
                             {% endif %}
-                        {% endfor %}
-                    </table>
+                        {% endfor %}</table>
                 </div>
-            {% else %}
-                No Jamf Pro webhooks to display.  <a href="/webhooks/jamf/new">Create one now.</a>
             {% endif %}
-        </div>
-        </form>
-    </div>
-    <div class="form-container">
-
-        {#        <div class="account-form">#}
-
-
-        <h4>
-            <div style="text-align: center;">Okta Webhooks Summary</div>
-        </h4>
-        <div class="table-view">
             {% if okta_list %}
                 <div class="table-responsive">
-                    <table id="Custom Webhooks Table" class="table">
+                    <table id="Okta Webhooks Table" class="table"
+                           style="max-height: 46vh; max-width: fit-content; text-align: center;">
                         <thead class="thead-dark table-bordered">
                         <tr>
-                            <th>Name</th>
+                            <th>Okta Webhook</th>
+                            <th>Okta URL</th>
+                            <th>Event</th>
                             <th>Script</th>
                             <th>Description</th>
                         </tr>
                         </thead>
+
                         {% for row in okta_list %}
 
                             <tr>
                                 {#                                <td>{{ row.name }} (<a href="{{ webhook_url }}/webhooks.html?id={{ row.jamf_id }}"#}
-                                <td>{{ row.name }} (<a href="../webhooks/okta/edit?name={{ row.name }}"
-                                                       style="color:#3c6aa7;">Edit</a>)
+                                <td>
+                                    <div class="overflow-auto log-frame"
+                                         style="max-width: 50vh; max-height: 10vh">
+                                        {{ row.name }} (<a href="../webhooks/delete?target_webhook={{ row.name }}"
+                                                               style="color:#3c6aa7;">Delete</a>)
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="overflow-auto log-frame" style="max-width: 50vh; max-height: 10vh">
+                                        {{ row.okta_url }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="overflow-auto log-frame"
+                                         style="max-width: 50vh; max-height: 10vh">
+                                        {{ row.okta_event }}
+                                    </div>
                                 </td>
                                 <td>{{ row.script }}</td>
-                                <td>{{ row.description }}</td>
+
+                                <td>
+                                    <div class="overflow-auto log-frame"
+                                         style="max-width: 50vh; max-height: 10vh"> {{ row.description }}</div>
+                                </td>
                             </tr>
 
                         {% endfor %}
                     </table>
                 </div>
-            {% else %}
-                No Okta webhooks to display.  <a href="/webhooks/okta/new">Create one now.</a>
             {% endif %}
-        </div>
-        </form>
-    </div>
-    <div class="form-container">
-
-        {#        <div class="account-form">#}
-
-
-        <h4>
-            <div style="text-align: center;">Custom Webhooks Summary</div>
-        </h4>
-        <div class="table-view">
             {% if custom_list %}
                 <div class="table-responsive">
                     <table id="Custom Webhooks Table" class="table">
                         <thead class="thead-dark table-bordered">
                         <tr>
-                            <th>Name</th>
+                            <th>Custom Webhook</th>
                             <th>Script</th>
                             <th>Description</th>
                         </tr>
@@ -115,26 +162,45 @@
                                                            style="color:#3c6aa7;">Edit</a>)
                                     </td>
                                     <td>{{ row.script }}</td>
-                                    <td>{{ row.description }}</td>
+                                    <td>
+                                        <div class="overflow-auto log-frame"
+                                             style="max-width: 50vh; max-height: 10vh">
+                                            {{ row.description }}
+                                        </div>
+                                    </td>
                                 </tr>
                             {% endif %}
                         {% endfor %}
+
                     </table>
+
                 </div>
-            {% else %}
-                No custom webhooks to display.  <a href="/webhooks/custom/new">Create one now.</a>
             {% endif %}
+
+
         </div>
-        </form>
-    </div>
+    {% endif %}
 
-
-    {#    <div class="download-button">#}
-    {#        <a href="/log/download" button type=submit class="btn btn-success button-align">Download &raquo;</a>#}
-    {#    </div>#}
-    </div>
-    </div>
-    </div>
-
+</div>
 {% endblock %}
-</body>
+{% block additional_js %}
+    <script>
+        $(document).ready(function () {
+            $(".submit").click(function () {
+                $(".submit").addClass("loading");
+                setTimeout(function () {
+                    $(".submit").addClass("hide-loading");
+                    // For failed icon just replace ".done" with ".failed"
+                    $(".done").addClass("finish");
+                }, 1000000);
+                setTimeout(function () {
+                    $(".submit").removeClass("loading");
+                    $(".submit").removeClass("hide-loading");
+                    $(".done").removeClass("finish");
+                    $(".failed").removeClass("finish");
+                }, 1000000);
+            })
+        });
+
+    </script>
+{% endblock %}

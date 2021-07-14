@@ -27,7 +27,7 @@ scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scr
 @blueprint.route('/webhooks/okta', methods=['GET', 'POST'])
 @response(template_file='webhooks/okta/home.html')
 def okta_webhook():
-    if not 'username' in session:
+    if 'username' not in session:
         return redirect(url_for('logout'))
     with open(webhooks_file, 'r') as fin:
         webhooks_json = json.load(fin)
@@ -45,140 +45,138 @@ def okta_webhook():
 
 @blueprint.route('/webhooks/okta/new', methods=['GET', 'POST'])
 def okta_new():
-    if 'username' in session:
-        os.chmod(okta_verification_file, mode=0o0755)
-        # okta_json = '/usr/local/jawa/okta_json.json'
+    if 'username' not in session:
+        return redirect(url_for('logout'))
+    os.chmod(okta_verification_file, mode=0o0755)
+    # okta_json = '/usr/local/jawa/okta_json.json'
 
-        if not os.path.isfile(webhooks_file):
-            data = []
-            with open(webhooks_file, 'w') as outfile:
-                json.dump(data, outfile, indent=4)
+    if not os.path.isfile(webhooks_file):
+        data = []
+        with open(webhooks_file, 'w') as outfile:
+            json.dump(data, outfile, indent=4)
 
-        if request.method == 'POST':
-            if ' ' in request.form.get('webhookname'):
-                error_message = "Single-string name only."
+    if request.method == 'POST':
+        if ' ' in request.form.get('webhookname'):
+            error_message = "Single-string name only."
+            return render_template('error.html',
+                                   error_message=error_message,
+                                   error="error",
+                                   username=str(escape(session['username'])))
+
+        with open(server_json_file) as json_file:
+            data = json.load(json_file)
+            server_address = data['jawa_address']
+        # if not os.path.isdir('/usr/local/jawa/'):
+        #     os.mkdir('/usr/local/jawa/')
+
+        if not os.path.isdir(scripts_dir):
+            os.mkdir(scripts_dir)
+
+        okta_server = request.form.get('okta_server')
+        okta_token = request.form.get('token')
+        okta_name = request.form.get('webhookname')
+        okta_event = request.form.get('event')
+        description = request.form.get('description')
+        webhook_server_url = server_address + '/hooks/' + okta_name
+        print(webhook_server_url)
+        owd = os.getcwd()
+        os.chdir(scripts_dir)
+
+        f = request.files['script']
+        if ' ' in f.filename:
+            f.filename = f.filename.replace(" ", "-")
+
+        f.save(secure_filename(f.filename))
+
+        old_script_file = os.path.join(scripts_dir, f.filename)
+
+        # hooks_file = '/etc/webhooks.conf'
+        data = json.load(open(webhooks_file))
+
+        new_id = okta_name
+        script_file = os.path.join(scripts_dir, okta_name + "_" + f.filename)
+
+        os.rename(old_script_file, script_file)
+        new_file = script_file
+
+        okta_info = json.load(open(webhooks_file))
+        os.chdir(owd)
+        for i in data:
+            if str(i['name']) == okta_name:
+                error_message = "Name already exists!"
                 return render_template('error.html',
                                        error_message=error_message,
                                        error="error",
                                        username=str(escape(session['username'])))
 
-            with open(server_json_file) as json_file:
-                data = json.load(json_file)
-                server_address = data['jawa_address']
-            # if not os.path.isdir('/usr/local/jawa/'):
-            #     os.mkdir('/usr/local/jawa/')
+        os.chmod(os.path.join(scripts_dir, new_file), mode=0o0755)
 
-            if not os.path.isdir(scripts_dir):
-                os.mkdir(scripts_dir)
-
-            okta_server = request.form.get('okta_server')
-            okta_token = request.form.get('token')
-            okta_name = request.form.get('webhookname')
-            okta_event = request.form.get('event')
-            webhook_server_url = server_address + '/hooks/' + okta_name
-            print(webhook_server_url)
-            os.chdir(scripts_dir)
-
-            f = request.files['script']
-            if ' ' in f.filename:
-                f.filename = f.filename.replace(" ", "-")
-
-            f.save(secure_filename(f.filename))
-
-            old_script_file = os.path.join(scripts_dir, f.filename)
-
-            # hooks_file = '/etc/webhooks.conf'
-            data = json.load(open(webhooks_file))
-
-            new_id = okta_name
-            script_file = os.path.join(scripts_dir, okta_name + "_" + f.filename)
-
-            os.rename(old_script_file, script_file)
-            new_file = script_file
-
-            okta_info = json.load(open(webhooks_file))
-
-            for i in data:
-                if str(i['name']) == okta_name:
-                    error_message = "Name already exists!"
-                    return render_template('error.html',
-                                           error_message=error_message,
-                                           error="error",
-                                           username=str(escape(session['username'])))
-
-            os.chmod(os.path.join(scripts_dir, new_file), mode=0o0755)
-
-            data = {
-                "name": okta_name,
-                "events": {
-                    "type": "EVENT_TYPE",
-                    "items": [okta_event]
-                },
-                "channel": {
-                    "type": "HTTP",
-                    "version": "1.0.0",
-                    "config": {
-                        "uri": webhook_server_url,
-                        "headers": [{
-                            "key": "X-Other-Header",
-                            "value": "some-other-value"
-                        }],
-                        "authScheme": {
-                            "type": "HEADER",
-                            "key": "Authorization",
-                            "value": "${api_key}"
-                        }
+        data = {
+            "name": okta_name,
+            "events": {
+                "type": "EVENT_TYPE",
+                "items": [okta_event]
+            },
+            "channel": {
+                "type": "HTTP",
+                "version": "1.0.0",
+                "config": {
+                    "uri": webhook_server_url,
+                    "headers": [{
+                        "key": "X-Other-Header",
+                        "value": "some-other-value"
+                    }],
+                    "authScheme": {
+                        "type": "HEADER",
+                        "key": "Authorization",
+                        "value": "${api_key}"
                     }
                 }
             }
+        }
 
-            data = json.dumps(data, indent=4)
+        data = json.dumps(data, indent=4)
 
-            # Makes hook in Okta, gets id
-            response = requests.post(okta_server + '/api/v1/eventHooks',
-                                     headers={
-                                         'Accept': 'application/json',
-                                         "Authorization": "SSWS {}".format(okta_token),
-                                         'Content-Type': 'application/json'},
-                                     data=data)
-            print(response.status_code, response.text)
-            response_json = response.json()
-            print(response_json)
-            okta_id = response_json['id']
+        # Makes hook in Okta, gets id
+        response = requests.post(okta_server + '/api/v1/eventHooks',
+                                 headers={
+                                     'Accept': 'application/json',
+                                     "Authorization": "SSWS {}".format(okta_token),
+                                     'Content-Type': 'application/json'},
+                                 data=data)
+        print(response.status_code, response.text)
+        response_json = response.json()
+        print(response_json)
+        okta_id = response_json['id']
 
-            okta_info.append({"name": okta_name,
-                              "okta_id": okta_id,
-                              "okta_event": okta_event,
-                              "okta_url": okta_server,
-                              "okta_token": okta_token,
-                              "script": script_file,
-                              "webhook_username": "null",
-                              "webhook_password": "null",
-                              "tag": "okta"})
+        okta_info.append({"name": okta_name,
+                          "okta_id": okta_id,
+                          "okta_event": okta_event,
+                          "okta_url": okta_server,
+                          "okta_token": okta_token,
+                          "script": script_file,
+                          "description": description,
+                          "webhook_username": "null",
+                          "webhook_password": "null",
+                          "tag": "okta"})
 
-            with open(webhooks_file, 'w') as outfile:
-                json.dump(okta_info, outfile, indent=4)
+        with open(webhooks_file, 'w') as outfile:
+            json.dump(okta_info, outfile, indent=4)
 
-            # Verify/activate
-            response = requests.post(okta_server + '/api/v1/eventHooks/{}/lifecycle/verify'.format(okta_id),
-                                     headers={"Authorization": "SSWS {}".format(okta_token)})
+        # Verify/activate
+        response = requests.post(okta_server + '/api/v1/eventHooks/{}/lifecycle/verify'.format(okta_id),
+                                 headers={"Authorization": "SSWS {}".format(okta_token)})
 
-            verification = response.json()
-            if 'errorCode' in verification:
-                error_message = "Verification failed...try again!"
-                return render_template('error.html',
-                                       error_message=error_message,
-                                       error="error",
-                                       username=str(escape(session['username'])))
-
-            return render_template('success.html', login="true")
-
-        else:
-            return render_template('webhooks/okta/new.html', setup="setup",
+        verification = response.json()
+        if 'errorCode' in verification:
+            error_message = "Verification failed...try again!"
+            return render_template('error.html',
+                                   error_message=error_message,
+                                   error="error",
                                    username=str(escape(session['username'])))
 
+        return render_template('success.html', username=session.get('username'), login="true")
+
     else:
-        return render_template('home.html', login="false")
-
-
-
+        return render_template('webhooks/okta/new.html', setup="setup",
+                               username=str(escape(session['username'])))

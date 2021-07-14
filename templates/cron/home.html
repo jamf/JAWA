@@ -1,0 +1,66 @@
+{% extends "shared/_layout.html" %}
+
+{% block additional_css %}
+
+{% endblock %}
+{% block title %}Timed Automations Dashboard{% endblock %}
+{% block content %}
+    <div class="test-links sub_links sticky-top">
+        <div class="stat"><a href="/dashboard">JAWA Dashboard</a></div>
+        <div class="stat"><a href="/cron/new">Create</a></div>
+        <div class="stat"><a href="cron">All Timed Jobs</a></div>
+    </div>
+    <div class="form-container" style="min-height: 82vh">
+        <div class="table-view overflow-auto" style="max-width: 55vh">
+            <div class="d-flex justify-content-center">
+                <h4>Timed Automations Dashboard</h4>
+            </div>
+            <div class="d-flex justify-content-center">
+                <b>Total timed automations installed</b>: {{ cron_list|length or '0' }}<br>
+            </div>
+        </div>
+        {% if not cron_list %}
+            <div class="form-container">
+                <div class="table-view" style="max-width: fit-content; text-align: center; min-width: 55vh">
+                    <div class="table-responsive">
+                        No Jamf Pro webhooks to display. <a href="/webhooks/jamf/new">Create one now.</a>
+                    </div>
+                </div>
+            </div></div>
+        {% else %}
+            <div class="form-container">
+            <div class="table-view overflow-auto" style="max-height: 46vh; max-width: fit-content; text-align: center;">
+            {% if cron_list %}
+                <div class="table-responsive overflow-auto">
+                <table id="Cron Table" class="table overflow-auto"
+                       style="max-width: fit-content; text-align: center; min-width: 55vh">
+                    <thead class="thead-dark table-bordered">
+                    <tr>
+                        <th>Timed Automation</th>
+                        <th>Frequency</th>
+                        <th>Script</th>
+                        <th>Description</th>
+                    </tr>
+                    </thead>
+                    {% for row in cron_list %}
+                        {#                        {% if row.url == session['url'] %}#}
+                        <tr>
+                            {#                                <td>{{ row.name }} (<a href="{{ webhook_url }}/webhooks.html?id={{ row.jamf_id }}"#}
+                            <td>{{ row.name }}
+                                {#                                (<a href="../cron/edit?name={{ row.name }}" style="color:#3c6aa7;">Edit</a>)#}
+                            </td>
+                            <td>{{ row.frequency }}</td>
+                            <td>{{ row.script }}</td>
+                            <td>{{ row.description }}</td>
+                        </tr>
+
+                    {% endfor %}
+                </table>
+            {% endif %}
+        </div>
+        {% endif %}
+        </div>
+{% endblock %}
+{% block additional_js %}
+
+{% endblock %}

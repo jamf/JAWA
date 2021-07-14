@@ -1,0 +1,55 @@
+  {% extends "shared/_layout.html" %}
+	{% block content %}
+      <div class="test-links sub_links sticky-top">
+        <div class="stat"><a href="/cron">All Timed Automations</a></div>
+          <div class="stat"><a href="{{url_for('cron.new_cron') }}">New Timed Job</a></div>
+        <div class="stat"><a href="{{url_for('cron.delete_cron') }}">Delete Timed Job</a></div>
+    </div>
+  <div class="form-container">
+
+        <form method="post"  class="table-view" action="{{ url_for('cron.delete_cron') }}" enctype="multipart/form-data" >
+        <h1>Delete Timed Job</h1>
+
+      <b>Delete Timed Job</b></br>
+      Timed Job to Delete: <select name="timed_job">
+        <option value=""></option>
+        {% for job in content %}
+        <option value="{{ job }}">{{ job }}</option>
+        {% endfor %}
+      </select>
+      
+      <div class="container-fluid row ">
+        <div class="container">
+          <div class="row">
+            <div class="col-xs-12 button-holder">
+              <div class="ajax-button">
+                <div class="fa fa-check done"></div>
+                <div class="fa fa-close failed"></div>
+                <i class="fa fa-templates" aria-hidden="true"></i>
+                <input class="submit" type="submit" value="Delete" />
+              </div>
+            </div>
+          </div>
+        </div>  
+      </div>
+    </form>  
+    {% endblock %}
+{% block additional_js %}
+<script>
+  $(document).ready(function() {
+    $(".submit").click(function() {
+      $(".submit").addClass("loading");
+      setTimeout(function() {
+        $(".submit").addClass("hide-loading");
+        $(".done").addClass("finish");
+      }, 1000000);
+      setTimeout(function() {
+        $(".submit").removeClass("loading");
+        $(".submit").removeClass("hide-loading");
+        $(".done").removeClass("finish");
+        $(".failed").removeClass("finish");
+      }, 1000000);
+    })
+  });
+</script>
+{% endblock %}

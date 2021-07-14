@@ -13,7 +13,7 @@ from flask import (Flask, request, render_template,
 
 from bin.load_home import load_home
 from bin.view_modifiers import response
-from main import jawa_logger
+from app import jawa_logger
 
 
 blueprint = Blueprint('webhooks', __name__, template_folder='templates')

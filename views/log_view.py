@@ -5,7 +5,7 @@ from time import sleep
 
 from bin.load_home import load_home
 from bin.view_modifiers import response
-from main import jawa_logger
+from app import jawa_logger
 
 import flask
 from flask import current_app, session, render_template, Blueprint, send_file

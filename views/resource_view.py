@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask import current_app, session, redirect, url_for, render_template, Flask, Blueprint, send_file, request
-from main import jawa_logger
+from app import jawa_logger
 import os
 from werkzeug.utils import secure_filename
 

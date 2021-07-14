@@ -13,7 +13,7 @@ from flask import (Flask, request, render_template,
 
 from bin.load_home import load_home
 from bin.view_modifiers import response
-from main import jawa_logger
+from app import jawa_logger
 
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
 webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))

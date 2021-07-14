@@ -36,7 +36,7 @@ form.files-form {
     margin-left: auto;
     margin-right: auto;
 
-    max-width: 1000px;
+    max-width: fit-content;
     background-color: #c9c9c9;
     border: 1px solid gray;
     border-radius: 5px;

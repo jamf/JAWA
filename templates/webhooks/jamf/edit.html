@@ -77,46 +77,50 @@
 
         <form method="post" action="/webhooks/jamf/edit?name={{ webhook_name }}" class="table-view"
               enctype="multipart/form-data">
-            <h1>Edit {% if webhook_name %}{{ webhook_name }}{% else %}Custom Webhook{% endif %}</h1>
-            <input name="webhook_name" type="text" pattern="[^' ']+" placeholder="Edit Webhook Name (optional)"
-                   title="No spaces, please." class="form-control" value="{{ name }}">
-            {% if error %}
-                <div class="alert-danger">{{ error }}</div>
-            {% endif %}
-            <b>Jamf Event (optional):</b></br>
-            <select class="form-control" name="event"
-                    onchange="java_script_:show(this.options[this.selectedIndex].value)">
-                <option value=""></option>
-                <option value="ComputerAdded">ComputerAdded</option>
-                <option value="ComputerCheckIn">ComputerCheckIn</option>
-                <option value="ComputerInventoryCompleted">ComputerInventoryCompleted</option>
-                <option value="ComputerPathcPolicyCompleted">ComputerPathcPolicyCompleted</option>
-                <option value="ComputerPolicyFinished">ComputerPolicyFinished</option>
-                <option value="ComputerPushCapabilityChanged">ComputerPushCapabilityChanged</option>
-                <option value="DeviceRateLimited">DeviceRateLimited</option>
-                <option value="JSSShutdown">JSSShutdown</option>
-                <option value="JSSStartup">JSSStartup</option>
-                <option value="MobileDeviceCheckIn">MobileDeviceCheckIn</option>
-                <option value="MobileDeviceCommandCompleted">MobileDeviceCommandCompleted</option>
-                <option value="MobileDeviceEnrolled">MobileDeviceEnrolled</option>
-                <option value="MobileDevicePushSent">MobileDevicePushSent</option>
-                <option value="MobileDeviceUnEnrolled">MobileDeviceUnEnrolled</option>
-                <option value="PatchSoftwareTitleUpdated">PatchSoftwareTitleUpdated</option>
-                <option value="PushSent">PushSent</option>
-                <option value="RestAPIOperation">RestAPIOperation</option>
-                <option value="SCEPChallenge">SCEPChallenge</option>
-                <option value="SmartGroupComputerMembershipChange">SmartGroupComputerMembershipChange</option>
-                <option value="SmartGroupMobileDeviceMembershipChange">SmartGroupMobileDeviceMembershipChange</option>
-            </select>
+            <div class="overflow-auto" style="max-height: 60vh; margin: auto">
+                <h1>Edit {% if webhook_name %}{{ webhook_name }}{% else %}Custom Webhook{% endif %}</h1>
+                <input name="webhook_name" value="{{ webhook_name }}" type="text" pattern="[^' ']+" placeholder="Edit Webhook Name (optional)"
+                       title="No spaces, please." class="form-control" value="{{ name }}">
+                {% if error %}
+                    <div class="alert-danger">{{ error }}</div>
+                {% endif %}
+                <b>Jamf Event (optional):</b></br>
+                <select class="form-control" name="event"}"
+                        onchange="java_script_:show(this.options[this.selectedIndex].value)">
+                    <option value=""></option>
+                    <option value="ComputerAdded" {% if webhook_info[0]['event'] == "ComputerAdded" %} selected {% endif %} >ComputerAdded</option>
+                    <option value="ComputerCheckIn" {% if webhook_info[0]['event'] == "ComputerCheckIn" %} selected {% endif %}>ComputerCheckIn</option>
+                    <option value="ComputerInventoryCompleted" {% if webhook_info[0]['event'] == "ComputerInventoryCompleted" %} selected {% endif %}>ComputerInventoryCompleted</option>
+                    <option value="ComputerPatchPolicyCompleted" {% if webhook_info[0]['event'] == "ComputerPatchPolicyCompleted" %} selected {% endif %}>ComputerPatchPolicyCompleted</option>
+                    <option value="ComputerPolicyFinished" {% if webhook_info[0]['event'] == "ComputerPolicyFinished" %} selected {% endif %}>ComputerPolicyFinished</option>
+                    <option value="ComputerPushCapabilityChanged" {% if webhook_info[0]['event'] == "ComputerPushCapabilityChanged" %} selected {% endif %}>ComputerPushCapabilityChanged</option>
+                    <option value="DeviceRateLimited" {% if webhook_info[0]['event'] == "DeviceRateLimited" %} selected {% endif %}>DeviceRateLimited</option>
+                    <option value="JSSShutdown" {% if webhook_info[0]['event'] == "JSSShutdown" %} selected {% endif %}>JSSShutdown</option>
+                    <option value="JSSStartup" {% if webhook_info[0]['event'] == "JSSStartup" %} selected {% endif %}>JSSStartup</option>
+                    <option value="MobileDeviceCheckIn" {% if webhook_info[0]['event'] == "MobileDeviceCheckIn" %} selected {% endif %}>MobileDeviceCheckIn</option>
+                    <option value="MobileDeviceCommandCompleted" {% if webhook_info[0]['event'] == "MobileDeviceCommandCompleted" %} selected {% endif %}>MobileDeviceCommandCompleted</option>
+                    <option value="MobileDeviceEnrolled" {% if webhook_info[0]['event'] == "MobileDeviceEnrolled" %} selected {% endif %}>MobileDeviceEnrolled</option>
+                    <option value="MobileDevicePushSent" {% if webhook_info[0]['event'] == "MobileDevicePushSent" %} selected {% endif %}>MobileDevicePushSent</option>
+                    <option value="MobileDeviceUnEnrolled" {% if webhook_info[0]['event'] == "MobileDeviceUnEnrolled" %} selected {% endif %}>MobileDeviceUnEnrolled</option>
+                    <option value="PatchSoftwareTitleUpdated" {% if webhook_info[0]['event'] == "PatchSoftwareTitleUpdated" %} selected {% endif %}>PatchSoftwareTitleUpdated</option>
+                    <option value="PushSent" {% if webhook_info[0]['event'] == "PushSent" %} selected {% endif %}>PushSent</option>
+                    <option value="RestAPIOperation" {% if webhook_info[0]['event'] == "RestAPIOperation" %} selected {% endif %}>RestAPIOperation</option>
+                    <option value="SCEPChallenge" {% if webhook_info[0]['event'] == "SCEPChallenge" %} selected {% endif %}>SCEPChallenge</option>
+                    <option value="SmartGroupComputerMembershipChange" {% if webhook_info[0]['event'] == "SmartGroupComputerMembershipChange" %} selected {% endif %}>SmartGroupComputerMembershipChange</option>
+                    <option value="SmartGroupMobileDeviceMembershipChange" {% if webhook_info[0]['event'] == "SmartGroupMobileDeviceMembershipChange" %} selected {% endif %}>SmartGroupMobileDeviceMembershipChange
+                    </option>
+                </select>
 
-            <div id="hiddenDiv" style="display:none">
-                * Note: If utilizing the event for Smart Group Membership Change, after submitting, navigate to the <a
-                    href="{{ url }}/webhooks.html" style="color:#3c6aa7;" target="_blank">Webhooks</a> setting in Jamf
-                Pro
-                and adjust the proper Smart Group for this Webhook.
-            </div>
+                <div id="hiddenDiv" style="display:none">
+                    * Note: If utilizing the event for Smart Group Membership Change, after submitting, navigate to the
+                    <a
+                            href="{{ url }}/webhooks.html" style="color:#3c6aa7;" target="_blank">Webhooks</a> setting
+                    in Jamf
+                    Pro
+                    and adjust the proper Smart Group for this Webhook.
+                </div>
 
-            <!--       Smart Mobile Device Group:</br>
+                <!--       Smart Mobile Device Group:</br>
       <select name="mobile_device_group">
         {% for group in found_mobile_device_groups %}
         <option value="{{group.id}}">{{group.name}}</option>
@@ -130,33 +134,34 @@
         {% endfor %}
       </select></br></br>
        -->
-            <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
-                      class="form-control">{{ description }}</textarea><br>
-            <b>Auth:</b><br>
-            <input class="form-control" name="username" title="Username (optional)"
-                   placeholder="Webhook Username (optional)">
-            </b>
-            <input name="password" class="form-control" type='password' title="Password (optional)"
-                   placeholder="Webhook Password (optional)"></b>
-            Script file: <input type="file" name="new_file" pattern="[^' ']+"
-                                title="No Spaces in the filename!"></b>
-            <br>
-            <div class="d-flex justify-content-center">
+                <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
+                          class="form-control">{{ webhook_info[0]['description'] }}</textarea><br>
+                <b>Auth:</b><br>
+                <input class="form-control-sm" name="username" title="Username (optional)"
+                       placeholder="Webhook Username (optional)">
+                </b>
+                <input name="password" class="form-control-sm" type='password' title="Password (optional)"
+                       placeholder="Webhook Password (optional)"><br>
+                Script file: <input type="file" name="new_file" pattern="[^' ']+"
+                                    title="No Spaces in the filename!"></b>
+                <br>
+                <div class="d-flex justify-content-center">
 
-                <button type=submit value="Custom_New" class="btn btn-secondary " style="margin: 5px">
+                    <button type=submit value="Custom_New" class="btn btn-secondary " style="margin: 5px">
 
-                    Edit
+                        Edit
 
-                </button>
+                    </button>
 
-                <button type=submit name="button_choice" value="Delete" class="btn btn-danger" style="margin: 5px">
+                    <button type=submit name="button_choice" value="Delete" class="btn btn-danger" style="margin: 5px">
 
-                    Delete
+                        Delete
 
-                </button>
-            </div>
+                    </button>
+                </div>
         </form>
-    </div>
+
+    </div></div>
 {% endblock %}
 {% block additional_js %}
     <script>

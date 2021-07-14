@@ -1,75 +1,70 @@
-{% macro input(name, value='', type='text', size=20) -%}
-<input type="{{ type }}" name="{{ name }}" value="{{value|e }}" size="{{ size }}">
-{%- endmacro %}
-<!DOCTYPE html>
-<html>
-<head>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-</head>
-
-<body>
-  {% extends "shared/_layout.html" %}
-  {% block content %}
-          <div class="test-links sub_links sticky-top">
+{% extends "shared/_layout.html" %}
+{% block title %}New Okta Webhook{% endblock %}
+{% block content %}
+    <div class="test-links sub_links sticky-top">
         <div class="stat"><a href="/webhooks">All Webhooks</a></div>
         <div class="stat"><a href="/webhooks/okta/new">Create</a></div>
         <div class="stat"><a href="/webhooks/okta">View</a></div>
     </div>
-  <div class="form-container">
+    <div class="form-container">
 
-      <form method="post" class="table-view" enctype="multipart/form-data">
-          <h1>New Okta Webhook</h1>
-          <b>Okta Webhook Name</b></br>
-      New Webhook Name:
-      <input type="text" name="webhookname" required oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')"></br></br></br>
-      
-      <b>Okta Information</b></br>
-      Okta Server URI: <input type="text" name="okta_server" required></br></br>
-      Okta API Token: <input type="text" name="token" required></br></br>
-      Okta Event: <input type="text" name="event" required> </br>
-      <a href="https://developer.okta.com/docs/reference/api/event-types/" style="color:#3c6aa7;" target="_blank">Okta Event Types</a>
-      (example: user.lifecycle.deactivate)</br></br></br>
-      
-      <b>Script:</b></br>
+    <form method="post" class="table-view" enctype="multipart/form-data">
+        <h1>New Okta Webhook</h1>
+        <b>Okta Webhook Name</b></br>
+        New Webhook Name:
+        <input type="text" name="webhookname" required
+               oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')"></br></br></br>
 
-      <input type = "file" name = "script" required oninvalid="this.setCustomValidity('A script is required. Spaces cannot be in the name of the script.')"></b>
+        <b>Okta Information</b></br>
+        Okta Server URI: <input type="text" name="okta_server" required></br></br>
+        Okta API Token: <input type="text" name="token" required></br></br>
+        Okta Event: <input type="text" name="event" required> </br>
+        <a href="https://developer.okta.com/docs/reference/api/event-types/" style="color:#3c6aa7;" target="_blank">Okta
+            Event Types</a>
+        (example: user.lifecycle.deactivate)</br></br></br>
+        <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
+                  class="form-control">{{ description }}</textarea>
+        <b>Script:</b></br>
+
+        <input type="file" name="script" required
+               oninvalid="this.setCustomValidity('A script is required. Spaces cannot be in the name of the script.')"></b>
 
 
-      <div class="container-fluid row ">
-        <div class="container">
-          <div class="row">
-            <div class="col-xs-12 button-holder">
-              <div class="ajax-button">
-                <div class="fa fa-check done"></div>
-                <div class="fa fa-close failed"></div>
-                <i class="fa fa-templates" aria-hidden="true"></i>
-                <input class="submit" type="submit" value="Submit" />
-              </div>
+        <div class="container-fluid row ">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xs-12 button-holder">
+                        <div class="ajax-button">
+                            <div class="fa fa-check done"></div>
+                            <div class="fa fa-close failed"></div>
+                            <i class="fa fa-templates" aria-hidden="true"></i>
+                            <input class="submit" type="submit" value="Submit"/>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-        </div>  
-      </div>
-    </form>  
-    {% endblock %}
-  {% block additional_js %}
-  <script>
-  $(document).ready(function() {
-    $(".submit").click(function() {
-      $(".submit").addClass("loading");
-      setTimeout(function() {
-        $(".submit").addClass("hide-loading");
-        $(".done").addClass("finish");
-      }, 1000000);
-      setTimeout(function() {
-        $(".submit").removeClass("loading");
-        $(".submit").removeClass("hide-loading");
-        $(".done").removeClass("finish");
-        $(".failed").removeClass("finish");
-      }, 1000000);
-    })
-  });
-</script>
-  {% endblock %}
-   </div>
-  </body>
+        </div>
+    </form>
+{% endblock %}
+{% block additional_js %}
+    <script>
+        $(document).ready(function () {
+            $(".submit").click(function () {
+                $(".submit").addClass("loading");
+                setTimeout(function () {
+                    $(".submit").addClass("hide-loading");
+                    $(".done").addClass("finish");
+                }, 1000000);
+                setTimeout(function () {
+                    $(".submit").removeClass("loading");
+                    $(".submit").removeClass("hide-loading");
+                    $(".done").removeClass("finish");
+                    $(".failed").removeClass("finish");
+                }, 1000000);
+            })
+        });
+    </script>
+{% endblock %}
+</div>
+</body>
 </html>

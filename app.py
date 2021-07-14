@@ -12,6 +12,8 @@ import os
 import requests
 from waitress import serve
 
+from bin.view_modifiers import response
+
 
 def jawa_logger():
     global logger
@@ -23,6 +25,7 @@ def jawa_logger():
     handler.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
+
     if logger.hasHandlers():
         logger.handlers.clear()
     logger.addHandler(handler)
@@ -55,13 +58,13 @@ def main():
 
 
 def environment_setup(project_dir):
-    global jp_file, cron_file, server_json_file, scripts_directory
-    jp_file = os.path.abspath(os.path.join(project_dir, 'data', 'webhooks.json'))
-    cron_file = os.path.join(project_dir, 'data', 'cron.json')
-    server_json_file = os.path.join(project_dir, 'data', 'server.json')
-    scripts_directory = os.path.join(project_dir, 'scripts')
+    global webhooks_file, cron_file, server_json_file, scripts_directory
+    webhooks_file = os.path.abspath(os.path.join(project_dir, 'data', 'webhooks.json'))
+    cron_file = os.path.abspath(os.path.join(project_dir, 'data', 'cron.json'))
+    server_json_file = os.path.abspath(os.path.join(project_dir, 'data', 'server.json'))
+    scripts_directory = os.path.abspath(os.path.join(project_dir, 'scripts'))
     jawa_logger().info(f"Detecting JAWA environment:\n"
-                       f"Webhooks configuration file: {jp_file}\n"
+                       f"Webhooks configuration file: {webhooks_file}\n"
                        f"Cron configuration file: {cron_file}\n"
                        f"Server configuration file: {server_json_file}\n"
                        f"Scripts directory: {scripts_directory}")
@@ -78,11 +81,8 @@ def register_blueprints():
     from views.okta_webhook import blueprint
     app.register_blueprint(blueprint)
     # Create a new Cron Job
-    from views.new_cron_job import new_cron
-    app.register_blueprint(new_cron)
-    # Delete a Cron Job
-    from views.delete_cron_job import cron_delete
-    app.register_blueprint(cron_delete)
+    from views.cron_views import blueprint
+    app.register_blueprint(blueprint)
     # Log view
     from views import log_view
     app.register_blueprint(log_view.blueprint)
@@ -152,36 +152,28 @@ def setup():
             else:
                 primary_jps = str(escape(session['url']))
             jawa_url = server_json['jawa_address']
-            return render_template('setup.html',
+            return render_template('setup/setup.html',
                                    login="false", jps_url=primary_jps, jps_url2=jps_url2,
-                                   jawa_url=jawa_url)
+                                   jawa_url=jawa_url, username=session.get('username'))
     else:
-        return render_template('home.html',
-                               login="false")
+        return redirect(url_for('logout'))
 
 
 @app.route("/cleanup", methods=['GET', 'POST'])
+@response(template_file="setup/cleanup.html")
 def cleanup():
-    if 'username' in session:
-        if request.method == 'POST':
+    if 'username' not in session:
+        return redirect(url_for('logout'))
+    if request.method == 'POST':
+        owd = os.getcwd()
+        os.chdir(scripts_directory)
+        for file in glob.glob("*.old"):
+            os.remove(file)
+        os.chdir(owd)
+        return redirect(url_for('success'))
 
-            os.chdir(scripts_directory)
-
-            for file in glob.glob("*.old"):
-                os.remove(file)
-
-            return render_template('wizard.html',
-                                   wizard="wizard",
-                                   username=str(escape(session['username'])))
-
-        else:
-            return render_template(
-                'cleanup.html',
-                login="true",
-                username=str(escape(session['username'])))
     else:
-        return render_template('home.html',
-                               login="false")
+        return {"username": session.get('username'), "scripts_dir": scripts_directory}
 
 
 # Login page verifying communication/permissions to Jamf Pro
@@ -230,12 +222,14 @@ def login():
             logger.info(
                 f"[{session.get('url')}] Logging In: " + str(escape(session['username'])))
 
-            return redirect(url_for('wizard'))
+            return redirect(url_for('dashboard'))
 
         else:
             return redirect(url_for('logout'))
+    if 'username' not in session:
+        return redirect(url_for('logout'))
 
-    return render_template('home.html', login="true")
+    return redirect(url_for('dashboard'))
 
 
 @app.route('/')
@@ -305,14 +299,15 @@ def home():
     return render_template('home.html')
 
 
-@app.route("/wizard")
-def wizard():
+@app.route("/dashboard")
+def dashboard():
     if 'username' not in session:
         return redirect(url_for('logout'))
-    with open(jp_file) as webhook_json:
+    with open(webhooks_file) as webhook_json:
         webhooks_installed = json.load(webhook_json)
     jamf_pro_webhooks = []
     okta_webhooks = []
+    custom_webhooks = []
     for each_webhook in webhooks_installed:
         data = defaultdict(lambda: "MISSING", each_webhook)
         tag = data['tag']
@@ -320,6 +315,8 @@ def wizard():
             jamf_pro_webhooks.append(each_webhook)
         elif tag == "okta":
             okta_webhooks.append(each_webhook)
+        elif tag == "custom":
+            custom_webhooks.append(each_webhook)
 
     # print(f"Full JP Webhook list: {jamf_pro_webhooks}")
 
@@ -358,7 +355,6 @@ def wizard():
 
             response_json = response.json()
 
-
     data = []
 
     if not os.path.isfile(cron_file):
@@ -366,74 +362,49 @@ def wizard():
             json.dump(data, outfile)
 
     with open(cron_file) as cron_json:
-        crons_installed = json.load(cron_json)
-        crons_json = []
-        for cron in crons_installed:
+        cron_list = json.load(cron_json)
+        cron_json = []
+        for cron in cron_list:
             script = cron['script'].rsplit('/', 1)
-            crons_json.append({"name": cron['name'],
-                               "frequency": cron['frequency'],
-                               "script": script[1],
-                               "description": cron['description']})
+            cron_json.append({"name": cron['name'],
+                              "frequency": cron['frequency'],
+                              "script": script[1],
+                              "description": cron['description']})
 
     webhook_url = session['url']
 
-    if not webhook_json:
-        webhook_json = ''
-    if not crons_json:
-        crons_json = ''
-    # if not oktas_json:
-    #     oktas_json = ''
+    if not cron_json:
+        cron_json = ''
 
-    if webhook_json == crons_json:
+    if webhook_json == cron_json:
         return redirect(url_for('first_automation'))
     return render_template(
-        'wizard.html',
+        'dashboard.html',
         webhook_url=webhook_url,
-        webhooks_installed=jamf_pro_webhooks,
-        crons_installed=crons_json,
-        oktas_installed=okta_webhooks,
-        login="true",
-        username=str(escape(session['username'])))
-
-
-@app.route("/first_automation")
-def first_automation():
-    if 'username' in session:
-        return render_template(
-            'first_automation.html',
-            login="true",
-            username=str(escape(session['username'])))
-
-
-@app.route("/step_one", methods=['GET', 'POST'])
-def step_one():
-    if request.method == 'POST':
-        if request.form['webhook_source'] == 'jamf':
-            return redirect(url_for('jamf_pro_webhooks.jp_new'))
-
-        if request.form['webhook_source'] == 'okta':
-            return redirect(url_for('okta_webhook.okta_new'))
-
-    return render_template(
-        'step_one.html',
+        jamfpro_list=jamf_pro_webhooks,
+        cron_list=cron_json,
+        okta_list=okta_webhooks,
+        custom_list=custom_webhooks,
+        total_webhooks=len(webhooks_installed),
+        total_cron=len(cron_json),
         login="true",
         username=str(escape(session['username'])))
 
 
 @app.route("/python")
+@response(template_file="examples/python.html")
 def python():
-    return render_template(
-        'python.html',
-        login="true",
-        username=str(escape(session['username'])))
+    if 'username' not in session:
+        return redirect(url_for('logout'))
+    return {"username": session.get('username')}
 
 
 @app.route("/bash")
+@response(template_file="examples/bash.html")
 def bash():
-    return render_template(
-        'bash.html',
-        login="true",
-        username=str(escape(session['username'])))
+    if 'username' not in session:
+        return redirect(url_for('logout'))
+    return {"username": session.get('username')}
 
 
 @app.route('/success', methods=['GET', 'POST'])
@@ -455,7 +426,7 @@ def error():
 @app.errorhandler(404)
 def page_not_found(error):
     if 'username' in session:
-        return render_template('wizard.html',
+        return render_template('dashboard.html',
                                error="true",
                                username=str(escape(session['username']))), 404
 

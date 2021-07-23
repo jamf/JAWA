@@ -10,40 +10,31 @@
 
     <form method="post" class="table-view" enctype="multipart/form-data">
         <h1>New Okta Webhook</h1>
-        <b>Okta Webhook Name</b></br>
-        New Webhook Name:
-        <input type="text" name="webhookname" required
-               oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')"></br></br></br>
-
-        <b>Okta Information</b></br>
-        Okta Server URI: <input type="text" name="okta_server" required></br></br>
-        Okta API Token: <input type="text" name="token" required></br></br>
-        Okta Event: <input type="text" name="event" required> </br>
-        <a href="https://developer.okta.com/docs/reference/api/event-types/" style="color:#3c6aa7;" target="_blank">Okta
-            Event Types</a>
-        (example: user.lifecycle.deactivate)</br></br></br>
+        <p><b>Okta Webhook Name</b></br>
+            New Webhook Name: <input type="text" name="webhookname" required
+                                     oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')">
+        </p>
+        <p>
+            <b>Okta Information</b></br>
+            Okta Server URI: <input type="text" name="okta_server" required><br/>
+            Okta API Token: <input type="text" name="token" required><br/>
+            Okta Event: <input type="text" name="event" required><br/>
+            <a href="https://developer.okta.com/docs/reference/api/event-types/" style="color:#3c6aa7;" target="_blank">Okta
+                Event Types</a>
+            (example: user.lifecycle.deactivate)</p>
         <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
                   class="form-control">{{ description }}</textarea>
         <b>Script:</b></br>
 
         <input type="file" name="script" required
                oninvalid="this.setCustomValidity('A script is required. Spaces cannot be in the name of the script.')"></b>
+        <div class="d-flex justify-content-center">
+            <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>, <a
+                    href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>] </p></div>
 
 
-        <div class="container-fluid row ">
-            <div class="container">
-                <div class="row">
-                    <div class="col-xs-12 button-holder">
-                        <div class="ajax-button">
-                            <div class="fa fa-check done"></div>
-                            <div class="fa fa-close failed"></div>
-                            <i class="fa fa-templates" aria-hidden="true"></i>
-                            <input class="submit" type="submit" value="Submit"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div class="d-flex justify-content-center">
+            <input type="submit" class="btn btn-secondary" value="Create">
     </form>
 {% endblock %}
 {% block additional_js %}

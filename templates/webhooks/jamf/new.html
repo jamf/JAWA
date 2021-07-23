@@ -15,7 +15,9 @@
             {% if error %}
                 <div class="alert-danger">{{ error }}</div>
             {% endif %}
+        <div class="d-flex justify-content-center">
             <b>Jamf Event:</b>
+        </div>
             <select class="form-control" name="event"
                     onchange="java_script_:show(this.options[this.selectedIndex].value)"
                     required>
@@ -65,14 +67,19 @@
        -->
             <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
                       class="form-control">{{ description }}</textarea>
-            <b>Auth:</b><br>
+            <div class="d-flex justify-content-center"><b>Basic Authentication (optional):</b></div>
+        <div class="d-flex justify-content-center">
             <input class="form-control-sm" name="username" title="Username (optional)"
                    placeholder="Webhook Username (optional)">
             </b>
             <input name="password" class="form-control-sm" type='password' title="Password (optional)"
-                   placeholder="Webhook Password (optional)"></br>
+                   placeholder="Webhook Password (optional)"></br></div>
+        <div class="d-flex justify-content-center">
             Script file: <input type="file" name="new_file" pattern="[^' ']+" required
-                                title="No Spaces in the filename!"></b>
+                                title="No Spaces in the filename!"></div>
+            <div class="d-flex justify-content-center">
+                <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>, <a
+                        href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>] </p></div>
 
             <br>
             <div class="d-flex justify-content-center">

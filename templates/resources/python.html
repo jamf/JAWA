@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html>
-<pre><code>#!/usr/bin/python
+<link rel="shortcut icon" href="{{ url_for('static', filename='img/jawa_icon.png') }}">
+<title>JAWA Python Example</title>
+<pre><code>#!/usr/bin/python3
 # encoding: utf-8
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
-# Copyright (c) 2019 Jamf.  All rights reserved.
+# Copyright (c) 2021 Jamf.  All rights reserved.
 #
 #       Redistribution and use in source and binary forms, with or without
 #       modification, are permitted provided that the following conditions are met:
@@ -55,9 +57,9 @@ import sys
 # JAMF PRO VARIABLES #
 ######################
 
-jamfpro_username = ''
-jamfpro_password = ''
-jamfpro_url = ''
+jamf_pro_username = ''
+jamf_pro_password = ''
+jamf_pro_url = ''
 
 # Creating a variable called $tempJson to be used to parse
 webhook_content = sys.argv[1] # "sys.argv[1]" is the response that JAWA receives from Jamf Pro
@@ -69,16 +71,14 @@ json_data = json.loads(webhook_content)
 serial_number = json_data['event']['serialNumber']
 
 # Creating the xml of data used to update the device record
-data = '&lt;computer&gt;&lt;general&gt;&lt;name&gt;'
-data += serial_number
-data += '&lt;/name&gt;&lt;/general&gt;&lt;/computer&gt;'
+data = f"&lt;computer&gt;&lt;general&gt;&lt;name&gt;{serial_number}&lt;/name&gt;&lt;/general&gt;&lt;/computer&gt;"
 
 # Forms the Jamf Pro API URL and endpoint
-full_url = jamfpro_url + '/JSSResource/computers/serialnumber/' + serial_number
+full_url = jamf_pro_url + '/JSSResource/computers/serialnumber/' + serial_number
 
 # Updates the device record
 response = requests.put(full_url, 
-	auth=(jamfpro_username, jamfpro_password), 
+	auth=(jamf_pro_username, jamf_pro_password),
 	headers={'Content-Type': 'application/xml'}, 
 	data=data)
 

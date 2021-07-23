@@ -9,6 +9,7 @@ import re
 import subprocess
 
 from app import jawa_logger
+
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
 jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))
 scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
@@ -53,7 +54,9 @@ def webhook_handler(webhook_name):
     if request.headers.get('x-okta-verification-challenge'):
         jawa_logger().info("This is an Okta verification challenge...")
         return okta_verification.verify_new_webhook(request.headers.get('x-okta-verification-challenge'))
-
+    if request.method != 'POST':
+        jawa_logger().info(f"Invalid request, {request.method} for /hooks/{webhook_name}.")
+        return "405 - Method not allowed. These aren't the droids you're looking for. You can go about your business. Move along.", 405
     auth = request.authorization
     webhook_user = "null"
     webhook_pass = "null"
@@ -73,4 +76,4 @@ def webhook_handler(webhook_name):
     else:
         jawa_logger().info(f"{webhook_name} not validated!")
         return "Unauthorized", 401
-    return webhook_data
+    return webhook_data, 200

@@ -43,6 +43,8 @@ def jamf_webhook():
 
 @blueprint.route('/webhooks/jamf/new', methods=['GET', 'POST'])
 def jp_new():
+    if 'username' not in session:
+        return redirect(url_for('logout'))
     if not os.path.isfile(server_json_file):
         return render_template('setup/setup.html',
                                setup="setup",
@@ -225,7 +227,7 @@ def jp_new():
                                    username=str(escape(session['username'])))
 
     else:
-        return render_template('home.html', login="false")
+        return redirect(url_for('logout'))
 
 
 # Edit Existing Webhook

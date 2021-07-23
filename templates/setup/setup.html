@@ -1,11 +1,5 @@
-{% macro input(name, value='', type='text', size=20) -%}
-    <input type="{{ type }}" name="{{ name }}" value="{{ value|e }}" size="{{ size }}">
-{%- endmacro %}
-<!DOCTYPE html>
-<head>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-</head>
 {% extends "shared/_layout.html" %}
+{% block title %}JAWA Setup{% endblock %}
 {% block content %}
     <div class="test-links sub_links sticky-top">
         <div class="stat"><a href="/setup">Setup</a></div>
@@ -65,11 +59,8 @@
                     {% endif %}
 
                     <div class="d-flex justify-content-center container-fluid">
-                        <p></p>
-                        <button type=submit value="Setup" class="btn btn-secondary submit">
-
+                        <button type=submit value="Setup" class="btn btn-secondary">
                             Setup
-
                         </button>
                     </div>
             </div>

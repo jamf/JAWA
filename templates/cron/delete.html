@@ -1,4 +1,5 @@
   {% extends "shared/_layout.html" %}
+{% block title %}Delete Timed Automation{% endblock %}
 	{% block content %}
       <div class="test-links sub_links sticky-top">
         <div class="stat"><a href="/cron">All Timed Automations</a></div>
@@ -9,29 +10,19 @@
 
         <form method="post"  class="table-view" action="{{ url_for('cron.delete_cron') }}" enctype="multipart/form-data" >
         <h1>Delete Timed Job</h1>
-
-      <b>Delete Timed Job</b></br>
-      Timed Job to Delete: <select name="timed_job">
+       <p/>
+      <p>Timed Job to Delete: <select name="timed_job">
         <option value=""></option>
         {% for job in content %}
         <option value="{{ job }}">{{ job }}</option>
         {% endfor %}
       </select>
       
-      <div class="container-fluid row ">
-        <div class="container">
-          <div class="row">
-            <div class="col-xs-12 button-holder">
-              <div class="ajax-button">
-                <div class="fa fa-check done"></div>
-                <div class="fa fa-close failed"></div>
-                <i class="fa fa-templates" aria-hidden="true"></i>
-                <input class="submit" type="submit" value="Delete" />
+      <div class="d-flex justify-content-center">
+                <input class="btn btn-secondary" type="submit" value="Delete" />
               </div>
             </div>
-          </div>
-        </div>  
-      </div>
+
     </form>  
     {% endblock %}
 {% block additional_js %}

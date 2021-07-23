@@ -10,6 +10,8 @@ from flask import (Flask, request, render_template,
                    send_from_directory, Blueprint, abort)
 
 from crontab import CronTab
+
+from app import jawa_logger
 from bin.view_modifiers import response
 
 cron_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'cron.json'))
@@ -24,6 +26,7 @@ blueprint = Blueprint('cron', __name__)
 def cron_home():
     if 'username' not in session:
         return redirect(url_for('logout'))
+    jawa_logger().info(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
     with open(cron_json_file, 'r') as fin:
         cron_json = json.load(fin)
     print(cron_json)
@@ -34,6 +37,7 @@ def cron_home():
 def new_cron():
     if 'username' not in session:
         return redirect(url_for('logout'))
+    jawa_logger().info(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
     with open(time_json_file, 'r+') as fin:
         content = fin.read()
         time_data = json.loads(content)
@@ -172,62 +176,55 @@ def new_cron():
 def delete_cron():
     if 'username' not in session:
         return redirect(url_for('logout'))
-    exists = os.path.isfile(cron_json_file)
-    if not exists:
-        return render_template('cron/new.html',
-                               cron="cron",
+    jawa_logger().info(f"[{session.get('url')}] {session.get('username')} viewed {request.path}")
+    with open(cron_json_file) as fin:
+        cron_json = json.load(fin)
+    i = 0
+    names = []
+    for item in cron_json:
+        names.append(str(cron_json[i]['name']))
+        i += 1
+
+    if not names:
+        return render_template('cron/home.html',
                                username=str(escape(session['username'])))
 
-    if 'username' in session:
-        text = open(cron_json_file, 'r+')
-        content = text.read()
-        webhook_data = json.loads(content)
-        i = 0
-        names = []
-        for item in webhook_data:
-            names.append(str(webhook_data[i]['name']))
-            i += 1
+    if request.method == 'POST':
 
-        content = names
+        timed_job = request.form.get('timed_job')
 
-        if request.method == 'POST':
+        data = json.load(open(cron_json_file))
 
-            timed_job = request.form.get('timed_job')
+        for d in data:
+            if d['name'] == timed_job:
+                script_path = (d['script'])
+                new_script_path = script_path + '.old'
+                if os.path.exists(script_path):
+                    os.rename(script_path, new_script_path)
 
-            data = json.load(open(cron_json_file))
+        try:
+            cron = CronTab(user='root')
+        except IOError as err:
+            print(err)
+            return render_template('error.html', error=err, username=session.get('username'))
 
-            for d in data:
-                if d['name'] == timed_job:
-                    script_path = (d['script'])
-                    new_script_path = script_path + '.old'
-                    if os.path.exists(script_path):
-                        os.rename(script_path, new_script_path)
+        for job in cron:
+            if job.comment == timed_job:
+                jawa_logger().info(f"[{session.get('url')}] {session.get('username')} removed cron job {timed_job}")
+                cron.remove(job)
+                cron.write()
 
-            try:
-                cron = CronTab(user='root')
-            except IOError as err:
-                print(err)
-                return render_template('error.html', error=err, username=session.get('username'))
+        data[:] = [d for d in data if d.get('name') != timed_job]
 
-            for job in cron:
-                if job.comment == timed_job:
-                    print(f"Removing Cron job {timed_job}")
-                    cron.remove(job)
-                    cron.write()
+        with open(cron_json_file, 'w') as outfile:
+            json.dump(data, outfile, indent=4)
 
-            data[:] = [d for d in data if d.get('name') != timed_job]
-
-            with open(cron_json_file, 'w') as outfile:
-                json.dump(data, outfile, indent=4)
-
-            return render_template('success.html',
-                                   webhooks="success",
-                                   username=str(escape(session['username'])))
-        else:
-            return render_template('cron/delete.html',
-                                   content=content,
-                                   delete_cron="delete_cron",
-                                   username=str(escape(session['username'])))
+        return render_template('success.html',
+                               webhooks="success",
+                               username=str(escape(session['username'])))
     else:
-        return render_template('home.html',
-                               login="false")
+        return render_template('cron/delete.html',
+                               content=names,
+                               delete_cron="delete_cron",
+                               username=str(escape(session['username'])))
+

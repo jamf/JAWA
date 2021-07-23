@@ -17,7 +17,8 @@
 
             <h4 class="d-flex justify-content-center">Webhooks Dashboard</h4>
             <div class="d-flex justify-content-center">
-                <b>Active JPS</b>: &nbsp; <a class="alert-link" href="{{ session.get('url') }}" target="_blank">{{ session['url'] }}</a> <br>
+                <b>Active JPS</b>: &nbsp; <a class="alert-link" href="{{ session.get('url') }}"
+                                             target="_blank">{{ session['url'] }}</a> <br>
             </div>
             <div class="d-flex justify-content-center">
                 <b>Total webhooks installed</b>: {{ jamf_list|length + okta_list|length + custom_list|length or '0' }}
@@ -49,7 +50,7 @@
                 </div>
             </div>
 
-        </div></div>
+        </div>
     {% else %}
         <div class="form-container">
         <div class="table-view overflow-auto" style="max-height: 46vh; max-width: fit-content; text-align: center;">
@@ -118,7 +119,7 @@
                                     <div class="overflow-auto log-frame"
                                          style="max-width: 50vh; max-height: 10vh">
                                         {{ row.name }} (<a href="../webhooks/delete?target_webhook={{ row.name }}"
-                                                               style="color:#3c6aa7;">Delete</a>)
+                                                           style="color:#3c6aa7;">Delete</a>)
                                     </div>
                                 </td>
                                 <td>

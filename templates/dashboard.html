@@ -7,10 +7,10 @@
 
 {% block content %}
     <div class="test-links sub_links sticky-top">
-{#        <div class="stat"><a href="/wizard">Dashboard</a></div>#}
-{#        <div class="stat"><a href="/wizard">Dashboard</a></div>#}
-{#        <div class="stat"><a href="/wizard">Dashboard</a></div>#}
-{#        <div class="stat"><a href="/wizard">Dashboard</a></div>#}
+        {#        <div class="stat"><a href="/wizard">Dashboard</a></div>#}
+        {#        <div class="stat"><a href="/wizard">Dashboard</a></div>#}
+        {#        <div class="stat"><a href="/wizard">Dashboard</a></div>#}
+        {#        <div class="stat"><a href="/wizard">Dashboard</a></div>#}
     </div>
 
     <div class="form-container">
@@ -19,7 +19,8 @@
                 <h4>JAWA Dashboard</h4>
             </div>
             <div class="d-flex justify-content-center">
-                <b>Active JPS</b>: &nbsp; <a class="alert-link" href="{{ session.get('url') }}" target="_blank">{{ session['url'] }}</a> <br>
+                <b>Active JPS</b>: &nbsp; <a class="alert-link" href="{{ session.get('url') }}"
+                                             target="_blank">{{ session['url'] }}</a> <br>
             </div>
             <div class="d-flex justify-content-center"><b>Setup Options</b>:
                 <a href="{{ url_for('setup') }}" style="color:#3c6aa7;">Configure the JAWA</a><br>
@@ -58,14 +59,14 @@
             </div></div>
         {% else %}
             <div class="form-container">
-            <div class="table-view overflow-auto" style="max-height: 46vh; max-width: fit-content; text-align: center;">
+            <div class="table-view overflow-auto table-responsive" style="max-height: 46vh; max-width: fit-content; text-align: center;">
 
 
 
 
             {% if jamfpro_list %}
                 <div class="table-responsive">
-                    <table id="Jamf Pro Webhooks Table" class="table"
+                    <table id="Jamf Pro Webhooks Table" class="table table-responsive"
                            style="max-height: 66vh; max-width: fit-content; text-align: center;">
                         <thead class="thead-dark table-bordered">
                         <tr>
@@ -125,7 +126,7 @@
                                 <div class="overflow-auto log-frame"
                                      style="max-width: 50vh; max-height: 10vh">
                                     {{ row.name }} (<a href="../webhooks/delete?target_webhook={{ row.name }}"
-                                                               style="color:#3c6aa7;">Delete</a>)
+                                                       style="color:#3c6aa7;">Delete</a>)
                                 </div>
                             </td>
                             <td>
@@ -135,12 +136,13 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="overflow-auto log-frame" style="max-width: 50vh; max-height: 10vh">
+                                <div class="overflow-auto log-frame text-break"
+                                     style="max-width: 30vh; max-height: 10vh">
                                     {{ row.script }}
                                 </div>
                             </td>
                             <td>
-                                <div class="overflow-auto log-frame" style="max-width: 50vh; max-height: 10vh">
+                                <div class="overflow-auto log-frame" style="max-width: 30vh; max-height: 10vh">
                                     {{ row.okta_url }}
                                 </div>
                             </td>
@@ -207,13 +209,13 @@
                         <tr>
                             {#                                <td>{{ row.name }} (<a href="{{ webhook_url }}/webhooks.html?id={{ row.jamf_id }}"#}
                             <td>{{ row.name }}
-{#                                (<a href="../cron/edit?name={{ row.name }}" style="color:#3c6aa7;">Edit</a>)#}
+                                {#                                (<a href="../cron/edit?name={{ row.name }}" style="color:#3c6aa7;">Edit</a>)#}
                             </td>
                             <td>{{ row.frequency }}</td>
                             <td>{{ row.script }}</td>
                             <td>
                                 <div class="overflow-auto log-frame" style="max-width: 50vh; max-height: 10vh">
-                                {{ row.description }}
+                                    {{ row.description }}
                                 </div>
                             </td>
                         </tr>

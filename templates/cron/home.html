@@ -7,8 +7,8 @@
 {% block content %}
     <div class="test-links sub_links sticky-top">
         <div class="stat"><a href="/dashboard">JAWA Dashboard</a></div>
-        <div class="stat"><a href="/cron/new">Create</a></div>
-        <div class="stat"><a href="cron">All Timed Jobs</a></div>
+        <div class="stat"><a href="/cron/new">Create Timed Job</a></div>
+        <div class="stat"><a href="/cron/delete">Delete Timed Job</a></div>
     </div>
     <div class="form-container" style="min-height: 82vh">
         <div class="table-view overflow-auto" style="max-width: 55vh">
@@ -23,7 +23,7 @@
             <div class="form-container">
                 <div class="table-view" style="max-width: fit-content; text-align: center; min-width: 55vh">
                     <div class="table-responsive">
-                        No Jamf Pro webhooks to display. <a href="/webhooks/jamf/new">Create one now.</a>
+                        No timed automations to display. <a href="/cron/new">Create one now.</a>
                     </div>
                 </div>
             </div></div>

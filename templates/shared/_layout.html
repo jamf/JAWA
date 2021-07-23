@@ -7,7 +7,6 @@
           href="/static/css/fonts.css">
     <link rel="stylesheet"
           href="/static/css/bootstrap.css">
-    <link rel="stylesheet" href="/static/css/tester.css">
     <link rel="stylesheet" href="/static/css/site.css"/>
     <link rel="stylesheet" href="/static/css/nav.css"/>
     <link rel="stylesheet" href="/static/css/main.css"/>
@@ -25,7 +24,8 @@
 <div>
 
     <nav class="navbar fixed-top navbar-toggleable-md navbar-inverse bg-inverse navbar-expand-md">
-        <a class="navbar-brand" href="/dashboard"><img src="/static/img/jawa_icon.png" style="width:32px;height:32px;"/></a>
+        <a class="navbar-brand" href="/dashboard">{% if username %}
+            <img src="/static/img/jawa_icon.png" style="width:32px;height:32px;"/>{% endif %}</a>
 
         <button class="navbar-toggler navbar-toggle overflow-auto" type="button" data-toggle="collapse"
                 data-target="#navbarSupportedContent"
@@ -65,11 +65,11 @@
         <nav class="fixed-bottom justify-content-center nav-center">
             {% if username %}
                 <div class="text-sm-center" style="font-size: 60%"> Welcome, {{ username.title() }}. <br>
-                Discover what's possible with Jamf &.<br />
-            Jamf Automation + Webhook Assistant.<br /></div>
+                    Discover what's possible with Jamf &.<br/>
+                    Jamf Automation + Webhook Assistant.<br/></div>
             {% else %}
-            Discover what's possible with Jamf &.<br />
-            Jamf Automation + Webhook Assistant.<br />
+                Discover what's possible with Jamf &.<br/>
+                Jamf Automation + Webhook Assistant.<br/>
             {% endif %}
         </nav>
         {% block footer %}

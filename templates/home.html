@@ -4,7 +4,11 @@
 
     <div class="form-container"><br><br><br>
     <form action="/login" class="table-view" method="post">
-        <h1>JAWA</h1>
+        <div class="d-flex justify-content-center">
+            <div class="img-thumbnail" style="max-width: 15vh">
+                <img src="{{ url_for('static', filename='img/jawa_icon.png') }}" class="img-thumbnail"></div>
+        </div>
+        <h1 class="d-flex justify-content-center">{% if app_name %}{{ app_name }}{% else %}JAWA{% endif %}</h1>
 
         {% if jsslock %}
             {% if jps_url2 %}

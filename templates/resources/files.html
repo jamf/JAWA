@@ -5,18 +5,21 @@
         {#        <div class="stat"><a href="/log/yield" target="_blank">Live View</a></div>#}
         <div class="stat"><a href="{{ url_for('resources_view.files') }}">Files</a></div>
         <div class="stat"><a href="{{ url_for('log_view.log_home') }}">Log</a></div>
-        <form action="#" method="post" enctype="multipart/form-data">
-            <input id="upload" type="file" name="upload" formenctype="multipart/form-data" multiple/>
-            {#            <a href="#" id="upload_link">Upload files</a>#}Upload files
-            <input type="submit" value="Upload" disabled/></form>
+
 
     </div>
     <div class="form-container">
         <div class="table-view overflow-auto pre-scrollable" style="max-width: fit-content">
-            <p>
-            <h4 class="d-flex justify-content-center">Files repository location:</h4>
+            <h4 class="d-flex justify-content-center alert-info">Upload:</h4>
             <pre><code>{{ files_repo }}/</code></pre>
+            {#            <p>Upload a file:</p>#}
+            <form action="#" method="post" enctype="multipart/form-data">
+                <div class="d-flex justify-content-center">
+                    <input id="upload" type="file" name="upload" formenctype="multipart/form-data"/>
+                    <input type="submit" class=" btn btn-primary" value="Upload" disabled/>
+            </form>
         </div>
+    </div>
     </div>
 
 
@@ -26,10 +29,10 @@
             <div class="d-flex justify-content-center font-weight-bolder"> No files uploaded</div>
         {% endif %}
     {% if files %}
-        <form class="files-form alert-warning overflow-auto" style="max-height: 66vh;;">
+        <form class="files-form overflow-auto" style="max-height: 66vh;;">
 
-
-        <div class="alert-soft alert-dark success-form">
+        <h4 class="d-flex justify-content-center alert-success">Uploaded files:</h4>
+        <div class="alert-soft alert-dark btn-padded">
             <table id="files_table" class="table">
                 <tr>
                     <th>Name</th>
@@ -49,7 +52,8 @@
         </div>
         <div class="d-flex justify-content-center">
             <button type=submit name="button_choice" value="Download"
-                    class="btn btn-secondary button-align alert-soft" style="margin-bottom: 25px; margin-top: 10px"> Download
+                    class="btn btn-secondary button-align alert-soft" style="margin-bottom: 25px; margin-top: 10px">
+                Download
             </button>
             <button name="button_choice" type=submit value="Delete" class="btn btn-danger button-align alert-soft"
                     style="margin-bottom: 25px; margin-top: 10px">Delete

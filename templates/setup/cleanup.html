@@ -12,26 +12,19 @@
           style="max-height: 66vh; max-width: 66vh">
         <h1>Cleanup</h1>
 
-        Please read the <a href="https://github.com/jamf/JAWA/blob/master/README.md" style="color:#3c6aa7;"
-                           target="_blank">documentation</a> prior to using the JAWA!</br></br>
 
         Notes:</br>
-        - Click "Clean Up!" to remove all old scripts. </br>
+        <p>- Click "Clean Up!" to remove all old scripts. </br>
         - Old scripts are scripts kept as an archive file with the extension ".old".</br>
-        - All scripts are housed in {{ scripts_dir }}</br>
-        - Active scripts will be untouched.</br></br>
+            - All scripts are housed in </p> <pre class="pre-scrollable alert-link alert-secondary">{{ scripts_dir }}</pre>
 
-        <div class="container-fluid row ">
-            <div class="container">
-                <div class="row">
-                    <div class="col-xs-12 button-holder">
+
+        <div class="col-xs-12 button-holder">
                         <div class="ajax-button">
-                            <input class="submit" type="submit" value="Clean Up!"/>
+                            <input class="btn btn-primary" type="submit" value="Clean Up!"/>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
+
     </form>
 {% endblock %}
 {% block additional_js %}

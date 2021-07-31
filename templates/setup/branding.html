@@ -7,13 +7,42 @@
         <div class="stat"><a href="/cleanup">Cleanup</a></div>
         <div class="stat"><a href="/branding">Branding</a></div>
     </div>
-    <form action="#" method="post" enctype="multipart/form-data">
-        <input id="upload" type="file" accept="image/*" name="upload" formenctype="multipart/form-data"/>
-        {#            <a href="#" id="upload_link">Upload files</a>#}Change Icon
-        <input type="submit" value="Upload" disabled/></form>
+    <div class="form-container">
+        {#    <div class="form-container overflow-auto d-flex justify-content-center" style="max-height: 60vh">#}
 
-    </div>
-    <img class="img-thumbnail align-items-center" src="/static/img/jawa_icon.png">
+        <div class="table-view log-frame overflow-auto" style="max-width: 90vh; max-height: 66vh">
+
+            <h1 class="d-flex justify-content-center">
+                {% if app_name %}{{ app_name }}{% else %}JAWA{% endif %} Branding</h1>
+            <div class="d-flex justify-content-center">
+
+                <form action="#" method="post" enctype="multipart/form-data">
+                    <p>
+                    <div class="d-flex justify-content-center">
+                    <div class="img-thumbnail" style="max-width: 15vh">
+                        <img class="img-thumbnail align-items-center" src="/static/img/jawa_icon.png"><br/>
+                    </div>
+                </div>
+                    <div class="d-flex justify-content-center">
+                        <input id="upload" type="file" accept="image/*" name="upload" class="justify-content-center"
+                               formenctype="multipart/form-data" style="display:block"/>
+                        {#            <a href="#" id="upload_link">Upload files</a>#}
+                    </div>
+                    </p>
+                    <p>
+<div class="d-flex justify-content-center">
+                        <input id="upload" type="text" placeholder="Change App Name" accept="image/*"
+                               name="new_name" value="{% if app_name %}{{ app_name }}{% endif %}"
+                               formenctype="multipart/form-data"/>
+                </div>
+                        <br/>
+                    <div class="d-flex justify-content-center">
+                        <input type="submit" class="btn btn-secondary" value="Brand"></div>
+                    </p>
+
+                </form>
+            </div>
+        </div>
     </div>
 {% endblock %}
 {% block additional_js %}

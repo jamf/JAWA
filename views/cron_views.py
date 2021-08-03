@@ -108,6 +108,12 @@ def new_cron():
                                            error_message=error_message,
                                            error="error",
                                            username=str(escape(session['username'])))
+            try:
+                cron = CronTab(user='root')
+            except IOError as err:
+                print(err)
+                os.remove(script_file)
+                return render_template('error.html', error=err, username=session.get('username'))
 
             data.append({"name": cron_name,
                          "description": cron_description,
@@ -116,12 +122,6 @@ def new_cron():
 
             with open(cron_json_file, 'w') as outfile:
                 json.dump(data, outfile, indent=4)
-
-            try:
-                cron = CronTab(user='root')
-            except IOError as err:
-                print(err)
-                return render_template('error.html', error=err, username=session.get('username'))
 
             if frequency == "everyhour":
                 job1 = cron.new(command=script_file, comment=cron_name)
@@ -227,4 +227,3 @@ def delete_cron():
                                content=names,
                                delete_cron="delete_cron",
                                username=str(escape(session['username'])))
-

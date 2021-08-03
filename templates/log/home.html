@@ -10,10 +10,12 @@
     <div class="form-container">
 
         <div class="  table-view ">
-            <div class="alert-warning overflow-auto log-frame success-wrap">
-                {% for line in log %}
-                    {{ line }}<br>
-                {% endfor %}
+            <div class="alert-warning overflow-auto log-frame success-wrap flex-column-reverse d-flex">
+                {% if log %}
+                    {% for line in log %}
+                        <div class="inner">{{ line }}</div><br>
+                    {% endfor %}
+                {% endif %}
             </div>
             <div class="download-button">
                 <div class="btn-group-sm">

@@ -10,14 +10,14 @@
         <form method="post" action="/webhooks/jamf/new" class="table-view overflow-auto" enctype="multipart/form-data"
               style="max-height: 66vh; max-width: 66vh">
             <h1>New Jamf Pro Webhook</h1>
-            <input name="webhook_name" type="text" pattern="[^' ']+" placeholder="New Webhook Name" required
+            <input name="webhook_name" type="text" pattern="[^' ']+" placeholder="New Webhook Name (no spaces)" required
                    title="No spaces, please." class="form-control" value="{{ name }}">
             {% if error %}
                 <div class="alert-danger">{{ error }}</div>
             {% endif %}
-        <div class="d-flex justify-content-center">
-            <b>Jamf Event:</b>
-        </div>
+            <div class="d-flex justify-content-center">
+                <b>Jamf Event:</b>
+            </div>
             <select class="form-control" name="event"
                     onchange="java_script_:show(this.options[this.selectedIndex].value)"
                     required>
@@ -67,21 +67,22 @@
        -->
             <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
                       class="form-control">{{ description }}</textarea>
-            <div class="d-flex justify-content-center"><b>Basic Authentication (optional):</b></div>
-        <div class="d-flex justify-content-center">
-            <input class="form-control-sm" name="username" title="Username (optional)"
-                   placeholder="Webhook Username (optional)">
-            </b>
-            <input name="password" class="form-control-sm" type='password' title="Password (optional)"
-                   placeholder="Webhook Password (optional)"></br></div>
-        <div class="d-flex justify-content-center">
-            Script file: <input type="file" name="new_file" pattern="[^' ']+" required
-                                title="No Spaces in the filename!"></div>
+
+            <div class="d-flex justify-content-center">
+                Script file: &nbsp<input type="file" name="new_file" pattern="[^' ']+" required
+                                         title="No Spaces in the filename!"
+                                         accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"/></b></div>
             <div class="d-flex justify-content-center">
                 <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>, <a
                         href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>] </p></div>
+            <div class="d-flex justify-content-center"><b>Basic Authentication (optional):</b></div>
+            <div class="d-flex justify-content-center">
+                <input class="form-control-sm" name="username" title="Username (optional)"
+                       placeholder="Username (optional)">
+                </b>
+                <input name="password" class="form-control-sm" type='password' title="Password (optional)"
+                       placeholder="Password (optional)"></div>
 
-            <br>
             <div class="d-flex justify-content-center">
                 <p></p>
                 <button type=submit value="Custom_New" class="btn btn-secondary ">

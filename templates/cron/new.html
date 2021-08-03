@@ -104,10 +104,12 @@
             <div id="hiddenDivFour" style="display:none">
             </div>
 
-
-            <br><b>Script:</b>
-            <input type="file" name="script" required
-                   oninvalid="this.setCustomValidity('A script is required. Spaces cannot be in the name of the script.')"></b>
+            <div class="d-flex justify-content-center">
+                <br><b>Script: &nbsp</b>
+                <input type="file" name="script" required
+                       accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"
+                       oninvalid="this.setCustomValidity('A script is required. Spaces cannot be in the name of the script.')"></b>
+            </div>
 
             <div class="d-flex justify-content-center">
                 <input class="btn btn-secondary" type="submit" value="Submit"/>

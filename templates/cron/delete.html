@@ -1,46 +1,46 @@
-  {% extends "shared/_layout.html" %}
+{% extends "shared/_layout.html" %}
 {% block title %}Delete Timed Automation{% endblock %}
-	{% block content %}
-      <div class="test-links sub_links sticky-top">
+{% block content %}
+    <div class="test-links sub_links sticky-top">
         <div class="stat"><a href="/cron">All Timed Automations</a></div>
-          <div class="stat"><a href="{{url_for('cron.new_cron') }}">New Timed Job</a></div>
-        <div class="stat"><a href="{{url_for('cron.delete_cron') }}">Delete Timed Job</a></div>
+        <div class="stat"><a href="{{ url_for('cron.new_cron') }}">New Timed Job</a></div>
+        <div class="stat"><a href="{{ url_for('cron.delete_cron') }}">Delete Timed Job</a></div>
     </div>
-  <div class="form-container">
+    <div class="form-container">
 
-        <form method="post"  class="table-view" action="{{ url_for('cron.delete_cron') }}" enctype="multipart/form-data" >
-        <h1>Delete Timed Job</h1>
-       <p/>
-      <p>Timed Job to Delete: <select name="timed_job">
-        <option value=""></option>
-        {% for job in content %}
-        <option value="{{ job }}">{{ job }}</option>
-        {% endfor %}
-      </select>
-      
-      <div class="d-flex justify-content-center">
-                <input class="btn btn-secondary" type="submit" value="Delete" />
-              </div>
+        <form method="post" class="table-view" action="{{ url_for('cron.delete_cron') }}" enctype="multipart/form-data">
+            <h1>Delete Timed Job</h1>
+            <p/>
+            <p>Timed Job to Delete: <select name="timed_job">
+                <option value=""></option>
+                {% for job in content %}
+                    <option value="{{ job }}">{{ job }}</option>
+                {% endfor %}
+            </select>
+
+            <div class="d-flex justify-content-center">
+                <input class="btn btn-secondary" type="submit" value="Delete"/>
             </div>
+    </div>
 
-    </form>  
-    {% endblock %}
+    </form>
+{% endblock %}
 {% block additional_js %}
-<script>
-  $(document).ready(function() {
-    $(".submit").click(function() {
-      $(".submit").addClass("loading");
-      setTimeout(function() {
-        $(".submit").addClass("hide-loading");
-        $(".done").addClass("finish");
-      }, 1000000);
-      setTimeout(function() {
-        $(".submit").removeClass("loading");
-        $(".submit").removeClass("hide-loading");
-        $(".done").removeClass("finish");
-        $(".failed").removeClass("finish");
-      }, 1000000);
-    })
-  });
-</script>
+    <script>
+        $(document).ready(function () {
+            $(".submit").click(function () {
+                $(".submit").addClass("loading");
+                setTimeout(function () {
+                    $(".submit").addClass("hide-loading");
+                    $(".done").addClass("finish");
+                }, 1000000);
+                setTimeout(function () {
+                    $(".submit").removeClass("loading");
+                    $(".submit").removeClass("hide-loading");
+                    $(".done").removeClass("finish");
+                    $(".failed").removeClass("finish");
+                }, 1000000);
+            })
+        });
+    </script>
 {% endblock %}

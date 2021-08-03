@@ -19,7 +19,7 @@ def jawa_logger():
     global logger
     log_file = os.path.abspath(os.path.join(os.path.dirname(__file__), 'data', 'jawa.log'))
     logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger('waitress')
+    logger = logging.getLogger('jawa')
     logger.setLevel(logging.INFO)
     handler = logging.FileHandler(log_file)
     handler.setLevel(logging.INFO)
@@ -104,7 +104,7 @@ def register_blueprints():
 def setup():
     if 'username' in session:
         if request.method == 'POST':
-            jawa_logger().info(f"{session.get('username')} - /setup - POST")
+            jawa_logger().debug(f"[{session.get('url')}] {session.get('username')} /setup - POST")
             server_url = request.form.get('address')
             jps_url = request.form.get('jss-lock')
             jps2_check = request.form.get('alternate-jamf')
@@ -139,14 +139,14 @@ def setup():
                                    webhooks="success",
                                    username=str(escape(session['username'])))
         else:
-            jawa_logger().info(f"{session.get('username')} - /setup - GET")
+            jawa_logger().debug(f"[{session.get('url')}] {session.get('username')} - /setup - GET")
             if not os.path.isfile(server_json_file):
                 with open(server_json_file, "w") as outfile:
                     server_json = {'jawa_address': '', 'jps_url': '', 'alternate_jps': ''}
                     json.dump(server_json, outfile)
             with open(server_json_file, "r") as fin:
                 server_json = json.load(fin)
-            jps_url2 = server_json['alternate_jps']
+            jps_url2 = server_json.get('alternate_jps')
             if jps_url2 == str(escape(session['url'])):
                 primary_jps = server_json['jps_url']
             else:
@@ -165,9 +165,13 @@ def cleanup():
     if 'username' not in session:
         return redirect(url_for('logout'))
     if request.method == 'POST':
+        logger.info(f"[{session.get('url')}] {session.get('username')} is cleaning up scripts...")
         owd = os.getcwd()
+        if not os.path.isdir(scripts_directory):
+            os.mkdir(scripts_directory)
         os.chdir(scripts_directory)
         for file in glob.glob("*.old"):
+            logger.info(f"[{session.get('url')}] {session.get('username')} removed the script {file}...")
             os.remove(file)
         os.chdir(owd)
         return redirect(url_for('success'))
@@ -175,13 +179,6 @@ def cleanup():
     else:
         return {"username": session.get('username'), "scripts_dir": scripts_directory}
 
-
-# Login page verifying communication/permissions to Jamf Pro
-
-
-#########################
-# General Webapp Settings
-#########################
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -202,24 +199,24 @@ def login():
         session['username'] = request.form['username']
         session['password'] = request.form['password']
 
-        logger.info(f"[{session.get('url')}] Logging In: {session.get('username')}")
+        jawa_logger().info(f"[{session.get('url')}] Attempting login for: {session.get('username')}")
 
         if request.form['password'] != "":
             try:
-                response = requests.get(
+                resp = requests.get(
                     session['url'] + '/JSSResource/activationcode',
                     auth=(session['username'], session['password']),
                     headers={'Accept': 'application/json'},
                     verify=verify_ssl)
 
-                response.raise_for_status()
+                resp.raise_for_status()
 
             except requests.exceptions.HTTPError as err:
                 return redirect(url_for('logout'))
 
-            response_json = response.json()
+            response_json = resp.json()
 
-            logger.info(
+            jawa_logger().info(
                 f"[{session.get('url')}] Logging In: " + str(escape(session['username'])))
 
             return redirect(url_for('dashboard'))
@@ -239,70 +236,63 @@ def index():
 
 
 def load_home():
-    if not os.path.isfile(server_json_file):
-        return render_template('home.html')
+    if 'username' in session:
+        return redirect(url_for('dashboard'))
     with open(server_json_file, "r") as fin:
         server_json = json.load(fin)
     if not server_json:
         return render_template('home.html')
     else:
-        with open(server_json_file) as json_file:
-            server_json = json.load(json_file)
-        # print(server_json)
+        brand = server_json.get("brand")
 
         if not 'jps_url' in server_json:
-            return render_template('home.html')
+            return render_template('home.html', app_name=brand)
         elif server_json['jps_url'] == None:
-            return render_template('home.html')
+            return render_template('home.html', app_name=brand)
         elif len(server_json['jps_url']) == 0:
-            return render_template('home.html')
+            return render_template('home.html', app_name=brand)
         else:
             if not 'alternate_jps' in server_json:
-                return render_template('home.html')
+                return render_template('home.html', app_name=brand)
 
             if server_json['alternate_jps'] != "":
                 return render_template('home.html',
                                        jps_url=server_json['jps_url'],
                                        jps_url2=server_json['alternate_jps'],
-                                       welcome="true", jsslock="true")
+                                       welcome="true", jsslock="true", app_name=brand)
 
             session['url'] = server_json['jps_url']
             return render_template('home.html',
                                    jps_url=str(escape(session['url'])),
-                                   welcome="true", jsslock="true")
-    session.pop('username', None)
-    return render_template('home.html', login="true")
+                                   welcome="true", jsslock="true", app_name=brand)
 
 
 @app.route("/")
 def home():
     if 'username' in session:
-        if not os.path.isfile(server_json_file):
+        return redirect(url_for('dashboard'))
+    else:
+        with open(server_json_file) as json_file:
+            server_json = json.load(json_file)
+        # print(server_json)
+        if not 'jps_url' in server_json:
+            return render_template('home.html')
+        elif server_json['jps_url'] is None:
+            return render_template('home.html')
+        elif len(server_json['jps_url']) == 0:
             return render_template('home.html')
         else:
-            with open(server_json_file) as json_file:
-                server_json = json.load(json_file)
-            # print(server_json)
-            if not 'jps_url' in server_json:
-                return render_template('home.html')
-            elif server_json['jps_url'] is None:
-                return render_template('home.html')
-            elif len(server_json['jps_url']) == 0:
-                return render_template('home.html')
-            else:
-                session['url'] = server_json['jps_url']
-                return render_template('home.html',
-                                       jps_url=str(escape(session['url'])),
-                                       welcome="true", jsslock="true")
-
-    session.pop('username', None)
-    return render_template('home.html')
+            session['url'] = server_json['jps_url']
+            return render_template('home.html',
+                                   jps_url=str(escape(session['url'])),
+                                   welcome="true", jsslock="true")
 
 
 @app.route("/dashboard")
 def dashboard():
     if 'username' not in session:
         return redirect(url_for('logout'))
+    jawa_logger().info(f"[{session.get('url')}] {session.get('username')} rendering /dashboard.")
     with open(webhooks_file) as webhook_json:
         webhooks_installed = json.load(webhook_json)
     jamf_pro_webhooks = []
@@ -317,43 +307,6 @@ def dashboard():
             okta_webhooks.append(each_webhook)
         elif tag == "custom":
             custom_webhooks.append(each_webhook)
-
-    # print(f"Full JP Webhook list: {jamf_pro_webhooks}")
-
-    response = requests.get(
-        session.get('url') + '/JSSResource/webhooks',
-        auth=(session['username'], session['password']),
-        headers={'Accept': 'application/json'},
-        verify=verify_ssl)
-
-    found_jamf_webhooks = response.json()['webhooks']
-
-    jamf_webhooks = []
-
-    x = 0
-    while True:
-        try:
-            jamf_webhooks.append(found_jamf_webhooks[x]['name'])
-            x += 1
-            str_error = None
-        except Exception as str_error:
-            pass
-            if str_error:
-                # sleep(2)
-                break
-            else:
-                continue
-
-    for webhook in webhooks_installed:
-        if webhook['name'] in jamf_webhooks:
-            webhook_endpoint = '/JSSResource/webhooks/name/'
-            response = requests.get(
-                session['url'] + webhook_endpoint + webhook['name'],
-                auth=(session['username'], session['password']),
-                headers={'Accept': 'application/json'},
-                verify=verify_ssl)
-
-            response_json = response.json()
 
     data = []
 
@@ -375,13 +328,14 @@ def dashboard():
 
     if not cron_json:
         cron_json = ''
-
+    jawa_logger().info(f"Total webhooks managed by JAWA: {len(webhooks_installed)}")
     if webhook_json == cron_json:
         return redirect(url_for('first_automation'))
     return render_template(
         'dashboard.html',
         webhook_url=webhook_url,
         jamfpro_list=jamf_pro_webhooks,
+        url=session.get('url'),
         cron_list=cron_json,
         okta_list=okta_webhooks,
         custom_list=custom_webhooks,
@@ -391,45 +345,34 @@ def dashboard():
         username=str(escape(session['username'])))
 
 
-@app.route("/python")
-@response(template_file="examples/python.html")
-def python():
-    if 'username' not in session:
-        return redirect(url_for('logout'))
-    return {"username": session.get('username')}
-
-
-@app.route("/bash")
-@response(template_file="examples/bash.html")
-def bash():
-    if 'username' not in session:
-        return redirect(url_for('logout'))
-    return {"username": session.get('username')}
-
-
 @app.route('/success', methods=['GET', 'POST'])
 def success():
-    if 'username' in session:
-        return render_template(
-            'success.html',
-            login="true",
-            username=str(escape(session['username'])))
+    if 'username' not in session:
+        jawa_logger().info(f"No user logged in - returning to login page.")
+        return redirect(url_for('logout'))
+    return render_template(
+        'success.html',
+        login="true",
+        username=str(escape(session['username'])))
 
 
 @app.route('/error', methods=['GET', 'POST'])
 def error():
     if not 'username' in session:
         return redirect(url_for('logout'))
+    jawa_logger().info(
+        f"[{session.get('url')}] {session.get('username').title()} was a victim of a series of accidents, as are we all. (/error)")
     return render_template('error.html', username=session.get('username'))
 
 
 @app.errorhandler(404)
 def page_not_found(error):
     if 'username' in session:
-        return render_template('dashboard.html',
-                               error="true",
-                               username=str(escape(session['username']))), 404
-
+        jawa_logger().info(
+            f"[{session.get('url')}] {session.get('username')} wandered off course  ({request.path}) - redirecting to /dashboard.")
+        return redirect(url_for('dashboard'))
+    jawa_logger().info(
+        f"An invalid path ({request.path}) was provided and no user is logged in.  Returning login page.")
     return load_home()
 
 

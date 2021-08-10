@@ -8,6 +8,7 @@ from flask import (Flask, request, render_template,
 import glob
 import json
 import logging
+from logging import handlers
 import os
 import requests
 from waitress import serve
@@ -21,7 +22,7 @@ def jawa_logger():
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger('jawa')
     logger.setLevel(logging.INFO)
-    handler = logging.FileHandler(log_file)
+    handler = handlers.RotatingFileHandler(log_file, maxBytes=(1048576 * 100), backupCount=10)
     handler.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
@@ -247,12 +248,12 @@ def load_home():
 
         if not 'jps_url' in server_json:
             return render_template('home.html', app_name=brand)
-        elif server_json['jps_url'] == None:
+        elif server_json['jps_url'] is None:
             return render_template('home.html', app_name=brand)
         elif len(server_json['jps_url']) == 0:
             return render_template('home.html', app_name=brand)
         else:
-            if not 'alternate_jps' in server_json:
+            if 'alternate_jps' not in server_json:
                 return render_template('home.html', app_name=brand)
 
             if server_json['alternate_jps'] != "":
@@ -275,7 +276,7 @@ def home():
         with open(server_json_file) as json_file:
             server_json = json.load(json_file)
         # print(server_json)
-        if not 'jps_url' in server_json:
+        if 'jps_url' not in server_json:
             return render_template('home.html')
         elif server_json['jps_url'] is None:
             return render_template('home.html')
@@ -358,7 +359,7 @@ def success():
 
 @app.route('/error', methods=['GET', 'POST'])
 def error():
-    if not 'username' in session:
+    if 'username' not in session:
         return redirect(url_for('logout'))
     jawa_logger().info(
         f"[{session.get('url')}] {session.get('username').title()} was a victim of a series of accidents, as are we all. (/error)")

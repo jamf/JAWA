@@ -12,7 +12,7 @@
 
             <h1>Edit {% if webhook_name %}{{ webhook_name }}{% else %}Custom Webhook{% endif %}</h1>
             <input name="custom_name" type="text" pattern="[^' ']+" placeholder="Edit Webhook Name (optional)"
-                   title="No spaces, please." class="form-control" value="{{ name }}">
+                   title="No spaces, please." class="form-control" value="{{ name }}" autofocus>
             {% if error %}
                 <div class="alert-danger">{{ error }}</div>
             {% endif %}

@@ -11,7 +11,7 @@
               style="max-height: 66vh; max-width: 66vh">
             <h1>New Jamf Pro Webhook</h1>
             <input name="webhook_name" type="text" pattern="[^' ']+" placeholder="New Webhook Name (no spaces)" required
-                   title="No spaces, please." class="form-control" value="{{ name }}">
+                   title="No spaces, please." class="form-control" value="{{ name }}" autofocus>
             {% if error %}
                 <div class="alert-danger">{{ error }}</div>
             {% endif %}

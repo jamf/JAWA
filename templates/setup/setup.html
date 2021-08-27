@@ -20,7 +20,7 @@
                 <form method="post" class="table-view" action="/setup" enctype="multipart/form-data">
 
                     <input type="text" class="form-control" name="address" pattern="https?://.+" title="Use https://"
-                           value="{{ jawa_url }}" placeholder="JAWA Server Address FQDN" autofocus>
+                           value="{{ jawa_url if jawa_url }}" placeholder="JAWA Server Address FQDN" autofocus>
 
                     <div class="form-group form-check">
                         <input type="checkbox" class="form-check-input" name="jss-lock" id="jss-lock"
@@ -36,11 +36,11 @@
                             <label class="form-check-label" for="exampleCheck1">Add an alternate JPS server:</label>
                         </div>
 
-                        <input type="text" class="form-check-input" placeholder="Alternate JPS server url"
+                        <input type="text" class="form-control" placeholder="Alternate JPS server URL"
                                name="alternate"
                                pattern="https?://.+"
                                title="Use https://"
-                               value="{{ jps_url2 }}">
+                               value="{{ jps_url2 if jps_url2 }}">
                     {% else %}
                         <div class="form-group form-check">
                             <input type="checkbox" class="form-check-input" name="alternate-jps" id="alternate-jps"
@@ -49,10 +49,10 @@
                             <label class="form-check-label" for="exampleCheck1">Add an alternate JPS server:</label>
                         </div>
 
-                        <input type="text" class="form-control" placeholder="Alternate JPS server url" name="alternate"
+                        <input type="text" class="form-control" placeholder="Alternate JPS server URL" name="alternate"
                                pattern="https?://.+"
                                title="Use https://"
-                               value="{{ jps_url2 }}">
+                               value="{{ jps_url2 if jps_url2 }}">
 
 
 

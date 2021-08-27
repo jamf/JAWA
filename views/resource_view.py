@@ -59,6 +59,9 @@ def files():
 def rebrand():
     if 'username' not in session:
         return redirect(url_for('logout'))
+    if not os.path.isfile(server_file):
+        with open(server_file, "w") as fout:
+            json.dump({}, fout)
     with open(server_file) as fin:
         server_json = json.load(fin)
     brand = server_json.get('brand')

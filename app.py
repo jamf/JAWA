@@ -152,7 +152,7 @@ def setup():
                 primary_jps = server_json['jps_url']
             else:
                 primary_jps = str(escape(session['url']))
-            jawa_url = server_json['jawa_address']
+            jawa_url = server_json.get('jawa_address')
             return render_template('setup/setup.html',
                                    login="false", jps_url=primary_jps, jps_url2=jps_url2,
                                    jawa_url=jawa_url, username=session.get('username'))
@@ -239,6 +239,10 @@ def index():
 def load_home():
     if 'username' in session:
         return redirect(url_for('dashboard'))
+    if not os.path.isfile(server_json_file):
+        with open(server_json_file, "w") as fout:
+            json.dump({}, fout)
+
     with open(server_json_file, "r") as fin:
         server_json = json.load(fin)
     if not server_json:

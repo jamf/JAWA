@@ -10,19 +10,27 @@
 
         <form action="/webhooks/custom/new" method="POST" class="table-view" enctype="multipart/form-data">
             <h1>New Custom Webhook</h1>
-            <input name="custom_name" type="text" pattern="[^' ']+" placeholder="New Webhook Name" required
-                   title="No spaces, please." class="form-control" value="{{ name }}">
+            <input name="custom_name" type="text" pattern="[^' ']+" placeholder="New Webhook Name (no spaces)" required
+                   title="No spaces, please." class="form-control" value="{{ name }}" autofocus>
             {% if error %}
                 <div class="alert-danger">{{ error }}</div>
             {% endif %}
             <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
                       class="form-control">{{ description }}</textarea><br>
-            Script file: <input type="file" name="new_file" pattern="[^' ']+" required
-                                title="No Spaces in the filename!"></b>
-            {#            <form action="#" method="post" enctype="multipart/form-data">#}
-            {#                <input id="upload" type="file" name="upload" formenctype="multipart/form-data"/>#}
-            {#                <a href="#" id="upload_link">Upload files</a>#}
-
+            <div class="d-flex justify-content-center">
+                Script file: &nbsp<input type="file" name="new_file" pattern="[^' ']+" required
+                                         title="No Spaces in the filename!"
+                                         accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"/></b></div>
+            <div class="d-flex justify-content-center">
+                <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>, <a
+                        href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>] </p></div>
+            <div class="d-flex justify-content-center"><b>Basic Authentication (optional):</b></div>
+            <div class="d-flex justify-content-center">
+                <input class="form-control-sm" name="username" title="Username (optional)"
+                       placeholder="Username (optional)">
+                </b>
+                <input name="password" class="form-control-sm" type='password' title="Password (optional)"
+                       placeholder="Password (optional)"></div>
 
             <br>
             <div class="d-flex justify-content-center">

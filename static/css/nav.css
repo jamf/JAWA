@@ -45,11 +45,11 @@
 }
 
 .navbar-inverse .navbar-toggle {
-    margin-top: 20px;
+    margin-top: 5px;
 }
 
 .navbar-nav li {
-    margin-top: 20px;
+    /*margin-top: 20px;*/
 }
 
 #last_nav_link {
@@ -60,7 +60,7 @@ nav {
     padding: 10px;
     font-size: 17px;
     color: white;
-    height: 85px;
+    /*height: 85px;*/
     background-color: #6b7078;
 }
 
@@ -78,4 +78,21 @@ nav > a {
 #navbarSupportedContent {
     background-color: #6b7078;
     padding: 10px;
+}
+
+.footer {
+  /*position: absolute;*/
+  bottom: 0;
+  width: 100%;
+  height: 80px;
+  background: transparent;
+  /*border-top: solid 1px #eee;*/
+}
+
+.footer p {
+  margin-top: 30px;
+}
+
+.article {
+  padding-top: 40px;
 }

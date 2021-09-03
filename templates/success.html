@@ -1,22 +1,26 @@
-{% macro input(name, value='', type='text', size=20) -%}
-<input type="{{ type }}" name="{{ name }}" value="{{value|e }}" size="{{ size }}">
-{%- endmacro %}
-<!DOCTYPE html>
-<html>
-<body>
-	{% extends "shared/_layout.html" %}
-	{% block content %}
-	<div class="success">
-	<form method="get" action="/logout">
-		<h3>Success!</h3></br></br>
+{% extends "shared/_layout.html" %}
+{% block title %}Success!{% endblock %}
+{% block content %}
+    <div class="test-links sub_links sticky-top">
+        <div class="stat"><a href="/dashboard">JAWA Dashboard</a></div>
+        <div class="stat">Success</a></div>
+    </div>
+    <div class="form-container">
+    <form method="get" class="table-view" action="/dashboard">
+        <div class="  overflow-auto" style="max-width: 100vh">
+            <h3>Success!</h3>
+            {{ success_msg }} <br>
+            {% if smart_group_notice %}
+                <b>{{ smart_group_notice }}</b> <br> {{ smart_group_instructions }}
+            {% endif %}
+            <a href="{{ new_link }}" style="color:#3c6aa7;" target="_blank">{{ new_here }}</a></center>
+            </br></br>
 
-		<center>{{new_webhook}} <br> <b>{{smart_group_notice}}</b> <br> {{smart_group_instructions}}<a href="{{new_link}}" style="color:#3c6aa7;" target="_blank">{{new_here}}</a></center></br></br>
+            <div class="d-flex justify-content-center">
+                <button type="submit" class="btn btn-secondary">
+                    Dashboard<i class="fa fa-templates" aria-hidden="true"></i>
+                </button>
+            </div>
 
-		<center><button type="submit" class="pure-button pure-button-primary">
-			Log Out<i class="fa fa-templates" aria-hidden="true"></i>
-		</button></center>
-	</form></br></br></br></br></br>
-    {% endblock %}
-   </div>
- </body>
-</html>
+    </form>
+{% endblock %}

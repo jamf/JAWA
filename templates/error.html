@@ -1,23 +1,22 @@
-
 {% extends "shared/_layout.html" %}
 {% block title %}Error {{ error }}{% endblock %}
 
 {% block content %}
-<div class="test-links sub_links">
-    <div class="stat"><a href="/tester/rules-test.html">Rules Test</a></div>
-    <div class="stat"><a href="/tester/custom-test.html">Custom Test</a></div>
-    <div class="stat"><a href="/tester/template-test.html">Template Test</a></div>
-</div>
-<div class="form-container">
-    <div class="error">
-        <div class="success-form">An error occurred:<br>
-            <div class="success-wrap alert alert-danger">{{error}}</div>
-            <div class="text-center">
-                <a type=submit onclick="history.back(-1)" value=Back
-                   class="btn btn-primary button-align">&laquo;Back</a>
-                <a href="/logout" button type=submit value=Logout
-                   class="btn btn-danger button-align">Logout</a></button></div>
+ <div class="test-links sub_links sticky-top">
+        <div class="stat"><a href="/dashboard">JAWA Dashboard</a></div>
+        <div class="stat">Error</a></div>
+    </div>
+    <div class="form-container">
+        <div class="error">
+            <div class="success-form">An error occurred:<br>
+                <div class="success-wrap alert alert-danger">{{ error }} - {{ error_message }}</div>
+                <div class="text-center">
+                    <a type=submit onclick="history.back(-1)" value=Back
+                       class="btn btn-primary button-align">&laquo;Back</a>
+                    <a href="/logout" button type=submit value=Logout
+                       class="btn btn-danger button-align">Logout</a>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 {% endblock %}

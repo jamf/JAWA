@@ -1,53 +1,81 @@
 {% extends "shared/_layout.html" %}
-{% block title %}Custom Webhook{% endblock %}
+
+{% block additional_css %}
+
+{% endblock %}
+{% block title %}Jamf Webhooks Dashboard{% endblock %}
 {% block content %}
-    <div class="test-links sub_links">
+    <div class="test-links sub_links sticky-top">
         <div class="stat"><a href="/webhooks">All Webhooks</a></div>
         <div class="stat"><a href="/webhooks/jamf/new">Create</a></div>
         <div class="stat"><a href="/webhooks/jamf">View</a></div>
     </div>
-    <div class="form-container">
-
-        {#        <div class="account-form">#}
-
-        <div class="table-view">
-            <h4>Jamf Pro Webhooks Summary</h4></div>
-        <div class="table-view">
-            {% if jamf_pro_list %}
-                <div class="table-responsive">
-                    <table id="Jamf Pro Webhooks Table" class="table">
-                        <thead class="thead-dark table-bordered">
-                        <tr>
-                            <th>Name</th>
-                            <th>Script</th>
-                            <th>Description</th>
-                        </tr>
-                        </thead>
-                        {% for row in jamf_pro_list %}
-                            {% if row.url == session['url'] %}
-                                <tr>
-
-                                    <td>{{ row.name }} (<a href="../webhooks/jamf/edit?name={{ row.name }}"
-                                                           style="color:#3c6aa7;">Edit</a>) (<a
-                                            href="{{ url }}/webhooks.html?id={{ row.jamf_id }}" target="_blank">View in
-                                        Jamf</a>)
-                                    </td>
-                                    <td>
-                                        <div class="overflow-auto log-frame success-wrap"
-                                             style=" max-height: 20vh"> {{ row.script }}</div>
-                                    </td>
-                                    <td>
-                                        <div class="overflow-auto log-frame"
-                                             style="max-width: 50vh; max-height: 20vh"> {{ row.description }}</div>
-                                    </td>
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
-                    </table>
-                </div>
-            {% else %}
-                No Jamf Pro webhooks to display.  <a href="/webhooks/jamf/new">Create one now.</a>
-            {% endif %}
+    <div class="form-container" style="min-height: 82vh">
+        <div class="table-view overflow-auto" style="max-width: 55vh">
+            <div class="d-flex justify-content-center">
+                <h4>Jamf Webhooks Dashboard</h4>
+            </div>
+            <div class="d-flex justify-content-center">
+                <b>Active JPS</b>: <a href="{{ session.get('url') }}" target="_blank">{{ session['url'] }}</a> <br>
+            </div>
+            <div class="d-flex justify-content-center">
+                <b>Total webhooks installed</b>: {{ jamf_list|length or '0' }}<br>
+            </div>
         </div>
-    </div>
+        {% if not jamf_list %}
+            <div class="form-container">
+                <div class="table-view" style="max-width: fit-content; text-align: center; min-width: 55vh">
+                    <div class="table-responsive">
+                        No Jamf Pro webhooks to display. <a href="/webhooks/jamf/new">Create one now.</a>
+                    </div>
+                </div>
+            </div></div>
+        {% else %}
+            <div class="form-container">
+            <div class="table-view overflow-auto" style="max-height: 46vh; max-width: fit-content; text-align: center;">
+                {% if jamf_list %}
+                    <div class="table-responsive">
+                        <table id="Jamf Pro Webhooks Table" class="table"
+                               style="max-height: 66vh; max-width: fit-content; text-align: center;">
+                            <thead class="thead-dark table-bordered">
+                            <tr>
+                                <th>Jamf Pro Webhook</th>
+                                <th>Event</th>
+                                <th>Script</th>
+                                <th>Description</th>
+                            </tr>
+                            </thead>
+                            {% for row in jamf_list %}
+                                {% if row.url == session['url'] %}
+                                    <tr>
+                                        <td>{{ row.name }} (<a href="../webhooks/jamf/edit?name={{ row.name }}"
+                                                               style="color:#3c6aa7;">Edit</a>) (<a
+                                                href="{{ url }}/webhooks.html?id={{ row.jamf_id }}" target="_blank">
+                                            View in Jamf</a>)
+                                        </td>
+                                        <td>
+                                            <div class="overflow-auto log-frame"
+                                                 style="max-width: 50vh; max-height: 10vh">
+                                                {{ row.event }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="overflow-auto log-frame"
+                                                 style="max-width: 50vh; max-height: 10vh"> {{ row.script }}</div>
+                                        </td>
+                                        <td>
+                                            <div class="overflow-auto log-frame"
+                                                 style="max-width: 50vh; max-height: 10vh"> {{ row.description }}</div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}</table>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+        </div>
+{% endblock %}
+{% block additional_js %}
+
 {% endblock %}

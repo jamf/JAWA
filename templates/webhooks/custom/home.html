@@ -1,46 +1,73 @@
 {% extends "shared/_layout.html" %}
-{% block title %}Custom Webhook{% endblock %}
+
+{% block additional_css %}
+
+{% endblock %}
+{% block title %}Custom Webhooks Dashboard{% endblock %}
 {% block content %}
-    <div class="test-links sub_links">
+    <div class="test-links sub_links sticky-top">
         <div class="stat"><a href="/webhooks">All Webhooks</a></div>
         <div class="stat"><a href="/webhooks/custom/new">Create</a></div>
         <div class="stat"><a href="/webhooks/custom">View</a></div>
     </div>
-    <div class="form-container">
-
-        {#        <div class="account-form">#}
-
-        <div class="table-view">
-            <h4>Custom Webhooks Summary</h4></div>
-        <div class="table-view">
-            {% if custom_list %}
-                <div class="table-responsive">
-                    <table id="Custom Webhooks Table" class="table">
-                        <thead class="thead-dark table-bordered">
-                        <tr>
-                            <th>Name</th>
-                            <th>Script</th>
-                            <th>Description</th>
-                        </tr>
-                        </thead>
-                        {% for row in custom_list %}
-                            {% if row.url == session['url'] %}
-                                <tr>
-                                    {#                                <td>{{ row.name }} (<a href="{{ webhook_url }}/webhooks.html?id={{ row.jamf_id }}"#}
-                                    <td>{{ row.name }} (<a href="../webhooks/custom/edit?name={{ row.name }}"
-                                                           style="color:#3c6aa7;">Edit</a>)
-                                    </td>
-                                    <td>{{ row.script }}</td>
-                                    <td>{{ row.description }}</td>
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
-                    </table>
+    <div class="form-container" style="min-height: 82vh">
+        <div class="table-view overflow-auto" style="max-width: 55vh">
+                <div class="d-flex justify-content-center">
+            <h4>Custom Webhooks Dashboard</h4>
                 </div>
-            {% else %}
-                No custom webhooks to display.  <a href="/webhooks/custom/new">Create one now.</a>
-            {% endif %}
+                <div class="d-flex justify-content-center">
+            <b>Total custom webhooks installed</b>: {{ custom_list|length or '0' }}<br>
+                </div>
         </div>
-        </form>
-    </div>
+        {% if not custom_list %}
+            <div class="form-container">
+                <div class="table-view" style="max-width: fit-content; text-align: center; min-width: 55vh">
+                    <div class="table-responsive">
+                        No custom webhooks to display. <a href="/webhooks/custom/new">Create one now.</a>
+                    </div>
+                </div>
+            </div></div>
+        {% else %}
+            <div class="form-container">
+            <div class="table-view overflow-auto" style="max-height: 46vh; max-width: fit-content; text-align: center;">
+                {% if custom_list %}
+                    <div class="table-responsive">
+                        <table id="Custom Webhooks Table" class="table">
+                            <thead class="thead-dark table-bordered">
+                            <tr>
+                                <th>Custom Webhook</th>
+                                <th>Script</th>
+                                <th>Description</th>
+                            </tr>
+                            </thead>
+                            {% for row in custom_list %}
+                                {% if row.url == session['url'] %}
+                                    <tr>
+                                        {#                                <td>{{ row.name }} (<a href="{{ webhook_url }}/webhooks.html?id={{ row.jamf_id }}"#}
+                                        <td>{{ row.name }} (<a href="../webhooks/custom/edit?name={{ row.name }}"
+                                                               style="color:#3c6aa7;">Edit</a>)
+                                        </td>
+                                        <td>
+                                            <div class="overflow-auto log-frame" style="max-width: 50vh; max-height: 10vh">
+                                            {{ row.script }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="overflow-auto log-frame" style="max-width: 50vh; max-height: 10vh">
+                                            {{ row.description }}
+                                            </div></td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+
+                        </table>
+
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+        </div>
+{% endblock %}
+{% block additional_js %}
+
 {% endblock %}

@@ -13,7 +13,7 @@ from flask import (Flask, request, render_template,
 
 from bin.load_home import load_home
 from bin.view_modifiers import response
-from main import jawa_logger
+from app import jawa_logger
 
 
 blueprint = Blueprint('webhooks', __name__, template_folder='templates')
@@ -47,10 +47,6 @@ def delete_webhook():
                 if each_webhook['tag'] == 'jamfpro':
                     data = f"<webhook><name>{each_webhook['name']}.old.{time.time()}</name>" \
                            f"<enabled>false</enabled></webhook>"
-                    # data = '<webhook>'
-                    # data += '<name>'
-                    # data += '{}.old_{}'.format(webhook_name, ts)
-                    # data += '</name><enabled>false</enabled></webhook>'
                     full_url = f"{session['url']}/JSSResource/webhooks/name/{each_webhook['name']}"
                     webhook_response = requests.put(full_url,
                                                     auth=(session['username'], session['password']),
@@ -76,7 +72,7 @@ def delete_webhook():
 @blueprint.route('/webhooks', methods=['GET', 'POST'])
 @response(template_file='webhooks/home.html')
 def webhooks():
-    if not 'username' in session:
+    if 'username' not in session:
         return redirect(url_for('logout'))
     with open(webhooks_file, 'r') as fin:
         webhooks_json = json.load(fin)
@@ -94,4 +90,4 @@ def webhooks():
             okta_webhooks_list.append(each_webhook)
     print(okta_webhooks_list)
     return {'username': session.get('username'), 'custom_list': custom_webhooks_list,
-            'jamfpro_list': jamf_pro_webhooks_list, 'okta_list': okta_webhooks_list, 'url': session.get('url')}
+            'jamf_list': jamf_pro_webhooks_list, 'okta_list': okta_webhooks_list, 'url': session.get('url')}

@@ -13,7 +13,7 @@ from flask import (Flask, request, render_template,
 
 from bin.load_home import load_home
 from bin.view_modifiers import response
-from main import jawa_logger
+from app import jawa_logger
 
 blueprint = Blueprint('custom_webhook', __name__, template_folder='templates')
 
@@ -27,7 +27,7 @@ scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scr
 @blueprint.route('/webhooks/custom', methods=['GET', 'POST'])
 @response(template_file='webhooks/custom/home.html')
 def custom_webhook():
-    if not 'username' in session:
+    if 'username' not in session:
         return redirect(url_for('logout'))
     with open(webhooks_file, 'r') as fin:
         webhooks_json = json.load(fin)
@@ -64,7 +64,6 @@ def edit_webhook():
             return redirect(url_for('webhooks.delete_webhook', target_webhook=name))
 
         check_for_name = [True for each_webhook in webhooks_json if each_webhook['name'] == name]
-        print(check_for_name)
         if not check_for_name:
             print("name not in json")
         for each_webhook in webhooks_json:
@@ -73,8 +72,16 @@ def edit_webhook():
                 if not new_custom_name:
                     new_custom_name = name
                 description = request.form.get('description')
+                new_webhook_user = request.form.get('username', 'null')
+                if not new_webhook_user:
+                    new_webhook_user = "null"
+                new_webhook_pass = request.form.get('password', 'null')
+                if not new_webhook_pass:
+                    new_webhook_pass = "null"
+
                 if request.files.get('new_file'):
                     new_script = request.files.get('new_file')
+                    owd = os.getcwd()
                     os.chdir(scripts_dir)
 
                     if ' ' in new_script.filename:
@@ -84,11 +91,14 @@ def edit_webhook():
                     new_script.save(secure_filename(new_filename))
                     new_filename = os.path.join(scripts_dir, f"{new_custom_name}-{new_script.filename}")
                     os.chmod(new_filename, mode=0o0755)
+                    os.chdir(owd)
                     each_webhook['script'] = new_filename
                 if new_custom_name:
                     each_webhook['name'] = new_custom_name
                 if description:
                     each_webhook['description'] = description
+                each_webhook['webhook_username'] = new_webhook_user
+                each_webhook['webhook_password'] = new_webhook_pass
 
                 with open(webhooks_file, 'w') as fout:
                     json.dump(webhooks_json, fout, indent=4)
@@ -116,6 +126,9 @@ def new_webhook():
 
                     if each_webhook.get('name') == new_custom_name:
                         check = 1
+            owd = os.getcwd()
+            if not os.path.isdir(scripts_dir):
+                os.mkdir(scripts_dir)
             os.chdir(scripts_dir)
             target_file = request.files.get('new_file')
 
@@ -126,17 +139,23 @@ def new_webhook():
             target_file.save(secure_filename(new_filename))
             new_filename = os.path.join(scripts_dir, f"{new_custom_name}-{target_file.filename}")
             os.chmod(new_filename, mode=0o0755)
+            os.chdir(owd)
             if check != 0:
                 error_message = "Name already exists!"
                 print(error_message)
                 return {"error": error_message, "username": session.get('username'), 'name': new_custom_name,
                         'description': description}
-
+            new_webhook_user = request.form.get('username', 'null')
+            if not new_webhook_user:
+                new_webhook_user = "null"
+            new_webhook_pass = request.form.get('password', 'null')
+            if not new_webhook_pass:
+                new_webhook_pass = "null"
             webhooks_json.append({"url": str(session['url']),
                                   "jawa_admin": str(session['username']),
                                   "name": new_custom_name,
-                                  "webhook_username": request.form.get('username', 'null'),
-                                  "webhook_password": request.form.get('password', 'null'),
+                                  "webhook_username": new_webhook_user,
+                                  "webhook_password": new_webhook_pass,
                                   # "event": request.form.get('event'),
                                   "script": new_filename,
                                   "description": description,

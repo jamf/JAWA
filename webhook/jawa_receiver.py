@@ -35,12 +35,16 @@ def run_script(webhook_data, webhook_name):
         webhooks_json = json.load(fin)
     for each_webhook in webhooks_json:
         if each_webhook['name'] == webhook_name:
-            print(webhook_data)
-            webhook_data = json.dumps(webhook_data)
-            proc = subprocess.Popen([each_webhook['script'], f"{webhook_data}"], stdout=subprocess.PIPE)
-            output = proc.stdout.read()
-            jawa_logger().info(output.decode())
-            return output
+            return script_results(webhook_data, each_webhook)
+
+
+def script_results(webhook_data, each_webhook):
+    print(webhook_data)
+    webhook_data = json.dumps(webhook_data)
+    proc = subprocess.Popen([each_webhook['script'], f"{webhook_data}"], stdout=subprocess.PIPE)
+    output = proc.stdout.read()
+    jawa_logger().info(output.decode())
+    return output
 
 
 @blueprint.route('/hooks/<webhook_name>', methods=['POST', 'GET'])

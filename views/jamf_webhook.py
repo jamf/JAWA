@@ -62,172 +62,163 @@ def jp_new():
         with open(webhooks_file, 'w') as outfile:
             json.dump(data, outfile, indent=4)
 
-    if 'username' in session:
-        if request.method == 'POST':
-            if request.form.get('webhook_name') != '':
-                check = 0
-                print(check)
-                if ' ' in request.form.get('webhook_name'):
-                    error_message = "Single-string name only."
-                    return render_template('error.html',
-                                           error_message=error_message,
-                                           error="error",
-                                           username=str(escape(session['username'])))
+    if 'username' not in session:
+        return redirect(url_for('logout'))
+    if request.method != 'POST':
+        return render_template('webhooks/jamf/new.html',
+                               webhooks="webhooks",
+                               url=session['url'],
+                               # found_mobile_device_groups=found_mobile_device_groups,
+                               # found_computer_groups=found_computer_groups,
+                               username=str(escape(session['username'])))
 
-                with open(webhooks_file) as json_file:
-                    data = json.load(json_file)
-
-                    x = 0
-                    id_list = []
-                    while True:
-                        try:
-                            id_list.append(data[x]['name'])
-                            x += 1
-                            str_error = None
-                        except Exception as str_error:
-                            pass
-                            if str_error:
-                                sleep(2)
-                                break
-                            else:
-                                continue
-
-                    for id_name in id_list:
-                        if id_name == request.form.get('webhook_name'):
-                            check = 1
-                        else:
-                            check = 0
-
-                if check != 0:
-                    error_message = "Name already exists!"
-                    return render_template('error.html',
-                                           error_message=error_message,
-                                           error="error",
-                                           username=str(escape(session['username'])))
-
-                with open(server_json_file) as json_file:
-                    data = json.load(json_file)
-                    server_address = data['jawa_address']
-                if not os.path.isdir(scripts_dir):
-                    os.mkdir(scripts_dir)
-                owd = os.getcwd()
-                os.chdir(scripts_dir)
-
-                new_file = request.files.get('new_file')
-                if ' ' in new_file.filename:
-                    new_file.filename = new_file.filename.replace(" ", "-")
-
-                new_file.save(secure_filename(new_file.filename))
-
-                old_script_file = os.path.abspath(
-                    os.path.join(scripts_dir, f"{new_file.filename}"))
-                new_script_file = (os.path.join(scripts_dir,
-                                                f"{request.form.get('webhook_name')}-{new_file.filename}"))
-                os.rename(old_script_file, new_script_file)
-
-                os.chmod(new_script_file, mode=0o0755)
-                os.chdir(owd)
-                if (
-                        request.form.get('event') == 'SmartGroupMobileDeviceMembershipChange' or
-                        request.form.get('event') == 'SmartGroupComputerMembershipChange'):
-
-                    smart_group_notice = "NOTICE!  This webhooks is not yet enabled."
-                    smart_group_instructions = "Specify desired Smart Group and enable: "
-                    webhook_enablement = 'false'
-
-                else:
-                    smart_group_notice = ""
-                    smart_group_instructions = ""
-                    webhook_enablement = 'true'
-
-                # Check for auth values
-                auth_xml = "<authentication_type>NONE</authentication_type>"
-                if (
-                        request.form.get('username') != '' or
-                        request.form.get('password') != ''):
-                    auth_xml = f"<authentication_type>BASIC</authentication_type>"
-                    if request.form.get('username') == '':
-                        auth_xml += "<username>null</username>"
-                    else:
-                        auth_xml += f"<username>{request.form.get('username')}</username>"
-                    if request.form.get('password') == '':
-                        auth_xml += "<password>null</password>"
-                    else:
-                        auth_xml += f"<password>{request.form.get('password')}</password>"
-
-                data = f"<webhook>" \
-                       f"<name>{request.form.get('webhook_name')}</name>" \
-                       f"<enabled>{webhook_enablement}</enabled>" \
-                       f"<url>{server_address}/hooks/{request.form.get('webhook_name')}</url>" \
-                       f"<content_type>application/json</content_type>" \
-                       f"<event>{request.form.get('event')}</event>" \
-                       f"{auth_xml}" \
-                       f"</webhook>"
-
-                full_url = session['url'] + '/JSSResource/webhooks/id/0'
-
-                webhook_response = requests.post(full_url,
-                                                 auth=(session['username'], session['password']),
-                                                 headers={'Content-Type': 'application/xml'}, data=data,
-                                                 verify=verify_ssl)
-                print(webhook_response.text)
-                if webhook_response.status_code == 409:
-                    error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
-                    return render_template('error.html',
-                                           error_message=error_message,
-                                           error="error",
-                                           username=str(escape(session['username'])))
-
-                result = re.search('<id>(.*)</id>', webhook_response.text)
-                print(result.group(1))
-                jamf_id = result.group(1)
-                new_link = "{}/webhooks.html?id={}&o=r".format(session['url'], result.group(1))
-
-                data = json.load(open(webhooks_file))
-                webhook_username = request.form.get('username')
-                webhook_password = request.form.get('password')
-                if webhook_username == "":
-                    webhook_username = "null"
-                if webhook_password == "":
-                    webhook_password = "null"
-
-                data.append({"url": str(session['url']),
-                             "jawa_admin": str(session['username']),
-                             "name": request.form.get('webhook_name'),
-                             "webhook_username": webhook_username,
-                             "webhook_password": webhook_password,
-                             "event": request.form.get('event'),
-                             "script": new_script_file,
-                             "description": request.form.get('description'),
-                             "tag": "jamfpro",
-                             "jamf_id": jamf_id})
-
-                with open(webhooks_file, 'w') as outfile:
-                    json.dump(data, outfile, indent=4)
-
-                new_here = request.form.get('webhook_name')
-                success_msg = "New webhook created:"
-
-            return render_template('success.html',
-                                   webhooks="success",
-                                   smart_group_instructions=smart_group_instructions,
-                                   smart_group_notice=smart_group_notice,
-                                   new_link=new_link,
-                                   new_here=new_here,
-                                   success_msg=success_msg,
+    if request.form.get('webhook_name') != '':
+        check = 0
+        print(check)
+        if ' ' in request.form.get('webhook_name'):
+            error_message = "Single-string name only."
+            return render_template('error.html',
+                                   error_message=error_message,
+                                   error="error",
                                    username=str(escape(session['username'])))
 
+        with open(webhooks_file) as json_file:
+            data = json.load(json_file)
+
+            x = 0
+            id_list = []
+            while True:
+                try:
+                    id_list.append(data[x]['name'])
+                    x += 1
+                    str_error = None
+                except Exception as str_error:
+                    if not str_error:
+                        continue
+
+                    sleep(2)
+                    break
+            for id_name in id_list:
+                check = 1 if id_name == request.form.get('webhook_name') else 0
+        if check != 0:
+            error_message = "Name already exists!"
+            return render_template('error.html',
+                                   error_message=error_message,
+                                   error="error",
+                                   username=str(escape(session['username'])))
+
+        with open(server_json_file) as json_file:
+            data = json.load(json_file)
+            server_address = data['jawa_address']
+        if not os.path.isdir(scripts_dir):
+            os.mkdir(scripts_dir)
+        owd = os.getcwd()
+        os.chdir(scripts_dir)
+
+        new_file = request.files.get('new_file')
+        if ' ' in new_file.filename:
+            new_file.filename = new_file.filename.replace(" ", "-")
+
+        new_file.save(secure_filename(new_file.filename))
+
+        old_script_file = os.path.abspath(
+            os.path.join(scripts_dir, f"{new_file.filename}"))
+        new_script_file = (os.path.join(scripts_dir,
+                                        f"{request.form.get('webhook_name')}-{new_file.filename}"))
+        os.rename(old_script_file, new_script_file)
+
+        os.chmod(new_script_file, mode=0o0755)
+        os.chdir(owd)
+        if request.form.get('event') in [
+            'SmartGroupMobileDeviceMembershipChange',
+            'SmartGroupComputerMembershipChange',
+        ]:
+
+            smart_group_notice = "NOTICE!  This webhooks is not yet enabled."
+            smart_group_instructions = "Specify desired Smart Group and enable: "
+            webhook_enablement = 'false'
 
         else:
-            return render_template('webhooks/jamf/new.html',
-                                   webhooks="webhooks",
-                                   url=session['url'],
-                                   # found_mobile_device_groups=found_mobile_device_groups,
-                                   # found_computer_groups=found_computer_groups,
+            smart_group_notice = ""
+            smart_group_instructions = ""
+            webhook_enablement = 'true'
+
+        # Check for auth values
+        auth_xml = "<authentication_type>NONE</authentication_type>"
+        if (
+                request.form.get('username') != '' or
+                request.form.get('password') != ''):
+            auth_xml = f"<authentication_type>BASIC</authentication_type>"
+            if request.form.get('username') == '':
+                auth_xml += "<username>null</username>"
+            else:
+                auth_xml += f"<username>{request.form.get('username')}</username>"
+            if request.form.get('password') == '':
+                auth_xml += "<password>null</password>"
+            else:
+                auth_xml += f"<password>{request.form.get('password')}</password>"
+
+        data = f"<webhook>" \
+               f"<name>{request.form.get('webhook_name')}</name>" \
+               f"<enabled>{webhook_enablement}</enabled>" \
+               f"<url>{server_address}/hooks/{request.form.get('webhook_name')}</url>" \
+               f"<content_type>application/json</content_type>" \
+               f"<event>{request.form.get('event')}</event>" \
+               f"{auth_xml}" \
+               f"</webhook>"
+
+        full_url = session['url'] + '/JSSResource/webhooks/id/0'
+
+        webhook_response = requests.post(full_url,
+                                         auth=(session['username'], session['password']),
+                                         headers={'Content-Type': 'application/xml'}, data=data,
+                                         verify=verify_ssl)
+        print(webhook_response.text)
+        if webhook_response.status_code == 409:
+            error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
+            return render_template('error.html',
+                                   error_message=error_message,
+                                   error="error",
                                    username=str(escape(session['username'])))
 
-    else:
-        return redirect(url_for('logout'))
+        result = re.search('<id>(.*)</id>', webhook_response.text)
+        print(result.group(1))
+        jamf_id = result.group(1)
+        new_link = "{}/webhooks.html?id={}&o=r".format(session['url'], result.group(1))
+
+        data = json.load(open(webhooks_file))
+        webhook_username = request.form.get('username')
+        webhook_password = request.form.get('password')
+        if webhook_username == "":
+            webhook_username = "null"
+        if webhook_password == "":
+            webhook_password = "null"
+
+        data.append({"url": str(session['url']),
+                     "jawa_admin": str(session['username']),
+                     "name": request.form.get('webhook_name'),
+                     "webhook_username": webhook_username,
+                     "webhook_password": webhook_password,
+                     "event": request.form.get('event'),
+                     "script": new_script_file,
+                     "description": request.form.get('description'),
+                     "tag": "jamfpro",
+                     "jamf_id": jamf_id})
+
+        with open(webhooks_file, 'w') as outfile:
+            json.dump(data, outfile, indent=4)
+
+        new_here = request.form.get('webhook_name')
+        success_msg = "New webhook created:"
+
+    return render_template('success.html',
+                           webhooks="success",
+                           smart_group_instructions=smart_group_instructions,
+                           smart_group_notice=smart_group_notice,
+                           new_link=new_link,
+                           new_here=new_here,
+                           success_msg=success_msg,
+                           username=str(escape(session['username'])))
 
 
 # Edit Existing Webhook
@@ -292,9 +283,10 @@ def edit():
                 else:
                     each_webhook['webhook_password'] = 'null'
                 each_webhook['jawa_admin'] = session.get('username')
-                if (
-                        request.form.get('event') == 'SmartGroupMobileDeviceMembershipChange' or
-                        request.form.get('event') == 'SmartGroupComputerMembershipChange'):
+                if request.form.get('event') in [
+                    'SmartGroupMobileDeviceMembershipChange',
+                    'SmartGroupComputerMembershipChange',
+                ]:
 
                     smart_group_notice = "NOTICE!  This webhooks is not yet enabled."
                     smart_group_instructions = "Specify desired Smart Group and enable: "

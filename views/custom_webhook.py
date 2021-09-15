@@ -110,7 +110,7 @@ def edit_webhook():
 @blueprint.route('/webhooks/custom/new', methods=['GET', 'POST'])
 @response(template_file='webhooks/custom/new.html')
 def new_webhook():
-    if not 'username' in session:
+    if 'username' not in session:
         return redirect(url_for('logout'))
     if request.method == 'POST':
         new_custom_name = request.form.get('custom_name')

@@ -31,7 +31,7 @@ def log_home():
 
 @blueprint.route('/log/view', methods=['GET'])
 def log_view():
-    if not 'username' in session:
+    if 'username' not in session:
         return load_home()
     jawa_logger().debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
     with open(log_file, 'r') as fin:

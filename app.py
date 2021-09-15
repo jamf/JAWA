@@ -11,6 +11,7 @@ import logging
 from logging import handlers
 import os
 import requests
+import uuid
 from waitress import serve
 
 from bin.view_modifiers import response
@@ -53,7 +54,7 @@ def main():
     jawa_logger().info(f"JAWA initializing...\n Sandcrawler home:  {base_dir}")
     environment_setup(base_dir)
     register_blueprints()
-    app.secret_key = "untini"
+    app.secret_key = uuid.uuid4()
     app.permanent_session_lifetime = timedelta(minutes=10)
     serve(app, url_scheme='https', host='0.0.0.0', port=8000)
 

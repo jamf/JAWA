@@ -56,7 +56,7 @@ def main():
     register_blueprints()
     app.secret_key = str(uuid.uuid4())
     app.permanent_session_lifetime = timedelta(minutes=10)
-    serve(app, url_scheme='https', host='0.0.0.0', port=8000)
+    serve(app, url_scheme='https', host='0.0.0.0', port=8000, threads=15)
 
 
 def environment_setup(project_dir):

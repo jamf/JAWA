@@ -130,10 +130,10 @@
                 <div class="d-flex justify-content-center"><b>Basic Authentication (optional):</b></div>
                 <div class="d-flex justify-content-center">
                     <input class="form-control-sm" name="username" title="Username (optional)"
-                           placeholder="Username (optional)">
+                           placeholder="Username (optional)" value="{{ webhook_info[0]['webhook_username'] }}">
                     </b>
                     <input name="password" class="form-control-sm" type='password' title="Password (optional)"
-                           placeholder="Password (optional)"></div>
+                           placeholder="Password (optional)" value="{{ webhook_info[0]['webhook_password'] }}"></div>
                 <div class="d-flex justify-content-center">
 
                     <button type=submit value="Custom_New" class="btn btn-secondary " style="margin: 5px">

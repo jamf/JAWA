@@ -109,7 +109,7 @@ def new_cron():
                                            error="error",
                                            username=str(escape(session['username'])))
             try:
-                cron = CronTab(user='root')
+                cron = CronTab(user='jawa')
             except IOError as err:
                 print(err)
                 os.remove(script_file)
@@ -203,7 +203,7 @@ def delete_cron():
                     os.rename(script_path, new_script_path)
 
         try:
-            cron = CronTab(user='root')
+            cron = CronTab(user='jawa')
         except IOError as err:
             print(err)
             return render_template('error.html', error=err, username=session.get('username'))

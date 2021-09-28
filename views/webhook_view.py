@@ -15,7 +15,6 @@ from bin.load_home import load_home
 from bin.view_modifiers import response
 from app import jawa_logger
 
-
 blueprint = Blueprint('webhooks', __name__, template_folder='templates')
 
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
@@ -53,12 +52,16 @@ def delete_webhook():
                                                     headers={'Content-Type': 'application/xml'},
                                                     data=data)
                 elif each_webhook['tag'] == 'okta':
-                    response = requests.post(
-                        f"{each_webhook.get('okta_url')}/api/v1/eventHooks/{each_webhook.get('okta_id')}/lifecycle/deactivate",
-                        headers={"Authorization": "SSWS {}".format(each_webhook['okta_token'])})
-                    response2 = requests.delete(
-                        f"{each_webhook.get('okta_url')}/api/v1/eventHooks/{each_webhook.get('okta_id')}",
-                        headers={"Authorization": "SSWS {}".format(each_webhook['okta_token'])})
+                    try:
+                        response = requests.post(
+                            f"{each_webhook.get('okta_url')}/api/v1/eventHooks/{each_webhook.get('okta_id')}/lifecycle/deactivate",
+                            headers={"Authorization": "SSWS {}".format(each_webhook.get('okta_token'))})
+                        response2 = requests.delete(
+                            f"{each_webhook.get('okta_url')}/api/v1/eventHooks/{each_webhook.get('okta_id')}",
+                            headers={"Authorization": "SSWS {}".format(each_webhook.get('okta_token'))})
+                    except requests.exceptions.MissingSchema as err:
+                        return redirect(url_for('error', error=err, username=session.get('username')))
+
 
                 webhook_json.remove(each_webhook)
                 with open(webhooks_file, 'w') as fout:

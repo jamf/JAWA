@@ -57,6 +57,8 @@ def jp_new():
                                setup="setup",
                                jps_url=str(escape(session['url'])),
                                username=str(escape(session['username'])))
+    if not server_json.get('jawa_address'):
+        return redirect(url_for('setup'))
     if not os.path.isfile(webhooks_file):
         data = []
         with open(webhooks_file, 'w') as outfile:
@@ -109,7 +111,9 @@ def jp_new():
 
         with open(server_json_file) as json_file:
             data = json.load(json_file)
-            server_address = data['jawa_address']
+            server_address = data.get('jawa_address')
+            if not server_address:
+                return redirect(url_for('setup'))
         if not os.path.isdir(scripts_dir):
             os.mkdir(scripts_dir)
         owd = os.getcwd()

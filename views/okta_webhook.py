@@ -54,7 +54,11 @@ def okta_new():
         data = []
         with open(webhooks_file, 'w') as outfile:
             json.dump(data, outfile, indent=4)
-
+    with open(server_json_file) as json_file:
+        data = json.load(json_file)
+        server_address = data.get('jawa_address')
+        if not server_address:
+            return redirect(url_for('setup'))
     if request.method != 'POST':
         return render_template('webhooks/okta/new.html', setup="setup",
                                username=str(escape(session['username'])))
@@ -65,9 +69,7 @@ def okta_new():
                                error="error",
                                username=str(escape(session['username'])))
 
-    with open(server_json_file) as json_file:
-        data = json.load(json_file)
-        server_address = data['jawa_address']
+
     # if not os.path.isdir('/usr/local/jawa/'):
     #     os.mkdir('/usr/local/jawa/')
 

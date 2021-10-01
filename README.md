@@ -31,7 +31,7 @@ General Server Requirements:
 - Minimum: 512MB RAM (2GB recommended)
 - Minimum: 5GB Storage (20GB recommended)
 - Minimum: 1 CPU Core (2 Cores recommended)
-- Python 3.6+
+- Python 3.6+ with pip
 
 Network Requirements:
 

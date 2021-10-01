@@ -10,16 +10,18 @@
 
     <form method="post" class="table-view" enctype="multipart/form-data">
         <h1>New Okta Webhook</h1>
-        <p><b>Okta Webhook Name</b></br>
-            New Webhook Name: <input type="text" name="webhookname" required
-                                     oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')"
-                                     autofocus>
+        <input name="webhookname" type="text" pattern="[^' ']+" placeholder="New Webhook Name (no spaces)" required
+               title="No spaces, please." class="form-control" value="{{ name }}" autofocus>
         </p>
         <p>
             <b>Okta Information</b></br>
-            Okta Server URI: <input type="text" name="okta_server" required><br/>
-            Okta API Token: <input type="text" name="token" required><br/>
-            Okta Event: <input type="text" name="event" required><br/>
+            <input type="text" name="okta_server" class="form-control" value="{{ okta_server }}"
+                   placeholder="Okta Server URI" required pattern="https?://.+" title="Use https://"><br/>
+            <input type="text" name="token" class="form-control" value="{{ token }}" placeholder="Okta Token"
+                   required><br/>
+            <input type="text" name="event" class="form-control" value="{{ event }}" placeholder="Okta Event"
+                   required><br/>
+
             <a href="https://developer.okta.com/docs/reference/api/event-types/" style="color:#3c6aa7;" target="_blank">Okta
                 Event Types</a>
             (example: user.lifecycle.deactivate)</p>

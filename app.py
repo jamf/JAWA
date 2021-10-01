@@ -109,6 +109,8 @@ def setup():
     if request.method == 'POST':
         jawa_logger().debug(f"[{session.get('url')}] {session.get('username')} /setup - POST")
         server_url = request.form.get('address')
+        if not server_url:
+            return redirect(url_for('setup'))
         jps_url = request.form.get('jss-lock')
         jps2_check = request.form.get('alternate-jamf')
         jps_url2 = request.form.get('alternate')

@@ -20,7 +20,7 @@
                 <form method="post" class="table-view" action="/setup" enctype="multipart/form-data">
 
                     <input type="text" class="form-control" name="address" pattern="https?://.+" title="Use https://"
-                           value="{{ jawa_url if jawa_url }}" placeholder="JAWA Server Address FQDN" autofocus>
+                           value="{{ jawa_url if jawa_url }}" placeholder="JAWA Server Address FQDN" required autofocus>
 
                     <div class="form-group form-check">
                         <input type="checkbox" class="form-check-input" name="jss-lock" id="jss-lock"

@@ -14,6 +14,8 @@
 # - enables ufw (firewall) and opens ports 22 (SSH) and 443 (JAWA).  The installer will prompt you for approval.
 #
 # What does this installer NOT do?
+# - use root's crontab
+# - mv your certs (it uses cp instead)
 # - make the Kessel Run in 12 parsecs
 
 /bin/echo "Initializing..."

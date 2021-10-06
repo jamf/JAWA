@@ -10,8 +10,8 @@
     </div>
     <div class="form-container">
         <div class="table-view overflow-auto pre-scrollable" style="max-width: fit-content">
-            <h4 class="d-flex justify-content-center alert-info">Upload:</h4>
-            <pre><code>{{ files_repo }}/</code></pre>
+            <h4 class="d-flex justify-content-center alert-info">Upload a file</h4>
+            <p>Files directory: <pre><code>{{ files_repo }}/</code></pre></p>
             {#            <p>Upload a file:</p>#}
             <form action="#" method="post" enctype="multipart/form-data">
                 <div class="d-flex justify-content-center">
@@ -31,7 +31,7 @@
     {% if files %}
         <form class="files-form overflow-auto" style="max-height: 66vh;;">
 
-        <h4 class="d-flex justify-content-center alert-success">Uploaded files:</h4>
+        <h4 class="d-flex justify-content-center alert-success">Uploaded files</h4>
         <div class="alert-soft alert-dark btn-padded">
             <table id="files_table" class="table">
                 <tr>

@@ -108,66 +108,69 @@ install() {
   done
 
   /usr/bin/clear
-  echo -ne '[##                     ](10%) Reticulating splines\r'
+  echo -ne '[##                     ](10%) Reticulating splines... '
   echo '[##                     ](10%) Reticulating splines' >>/var/log/jawaInstall.log 2>&1
-
-  echo -ne '[###                    ](15%) Creating jawa user \r'
-  echo -ne '[###                    ](15%) Creating jawa user ' >>/var/log/jawaInstall.log 2>&1
+  sleep 1 & spinner $! ""
+  /usr/bin/clear
+  echo -ne '[###                    ](15%) Creating jawa user... '
+  echo -ne '[###                    ](15%) Creating jawa user... ' >>/var/log/jawaInstall.log 2>&1
   # Checking for jawa user
   if id "jawa" &>/dev/null; then
     echo 'jawa user exists' >>/var/log/jawaInstall.log 2>&1
   else
     echo 'Creating JAWA user...' >>/var/log/jawaInstall.log 2>&1
-    su -c "useradd jawa -s /bin/bash"
+    su -c "useradd jawa -s /bin/bash" & spinner $! ""
     jawaPassword=$(
       tr -dc A-Za-z0-9 </dev/urandom | head -c 13
       echo ''
     )
     echo "jawa:$jawaPassword" | chpasswd
   fi
-  echo -ne '[####                   ](20%) Checking for previously installed JAWA project \r'
-  echo -ne '[####                   ](20%) Checking for previously installed JAWA project ' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/clear
+  echo -ne '[####                   ](20%) Checking for previously installed JAWA project... '
+  echo -ne '[####                   ](20%) Checking for previously installed JAWA project... ' >>/var/log/jawaInstall.log 2>&1
   # check for install dir's existence
   if [ -d "$installDir/jawa" ]; then
     #    echo -ne '[#####                  ](25%) Backing up previously installed JAWA project \r'
     /usr/bin/clear
-    echo -ne '[#####                  ](25%) Backing up previously installed JAWA project ' >>/var/log/jawaInstall.log 2>&1
+    echo -ne '[#####                  ](25%) Backing up previously installed JAWA project... ' >>/var/log/jawaInstall.log 2>&1
     #    /bin/echo "JAWA project directory already exists at $installDir/jawa.  Backing up..."
-    cleaninstall
+    cleaninstall & spinner $! ""
   else
     /usr/bin/clear
-    echo -ne "[#####                  ](25%) Creating JAWA project at $installDir/jawa \r"
-    echo -ne "[#####                  ](25%) Creating JAWA project at $installDir/jawa \r" >>/var/log/jawaInstall.log 2>&1
+    echo -ne "  [#####                  ](25%) Creating JAWA project at $installDir/jawa... "
+    echo -ne "[#####                  ](25%) Creating JAWA project at $installDir/jawa..." >>/var/log/jawaInstall.log 2>&1
     #    /bin/echo "Creating JAWA project directory at $installDir/jawa"
+    sleep 1 & spinner $! ""
     /bin/mkdir -p "$installDir/jawa"
     /bin/chown -R jawa "$installDir/jawa"
   fi
 
   # Install some OS dependencies:
-  /usr/bin/apt-add-repository universe >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/apt-add-repository universe >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   /usr/bin/clear
-  echo -ne '[######                  ](30%) Installing build tools from apt \r'
-  echo '[######                  ](30%) Installing build tools from apt' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/apt-get install -y -q build-essential git unzip zip nload tree >>/var/log/jawaInstall.log 2>&1
+  echo -ne '[######                  ](30%) Installing build tools from apt... '
+  echo '[######                  ](30%) Installing build tools from apt...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/apt-get install -y -q build-essential git unzip zip nload tree >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   /usr/bin/clear
-  echo -ne '[#######                 ](35%) Installing python3-pip, python3-dev, and python3-venv from apt \r'
-  echo '[#######                 ](35%) Installing python3-pip, python3-dev, and python3-venv from apt ' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/apt-get install -y -q python3-pip python3-dev python3-venv >>/var/log/jawaInstall.log 2>&1
+  echo -ne '[#######                 ](35%) Installing python3-pip, python3-dev, and python3-venv from apt... '
+  echo '[#######                 ](35%) Installing python3-pip, python3-dev, and python3-venv from apt...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/apt-get install -y -q python3-pip python3-dev python3-venv >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   /usr/bin/clear
-  /bin/echo -ne '[########                ](40%) Installing nginx from apt \r'
-  /bin/echo '[########                ](40%) Installing nginx ' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/apt-get install -y -q nginx >>/var/log/jawaInstall.log 2>&1
+  /bin/echo -ne '[########                ](40%) Installing nginx from apt... '
+  /bin/echo '[########                ](40%) Installing nginx... ' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/apt-get install -y -q nginx >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   # For the bash inclined
   /usr/bin/clear
-  /bin/echo -ne '[#########               ](45%) Installing jq from apt \r'
-  /bin/echo '[#########               ](45%) Installing jq from apt ' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/apt-get install -y -q jq >>/var/log/jawaInstall.log 2>&1
+  /bin/echo -ne '[#########               ](45%) Installing jq from apt... '
+  /bin/echo '[#########               ](45%) Installing jq from apt... ' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/apt-get install -y -q jq >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
 
   #Python check
   /usr/bin/clear
-  /bin/echo -ne '[##########              ](50%) Safety check \r'
+  /bin/echo -ne '[##########              ](50%) Safety check... '
   /bin/echo '[##########              ](50%) Safety check ' >>/var/log/jawaInstall.log 2>&1
-  /bin/sleep 1
+  /bin/sleep 1  & spinner $! ""
   if [ -e /usr/bin/python3 ]; then
     /bin/echo "Python 3 installed." >>/var/log/jawaInstall.log 2>&1
   else
@@ -180,21 +183,24 @@ install() {
   #/usr/bin/apt-get install --no-install-recommends -y -q libpcre3-dev libz-dev
 
   # Stop the hackers
-  /bin/echo -ne '[###########             ](55%) Installing fail2ban from apt \r'
-  /bin/echo '[###########             ](55%) Installing fail2ban from apt ' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/apt install fail2ban -y -q >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/clear
+  /bin/echo -ne '[###########             ](55%) Installing fail2ban from apt... '
+  /bin/echo '[###########             ](55%) Installing fail2ban from apt... ' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/apt install fail2ban -y -q >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
 
   # change places!
   cd "$installDir"
   # cloning, like in that movie The Fly
-  /bin/echo -ne '[############            ](60%) Cloning the JAWA project from GitHub \r'
+  /usr/bin/clear
+  /bin/echo -ne '[############            ](60%) Cloning the JAWA project from GitHub... '
   /bin/echo '[############            ](60%) Cloning the JAWA project from GitHub ' >>/var/log/jawaInstall.log 2>&1
-  git clone --branch develop https://github.com/jamf/JAWA.git jawa >>/var/log/jawaInstall.log 2>&1
-  /bin/echo -ne '[#############           ](65%) Setting permissions for $installDir/jawa \r'
+  git clone --branch develop https://github.com/jamf/JAWA.git jawa >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /usr/bin/clear
+  /bin/echo -ne '[#############           ](65%) Setting permissions for $installDir/jawa... '
   /bin/echo '[#############           ](65%) Setting permissions for $installDir/jawa ' >>/var/log/jawaInstall.log 2>&1
-  chown -R jawa "$installDir/jawa"
-
-  /bin/echo -ne '[##############          ](70%) Enabling firewall and opening ports 22 & 443 \r'
+  chown -R jawa "$installDir/jawa" & spinner $! ""
+  /usr/bin/clear
+  /bin/echo -ne '[##############          ](70%) Enabling firewall and opening ports 22 & 443... '
   /bin/echo '[##############          ](70%) Enabling firewall and opening ports 22 & 443 ' >>/var/log/jawaInstall.log 2>&1
   ufw allow 22 >>/var/log/jawaInstall.log 2>&1
   ufw allow 443 >>/var/log/jawaInstall.log 2>&1
@@ -207,26 +213,29 @@ install() {
   /usr/bin/clear
   # Create a venv for the app
   cd "$installDir/jawa"
-  /bin/echo -ne '[###############         ](75%) Creating venv \r'
-  /bin/echo '[###############         ](75%) Creating venv ' >>/var/log/jawaInstall.log 2>&1
-  python3 -m venv venv
+  /usr/bin/clear
+  /bin/echo -ne '[###############         ](75%) Creating venv... '
+  /bin/echo '[###############         ](75%) Creating venv... ' >>/var/log/jawaInstall.log 2>&1
+  python3 -m venv venv & spinner $! ""
   chown -R jawa "$installDir/jawa/venv"
   source "$installDir/jawa/venv/bin/activate"
-  /bin/echo -ne '[###############         ](75%) Upgrading pip and setuptools in venv \r'
-  /bin/echo '[###############         ](75%) Upgrading pip and setuptools in venv ' >>/var/log/jawaInstall.log 2>&1
-  python -m pip install --upgrade pip setuptools >>/var/log/jawaInstall.log 2>&1
-  /bin/echo -ne '[################        ](80%) pip installing support modules (httpie and glances) in venv \r'
-  /bin/echo '[################        ](80%) pip installing support modules (httpie and glances) in venv ' >>/var/log/jawaInstall.log 2>&1
-  python -m pip install --upgrade httpie glances >>/var/log/jawaInstall.log 2>&1
   /usr/bin/clear
+  /bin/echo -ne '[###############         ](75%) Upgrading pip and setuptools in venv... '
+  /bin/echo '[###############         ](75%) Upgrading pip and setuptools in venv... ' >>/var/log/jawaInstall.log 2>&1
+  python -m pip install --upgrade pip setuptools >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /usr/bin/clear
+  /bin/echo -ne '[################        ](80%) pip installing support modules (httpie and glances) in venv... '
+  /bin/echo '[################        ](80%) pip installing support modules (httpie and glances) in venv... ' >>/var/log/jawaInstall.log 2>&1
+  python -m pip install --upgrade httpie glances >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   # flask requirements
-  /bin/echo -ne '[#################       ](85%) pip installing jawa requirements.txt file in venv \r'
-  /bin/echo '[#################       ](85%) pip installing jawa requirements.txt file in venv ' >>/var/log/jawaInstall.log 2>&1
-  python -m pip install -r "$installDir/jawa/requirements.txt" >>/var/log/jawaInstall.log 2>&1 #
+  /usr/bin/clear
+  /bin/echo -ne '[#################       ](85%) pip installing jawa requirements.txt file in venv... '
+  /bin/echo '[#################       ](85%) pip installing jawa requirements.txt file in venv... ' >>/var/log/jawaInstall.log 2>&1
+  python -m pip install -r "$installDir/jawa/requirements.txt" >>/var/log/jawaInstall.log 2>&1 & spinner $! "" #
   #pip install --upgrade uwsgi
   /usr/bin/clear
-  /bin/echo -ne '[##################      ](90%) Creating jawa service in systemd \r'
-  /bin/echo '[##################      ](90%) Creating jawa service in systemd ' >>/var/log/jawaInstall.log 2>&1
+  /bin/echo -ne '[##################      ](90%) Creating jawa service in systemd... '
+  /bin/echo '[##################      ](90%) Creating jawa service in systemd... ' >>/var/log/jawaInstall.log 2>&1
   # Creating the JAWA webapp service
   if [ -e /etc/systemd/system/jawa.service ]; then
     /bin/systemctl stop jawa.service
@@ -249,8 +258,8 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-
-  /bin/echo -ne '[###################     ](95%) Creating nginx configuration file \r'
+sleep 1 & spinner $! ""
+  /bin/echo -ne '[###################     ](95%) Creating nginx configuration file... '
   /bin/echo '[###################     ](95%) Creating nginx configuration file ' >>/var/log/jawaInstall.log 2>&1
   # Creating the nginx site
   if [ -e ${nginx_path}/jawa ]; then
@@ -289,7 +298,7 @@ EOF
 
   if [ -d ${nginx_path}/sites-available/default ]; then
     while true; do
-      read -p "Do you wish to remove the default nginx configuration file (recommended) [y/n]: " yn
+      read -p "Do you wish to remove the default nginx configuration file (recommended) [y/n]: " yn & spinner $! ""
       case $yn in
       [Yy]*)
         rm -rf /etc/nginx/sites-available/default
@@ -307,16 +316,20 @@ EOF
   /bin/echo '[####################    ](96%) Restartings services... ' >>/var/log/jawaInstall.log 2>&1
   #  /bin/echo "Starting JAWA systemd services..."
   /bin/systemctl daemon-reload >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/clear
   /bin/echo -ne '[#####################   ](97%) Restarting services... \r'
   /bin/echo '[#####################   ](97%) Restartings services... ' >>/var/log/jawaInstall.log 2>&1
   /bin/systemctl reset-failed >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/clear
   /bin/echo -ne '[######################  ](98%) Restarting services... \r'
   /bin/echo '[######################  ](98%) Restartings services... ' >>/var/log/jawaInstall.log 2>&1
   /bin/systemctl enable jawa.service >>/var/log/jawaInstall.log 2>&1
   /bin/systemctl restart jawa.service >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/clear
   /bin/echo -ne '[####################### ](99%) Restarting services... \r'
   /bin/echo '[####################### ](99%) Restartings services... ' >>/var/log/jawaInstall.log 2>&1
   /bin/systemctl restart nginx.service >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/clear
   /bin/echo -ne '[########################](100%) Installation complete! \r'
   /bin/echo '[########################](100%) Restartings services... untini! ' >>/var/log/jawaInstall.log 2>&1
   /bin/sleep 1.5
@@ -381,33 +394,118 @@ uninstall() {
 }
 cleaninstall() {
   /usr/bin/clear
-  echo -ne '[#####                  ](25%) Backing up previously installed JAWA project \r'
+  echo -ne '[#####                  ](25%) Backing up previously installed JAWA project... '
   if [ -d "$installDir/jawa" ]; then
     timenow=$(date +%m-%d-%y_%T)
     /bin/mkdir -p $(pwd)/jawabackup-$timenow >>/var/log/jawaInstall.log 2>&1
     if [ -d "$installDir/jawa/scripts" ]; then
       /usr/bin/clear
-      /bin/echo -ne "[#####                  ](25%) Backing up the scripts $(pwd)/jawabackup-$timenow/"
+      /bin/echo -ne "[#####                  ](25%) Backing up the scripts $(pwd)/jawabackup-$timenow/... "
       /bin/echo "[#####                  ](25%) Backing up the scripts $(pwd)/jawabackup-$timenow/" >>/var/log/jawaInstall.log 2>&1
-      /bin/cp -r "$installDir/jawa/scripts" ./jawabackup-$timenow >>/var/log/jawaInstall.log 2>&1
+      /bin/cp -r "$installDir/jawa/scripts" ./jawabackup-$timenow >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
     fi
     if [ -d "$installDir/jawa/resources" ]; then
       /usr/bin/clear
-      /bin/echo -ne "[#####                  ](25%) Backing up the resources to $(pwd)/jawabackup-$timenow/"
+      /bin/echo -ne "[#####                  ](25%) Backing up the resources to $(pwd)/jawabackup-$timenow/... "
       /bin/echo "[#####                  ](25%) Backing up the resources to $(pwd)/jawabackup-$timenow/" >>/var/log/jawaInstall.log 2>&1
-      /bin/cp -r "$installDir/jawa/resources" ./jawabackup-$timenow >>/var/log/jawaInstall.log 2>&1
+      /bin/cp -r "$installDir/jawa/resources" ./jawabackup-$timenow >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
     fi
     if [ -d "$installDir/jawa/data" ]; then
       /usr/bin/clear
-      /bin/echo -ne "[#####                  ](25%) Backing up the JAWA configuration files and logs to $(pwd)/jawabackup-$timenow/"
+      /bin/echo -ne "[#####                  ](25%) Backing up the JAWA configuration files and logs to $(pwd)/jawabackup-$timenow/... "
       /bin/echo "[#####                  ](25%) Backing up the JAWA configuration files and logs to $(pwd)/jawabackup-$timenow/" >>/var/log/jawaInstall.log 2>&1
-      /bin/cp -r "$installDir/jawa/data" ./jawabackup-$timenow >>/var/log/jawaInstall.log 2>&1
+      /bin/cp -r "$installDir/jawa/data" ./jawabackup-$timenow >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
     fi
 
     uninstall
   fi
 
 }
+
+function shutdown() {
+  tput cnorm # reset cursor
+}
+trap shutdown EXIT
+
+function cursorBack() {
+  echo -en "\033[$1D"
+}
+
+function spinner() {
+  # make sure we use non-unicode character type locale
+  # (that way it works for any locale as long as the font supports the characters)
+  local LC_CTYPE=C
+
+  local pid=$1 # Process Id of the previous running command
+
+  case $(($RANDOM % 12)) in
+  0)
+    local spin='⠁⠂⠄⡀⢀⠠⠐⠈'
+    local charwidth=3
+    ;;
+  1)
+    local spin='-\|/'
+    local charwidth=1
+    ;;
+  2)
+    local spin="▁▂▃▄▅▆▇█▇▆▅▄▃▂▁"
+    local charwidth=3
+    ;;
+  3)
+    local spin="▉▊▋▌▍▎▏▎▍▌▋▊▉"
+    local charwidth=3
+    ;;
+  4)
+    local spin='←↖↑↗→↘↓↙'
+    local charwidth=3
+    ;;
+  5)
+    local spin='▖▘▝▗'
+    local charwidth=3
+    ;;
+  6)
+    local spin='┤┘┴└├┌┬┐'
+    local charwidth=3
+    ;;
+  7)
+    local spin='◢◣◤◥'
+    local charwidth=3
+    ;;
+  8)
+    local spin='◰◳◲◱'
+    local charwidth=3
+    ;;
+  9)
+    local spin='◴◷◶◵'
+    local charwidth=3
+    ;;
+  10)
+    local spin='◐◓◑◒'
+    local charwidth=3
+    ;;
+  11)
+    local spin='⣾⣽⣻⢿⡿⣟⣯⣷'
+    local charwidth=3
+    ;;
+  esac
+
+  local i=0
+  tput civis # cursor invisible
+  while kill -0 $pid 2>/dev/null; do
+    local i=$(((i + $charwidth) % ${#spin}))
+    printf "%s" "${spin:$i:$charwidth}"
+
+    cursorBack 1
+    sleep .1
+  done
+  tput cnorm
+  wait $pid # capture exit code
+  return $?
+}
+
+("$@") &
+
+
 
 displayMenu() {
   while true; do

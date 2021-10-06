@@ -296,7 +296,7 @@ EOF
   # Enabling nginx
   /bin/ln -s ${nginx_path}/jawa ${nginx_enabled}
 
-  if [ -d ${nginx_path}/sites-available/default ]; then
+  if [ -d ${nginx_path}/default ]; then
     while true; do
       read -p "Do you wish to remove the default nginx configuration file (recommended) [y/n]: " yn & spinner $! ""
       case $yn in

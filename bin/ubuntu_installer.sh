@@ -258,7 +258,8 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-sleep 1 & spinner $! ""
+  sleep 1 & spinner $! ""
+  /usr/bin/clear
   /bin/echo -ne '[###################     ](95%) Creating nginx configuration file... '
   /bin/echo '[###################     ](95%) Creating nginx configuration file ' >>/var/log/jawaInstall.log 2>&1
   # Creating the nginx site
@@ -298,7 +299,8 @@ EOF
 
   if [ -e ${nginx_path}/default ]; then
     while true; do
-      read -p "Do you wish to remove the default nginx configuration file (recommended) [y/n]: " yn & spinner $! ""
+      /bin/echo ""
+      read -p "Do you wish to remove the default nginx configuration file (recommended) [y/n]:" yn
       case $yn in
       [Yy]*)
         rm -rf /etc/nginx/sites-available/default
@@ -313,25 +315,25 @@ EOF
   /usr/bin/clear
   # Enabling and starting all services
   /bin/echo -ne '[####################    ](96%) Restarting services... \r'
-  /bin/echo '[####################    ](96%) Restartings services... ' >>/var/log/jawaInstall.log 2>&1
+  /bin/echo '[####################    ](96%) Restarting services... ' >>/var/log/jawaInstall.log 2>&1
   #  /bin/echo "Starting JAWA systemd services..."
   /bin/systemctl daemon-reload >>/var/log/jawaInstall.log 2>&1
   /usr/bin/clear
   /bin/echo -ne '[#####################   ](97%) Restarting services... \r'
-  /bin/echo '[#####################   ](97%) Restartings services... ' >>/var/log/jawaInstall.log 2>&1
+  /bin/echo '[#####################   ](97%) Restarting services... ' >>/var/log/jawaInstall.log 2>&1
   /bin/systemctl reset-failed >>/var/log/jawaInstall.log 2>&1
   /usr/bin/clear
   /bin/echo -ne '[######################  ](98%) Restarting services... \r'
-  /bin/echo '[######################  ](98%) Restartings services... ' >>/var/log/jawaInstall.log 2>&1
+  /bin/echo '[######################  ](98%) Restarting services... ' >>/var/log/jawaInstall.log 2>&1
   /bin/systemctl enable jawa.service >>/var/log/jawaInstall.log 2>&1
   /bin/systemctl restart jawa.service >>/var/log/jawaInstall.log 2>&1
   /usr/bin/clear
   /bin/echo -ne '[####################### ](99%) Restarting services... \r'
-  /bin/echo '[####################### ](99%) Restartings services... ' >>/var/log/jawaInstall.log 2>&1
+  /bin/echo '[####################### ](99%) Restarting services... ' >>/var/log/jawaInstall.log 2>&1
   /bin/systemctl restart nginx.service >>/var/log/jawaInstall.log 2>&1
   /usr/bin/clear
   /bin/echo -ne '[########################](100%) Installation complete! \r'
-  /bin/echo '[########################](100%) Restartings services... untini! ' >>/var/log/jawaInstall.log 2>&1
+  /bin/echo '[########################](100%) Restarting services... untini! ' >>/var/log/jawaInstall.log 2>&1
   /bin/sleep 1.5
 
   /usr/bin/clear

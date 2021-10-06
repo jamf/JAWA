@@ -16,7 +16,7 @@
                 <h4>Jamf Webhooks Dashboard</h4>
             </div>
             <div class="d-flex justify-content-center">
-                <b>Active JPS</b>: <a href="{{ session.get('url') }}" target="_blank">{{ session['url'] }}</a> <br>
+                <b>Active Jamf Pro Server</b>: <a href="{{ session.get('url') }}" target="_blank">{{ session['url'] }}</a> <br>
             </div>
             <div class="d-flex justify-content-center">
                 <b>Total webhooks installed</b>: {{ jamf_list|length or '0' }}<br>

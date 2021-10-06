@@ -138,7 +138,7 @@ install() {
     cleaninstall & spinner $! ""
   else
     /usr/bin/clear
-    echo -ne "  [#####                  ](25%) Creating JAWA project at $installDir/jawa... "
+    echo -ne "[#####                  ](25%) Creating JAWA project at $installDir/jawa... "
     echo -ne "[#####                  ](25%) Creating JAWA project at $installDir/jawa..." >>/var/log/jawaInstall.log 2>&1
     #    /bin/echo "Creating JAWA project directory at $installDir/jawa"
     sleep 1 & spinner $! ""

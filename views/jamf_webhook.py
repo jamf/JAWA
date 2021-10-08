@@ -307,6 +307,10 @@ def edit():
                         request.form.get('username') != '' or
                         request.form.get('password') != ''):
                     auth_xml = f"<authentication_type>BASIC</authentication_type>"
+                    if (request.form.get('username') == 'null' and
+                            request.form.get('password') == 'null'):
+                       auth_xml = "<authentication_type>NONE</authentication_type>"
+
                     if request.form.get('username') == '':
                         auth_xml += "<username>null</username>"
                     else:
@@ -344,7 +348,7 @@ def edit():
                     json.dump(webhooks_json, fout, indent=4)
                 return redirect(url_for('jamf_pro_webhooks.jamf_webhook'))
 
-    #GET
+    # GET
     webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
     print(webhook_info)
     return {'username': session.get('username'), 'webhook_name': name, 'url': session.get('url'),

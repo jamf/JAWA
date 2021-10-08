@@ -26,7 +26,7 @@
                 <select class="form-control" name="event" }"
                 onchange="java_script_:show(this.options[this.selectedIndex].value)">
                 <option value=""></option>
-                <option value="ComputerAdded" {% if webhook_info[0]['event'] == "ComputerAdded" %}selected {% endif %} >
+                <option value="ComputerAdded" {% if webhook_info[0]['event'] == "ComputerAdded" %}selected {% endif %}>
                     ComputerAdded
                 </option>
                 <option value="ComputerCheckIn" {% if webhook_info[0]['event'] == "ComputerCheckIn" %}
@@ -130,10 +130,13 @@
                 <div class="d-flex justify-content-center"><b>Basic Authentication (optional):</b></div>
                 <div class="d-flex justify-content-center">
                     <input class="form-control-sm" name="username" title="Username (optional)"
-                           placeholder="Username (optional)" value="{{ webhook_info[0]['webhook_username'] }}">
+                           placeholder="Username (optional)"
+                           value="{% if webhook_info[0]['webhook_username'] != 'null' %}{{ webhook_info[0]['webhook_username'] }}{% endif %}">
                     </b>
                     <input name="password" class="form-control-sm" type='password' title="Password (optional)"
-                           placeholder="Password (optional)" value="{{ webhook_info[0]['webhook_password'] }}"></div>
+                           placeholder="Password (optional)"
+                           value="{% if webhook_info[0]['webhook_password'] != 'null' %}{{ webhook_info[0]['webhook_password'] }}{% endif %}">
+                </div>
                 <div class="d-flex justify-content-center">
 
                     <button type=submit value="Custom_New" class="btn btn-secondary " style="margin: 5px">

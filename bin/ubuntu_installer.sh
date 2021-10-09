@@ -23,6 +23,7 @@
 # Getting our bearings
 currentDir=$(pwd)
 installDir=$currentDir
+timenow=$(date +%m-%d-%y_%T)
 
 # Checking for sudo
 if [ "$EUID" -ne 0 ]; then
@@ -96,7 +97,7 @@ install() {
       fi
     fi
     read -p "The jawa project directory will be created in $installDir
-       Please confirm [y/n]: " yn
+       Please confirm [y|n]: " yn
     case $yn in
     [Yy]*)
 
@@ -152,24 +153,19 @@ install() {
   echo -ne '[######                  ](30%) Installing build tools from apt... '
   echo '[######                  ](30%) Installing build tools from apt...' >>/var/log/jawaInstall.log 2>&1
   /usr/bin/apt-get install -y -q build-essential git unzip zip nload tree >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
-  /usr/bin/clear
-  echo -ne '[#######                 ](35%) Installing python3-pip, python3-dev, and python3-venv from apt... '
-  echo '[#######                 ](35%) Installing python3-pip, python3-dev, and python3-venv from apt...' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/apt-get install -y -q python3-pip python3-dev python3-venv >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
-  /usr/bin/clear
-  /bin/echo -ne '[########                ](40%) Installing nginx from apt... '
-  /bin/echo '[########                ](40%) Installing nginx... ' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/apt-get install -y -q nginx >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
-  # For the bash inclined
-  /usr/bin/clear
-  /bin/echo -ne '[#########               ](45%) Installing jq from apt... '
-  /bin/echo '[#########               ](45%) Installing jq from apt... ' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/apt-get install -y -q jq >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
 
+  /usr/bin/clear
+  /bin/echo -ne '[#######                ](35%) Installing nginx from apt... '
+  /bin/echo '[#######                ](35%) Installing nginx... ' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/apt-get install -y -q nginx >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /usr/bin/clear
+  echo -ne '[########                ](40%) Installing python3-pip, python3-dev, and python3-venv from apt... '
+  echo '[########                ](40%) Installing python3-pip, python3-dev, and python3-venv from apt...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/apt-get install -y -q python3-pip python3-dev python3-venv >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   #Python check
   /usr/bin/clear
-  /bin/echo -ne '[##########              ](50%) Safety check... '
-  /bin/echo '[##########              ](50%) Safety check ' >>/var/log/jawaInstall.log 2>&1
+  /bin/echo -ne '[########                ](42%) Safety check... '
+  /bin/echo '[########                ](42%) Safety check ' >>/var/log/jawaInstall.log 2>&1
   /bin/sleep 1  & spinner $! ""
   if [ -e /usr/bin/python3 ]; then
     /bin/echo "Python 3 installed." >>/var/log/jawaInstall.log 2>&1
@@ -179,6 +175,35 @@ install() {
     exit 2
   fi
 
+# change places!
+  cd "$installDir"
+  # cloning, like in that movie The Fly
+  /usr/bin/clear
+  /bin/echo -ne '[#########               ](45%) Cloning the JAWA project from GitHub... '
+  /bin/echo '[#########               ](45%) Cloning the JAWA project from GitHub... ' >>/var/log/jawaInstall.log 2>&1
+  git clone --branch develop https://github.com/jamf/JAWA.git jawa >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  # Restore backup?
+  /usr/bin/clear
+  /bin/echo -ne '[##########              ](50%) Checking for backups... '
+  /bin/echo '[##########              ](50%) Checking for backups... ' >>/var/log/jawaInstall.log 2>&1
+  /bin/sleep 1  & spinner $! ""
+if [ -d "$currentDir/jawabackup-$timenow" ]; then
+    while true; do
+      /bin/echo ""
+      read -p "Do you wish to restore your backup ($backupJAWA)  [y|n]: " yn
+      case $yn in
+      [Yy]*)
+        /bin/cp -R "$currentDir/jawabackup-$timenow/data/" $installDir/jawa/
+        /bin/cp -R "$currentDir/jawabackup-$timenow/resources/" $installDir/jawa/
+        /bin/cp -R "$currentDir/jawabackup-$timenow/scripts/" $installDir/jawa/
+        /bin/cp -R "$currentDir/jawabackup-$timenow/jawa_icon.png" $installDir/jawa/static/img/jawa_icon.png
+        break
+        ;;
+      [Nn]*) break ;;
+      *) echo "Please answer yes or no." ;;
+      esac
+    done
+  fi
   # for gzip support in uwsgi
   #/usr/bin/apt-get install --no-install-recommends -y -q libpcre3-dev libz-dev
 
@@ -187,14 +212,11 @@ install() {
   /bin/echo -ne '[###########             ](55%) Installing fail2ban from apt... '
   /bin/echo '[###########             ](55%) Installing fail2ban from apt... ' >>/var/log/jawaInstall.log 2>&1
   /usr/bin/apt install fail2ban -y -q >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
-
-  # change places!
-  cd "$installDir"
-  # cloning, like in that movie The Fly
+# For the bash inclined
   /usr/bin/clear
-  /bin/echo -ne '[############            ](60%) Cloning the JAWA project from GitHub... '
-  /bin/echo '[############            ](60%) Cloning the JAWA project from GitHub ' >>/var/log/jawaInstall.log 2>&1
-  git clone --branch develop https://github.com/jamf/JAWA.git jawa >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /bin/echo -ne '[############            ](60%) Installing jq from apt... '
+  /bin/echo '[############            ](60%) Installing jq from apt... ' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/apt-get install -y -q jq >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   /usr/bin/clear
   /bin/echo -ne '[#############           ](65%) Setting permissions for $installDir/jawa... '
   /bin/echo '[#############           ](65%) Setting permissions for $installDir/jawa ' >>/var/log/jawaInstall.log 2>&1
@@ -204,12 +226,15 @@ install() {
   /bin/echo '[##############          ](70%) Enabling firewall and opening ports 22 & 443 ' >>/var/log/jawaInstall.log 2>&1
   ufw allow 22 >>/var/log/jawaInstall.log 2>&1
   ufw allow 443 >>/var/log/jawaInstall.log 2>&1
-  /bin/echo ""
-  /bin/echo ""
-  /bin/echo ""
-  /bin/echo "NOTE: the OS firewall is being enabled, and ports 22 (SSH) and 443 (JAWA) are being opened inbound.
-  If you use another port for SSH you should enable ufw manually and allow your custom port before proceeding with the installation."
-  ufw enable
+  ufwStatus=$(ufw status | grep -i status)
+  if [ "$ufwStatus" != "Status: active" ]; then
+    /bin/echo ""
+    /bin/echo ""
+    /bin/echo ""
+    /bin/echo "NOTE: the OS firewall is being enabled, and ports 22 (SSH) and 443 (JAWA) are being opened inbound.
+    If you use another port for SSH you should enable ufw manually and allow your custom port before proceeding with the installation."
+    ufw enable
+  fi
   /usr/bin/clear
   # Create a venv for the app
   cd "$installDir/jawa"
@@ -300,7 +325,7 @@ EOF
   if [ -e ${nginx_path}/default ]; then
     while true; do
       /bin/echo ""
-      read -p "Do you wish to remove the default nginx configuration file (recommended) [y/n]:" yn
+      read -p "Do you wish to remove the default nginx configuration file (recommended) [y|n]:" yn
       case $yn in
       [Yy]*)
         rm -rf /etc/nginx/sites-available/default
@@ -398,7 +423,6 @@ cleaninstall() {
   /usr/bin/clear
   echo -ne '[#####                  ](25%) Backing up previously installed JAWA project... '
   if [ -d "$installDir/jawa" ]; then
-    timenow=$(date +%m-%d-%y_%T)
     /bin/mkdir -p $(pwd)/jawabackup-$timenow >>/var/log/jawaInstall.log 2>&1
     if [ -d "$installDir/jawa/scripts" ]; then
       /usr/bin/clear
@@ -417,6 +441,12 @@ cleaninstall() {
       /bin/echo -ne "[#####                  ](25%) Backing up the JAWA configuration files and logs to $(pwd)/jawabackup-$timenow/... "
       /bin/echo "[#####                  ](25%) Backing up the JAWA configuration files and logs to $(pwd)/jawabackup-$timenow/" >>/var/log/jawaInstall.log 2>&1
       /bin/cp -r "$installDir/jawa/data" ./jawabackup-$timenow >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+    fi
+    if [ -e "$installDir/jawa/static/img/jawa_icon.png" ]; then
+      /usr/bin/clear
+      /bin/echo -ne "[#####                  ](25%) Backing up the JAWA icon $(pwd)/jawabackup-$timenow/... "
+      /bin/echo "[#####                  ](25%) Backing up the JAWA icon to $(pwd)/jawabackup-$timenow/" >>/var/log/jawaInstall.log 2>&1
+      /bin/cp "$installDir/jawa/static/img/jawa_icon.png" ./jawabackup-$timenow/ >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
     fi
 
     uninstall

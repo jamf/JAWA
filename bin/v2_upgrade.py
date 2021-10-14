@@ -26,6 +26,7 @@ if os.path.isfile(old_server_json_path):
         new_server_json = each_entry
         jawa_address = each_entry.get('jawa_address')
         jps_url = each_entry.get('jps_url')
+        new_server_json['alternate_jps'] = ""
     with open(new_server_json_path, 'w') as fout:
         json.dump(new_server_json, fout, indent=4)
 

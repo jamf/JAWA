@@ -24,7 +24,8 @@ if os.path.isfile(old_server_json_path):
         server_json = json.load(fin)
     for each_entry in server_json:
         new_server_json = each_entry
-        jawa_address = each_entry['jawa_address']
+        jawa_address = each_entry.get('jawa_address')
+        jps_url = each_entry.get('jps_url')
     with open(new_server_json_path, 'w') as fout:
         json.dump(new_server_json, fout, indent=4)
 
@@ -51,7 +52,7 @@ if os.path.isfile(webhook_conf):
     for each_entry in webhooks_json:
         # Checking for unique entries
         if each_entry['id'] not in names:
-            new_entry = {'url': jawa_address, 'jawa_admin': 'Guy Incognito', 'name': each_entry['id'],
+            new_entry = {'url': jps_url, 'jawa_admin': 'Guy Incognito', 'name': each_entry['id'],
                          'webhook_username': 'null', 'webhook_password': 'null',
                          'script': each_entry['execute-command'],
                          'description': "", 'tag': "custom"}

@@ -51,6 +51,7 @@ Please make sure you:
 *  have a full-chain server certificate and private key in $currentDir
 *  Certificate must be named jawa.crt
 *  Private key file must be named jawa.key
+*  Note: if upgrading from v2, choose the upgrade path /usr/local
 "
 }
 
@@ -193,6 +194,16 @@ if [ -d "$currentDir/jawabackup-$timenow" ]; then
       read -p "Do you wish to restore your backup ($backupJAWA)  [y|n]: " yn
       case $yn in
       [Yy]*)
+        if [ -d "$currentDir/jawabackup-$timenow/v2/" ]; then
+          if [ -e "$currentDir/jawabackup-$timenow/v2/cron.json" ]; then
+            /bin/echo "Migrating cron..."
+            /bin/cp "$currentDir/jawabackup-$timenow/v2/cron.json" "$currentDir/jawabackup-$timenow/data/"
+          fi
+          if [ -e "$currentDir/jawabackup-$timenow/v2/webhook.conf" -o "$currentDir/jawabackup-$timenow/v2/jp_webhooks.json" ]; then
+            /bin/echo "Migrating webhooks..."
+            /usr/bin/python3 "$installDir/jawa/bin/v2_upgrade.py" "$currentDir/jawabackup-$timenow" >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+          fi
+        fi
         /bin/cp -R "$currentDir/jawabackup-$timenow/data/" $installDir/jawa/
         /bin/cp -R "$currentDir/jawabackup-$timenow/resources/" $installDir/jawa/
         /bin/cp -R "$currentDir/jawabackup-$timenow/scripts/" $installDir/jawa/
@@ -325,7 +336,7 @@ EOF
   if [ -e ${nginx_path}/default ]; then
     while true; do
       /bin/echo ""
-      read -p "Do you wish to remove the default nginx configuration file (recommended) [y|n]:" yn
+      read -p "Do you wish to remove the default nginx configuration file (recommended) [y|n]: " yn
       case $yn in
       [Yy]*)
         rm -rf /etc/nginx/sites-available/default
@@ -544,17 +555,21 @@ displayMenu() {
     read -r -p "Please select from the following options:
 
 1. Install
-2. Cancel
+2. Upgrade from V2
+3. Cancel
  " opt
     case "$opt" in
     1)
       install
       ;;
     2)
+      upgradeFromV2
+      ;;
+    3)
       exit
       ;;
     *)
-      /bin/echo "Please choose an option:(1, 2, 3, or 4):"
+      /bin/echo "Please choose an option:[ 1 | 2 | 3 ]:"
       continue
       ;;
     esac
@@ -574,7 +589,7 @@ certsMenu() {
       exit
       ;;
     *)
-      /bin/echo "Please choose an option (1 or 2):"
+      /bin/echo "Please choose an option [ 1 | 2 ]:"
       continue
       ;;
     esac
@@ -584,6 +599,35 @@ selfsigned() {
   /bin/echo "Creating SSL cert" >>/var/log/jawaInstall.log 2>&1
   /usr/bin/openssl req -x509 -nodes -days 365 -newkey rsa:2048 -subj "/C=US/ST=MN/L=Minneapolis/CN=jawa" -keyout "$installDir/jawa.key" -out "$installDir/jawa.crt" >>/var/log/jawaInstall.log 2>&1
   install
+}
+upgradeFromV2() {
+  if [ ! -d "/usr/local/jawa/data" ]; then
+    /bin/mkdir /usr/local/jawa/data
+  fi
+  /bin/echo "Disabling webhook.service..."
+  /bin/sleep 1
+  /bin/systemctl disable webhook.service
+  /bin/systemctl stop webhook.service
+  if [ ! -d "$currentDir/jawabackup-$timenow/v2" ]; then
+    mkdir -p "$currentDir/jawabackup-$timenow/v2"
+  fi
+  if [ -e /usr/local/jawa/cron.json ]; then
+    /bin/cp /usr/local/jawa/cron.json "$currentDir/jawabackup-$timenow/v2/"
+  fi
+  if [ -e /usr/local/jawa/jp_webhooks.json ]; then
+    /bin/cp /usr/local/jawa/jp_webhooks.json "$currentDir/jawabackup-$timenow/v2/"
+  fi
+  if [ -e /usr/local/jawa/webapp/server.json ]; then
+    /bin/cp /usr/local/jawa/webapp/server.json "$currentDir/jawabackup-$timenow/v2/"
+  fi
+  if [ -e /etc/webhook.conf ]; then
+    /bin/cp /etc/webhook.conf "$currentDir/jawabackup-$timenow/v2/"
+  fi
+  /bin/echo "To complete the upgrade enter /usr/local when prompted for JAWA's installation directory..."
+  installDir=/usr/local
+  sleep 3
+  install
+
 }
 
 readme

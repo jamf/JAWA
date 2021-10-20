@@ -1,0 +1,113 @@
+{% extends "shared/_layout.html" %}
+{% block title %}New Jamf Pro Webhook{% endblock %}
+{% block content %}
+    <div class="test-links sub_links sticky-top">
+        <div class="stat"><a href="/webhooks">All Webhooks</a></div>
+        <div class="stat"><a href="/webhooks/jamf/new">Create</a></div>
+        <div class="stat"><a href="/webhooks/jamf">View</a></div>
+    </div>
+    <div class="form-container">
+        <form method="post" action="/webhooks/jamf/new" class="table-view overflow-auto" enctype="multipart/form-data"
+              style="max-height: 66vh; max-width: 66vh">
+            <h1>New Jamf Pro Webhook</h1>
+            <input name="webhook_name" type="text" pattern="[^' ']+" placeholder="New Webhook Name (no spaces)" required
+                   title="No spaces, please." class="form-control" value="{{ name }}" autofocus>
+            {% if error %}
+                <div class="alert-danger">{{ error }}</div>
+            {% endif %}
+            <div class="d-flex justify-content-center">
+                <b>Jamf Event:</b>
+            </div>
+            <select class="form-control" name="event"
+                    onchange="java_script_:show(this.options[this.selectedIndex].value)"
+                    required>
+                <option value=""></option>
+                <option value="ComputerAdded">ComputerAdded</option>
+                <option value="ComputerCheckIn">ComputerCheckIn</option>
+                <option value="ComputerInventoryCompleted">ComputerInventoryCompleted</option>
+                <option value="ComputerPathcPolicyCompleted">ComputerPathcPolicyCompleted</option>
+                <option value="ComputerPolicyFinished">ComputerPolicyFinished</option>
+                <option value="ComputerPushCapabilityChanged">ComputerPushCapabilityChanged</option>
+                <option value="DeviceRateLimited">DeviceRateLimited</option>
+                <option value="JSSShutdown">JSSShutdown</option>
+                <option value="JSSStartup">JSSStartup</option>
+                <option value="MobileDeviceCheckIn">MobileDeviceCheckIn</option>
+                <option value="MobileDeviceCommandCompleted">MobileDeviceCommandCompleted</option>
+                <option value="MobileDeviceEnrolled">MobileDeviceEnrolled</option>
+                <option value="MobileDevicePushSent">MobileDevicePushSent</option>
+                <option value="MobileDeviceUnEnrolled">MobileDeviceUnEnrolled</option>
+                <option value="PatchSoftwareTitleUpdated">PatchSoftwareTitleUpdated</option>
+                <option value="PushSent">PushSent</option>
+                <option value="RestAPIOperation">RestAPIOperation</option>
+                <option value="SCEPChallenge">SCEPChallenge</option>
+                <option value="SmartGroupComputerMembershipChange">SmartGroupComputerMembershipChange</option>
+                <option value="SmartGroupMobileDeviceMembershipChange">SmartGroupMobileDeviceMembershipChange</option>
+            </select>
+
+            <div id="hiddenDiv" style="display:none">
+                * Note: If utilizing the event for Smart Group Membership Change, after submitting, navigate to the <a
+                    href="{{ url }}/webhooks.html" style="color:#3c6aa7;" target="_blank">Webhooks</a> setting in Jamf
+                Pro
+                and adjust the proper Smart Group for this Webhook.
+            </div>
+            </br>
+            <!--       Smart Mobile Device Group:</br>
+      <select name="mobile_device_group">
+        {% for group in found_mobile_device_groups %}
+        <option value="{{group.id}}">{{group.name}}</option>
+        {% endfor %}
+      </select></br></br>
+
+      Smart Computer Group:</br>
+      <select name="computer_group">
+        {% for group in found_computer_groups %}
+        <option value="{{group.id}}">{{group.name}}</option>
+        {% endfor %}
+      </select></br></br>
+       -->
+            <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
+                      class="form-control">{{ description }}</textarea>
+
+            <div class="d-flex justify-content-center">
+                Script file: &nbsp<input type="file" name="new_file" pattern="[^' ']+" required
+                                         title="No Spaces in the filename!"
+                                         accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"/></b></div>
+            <div class="d-flex justify-content-center">
+                <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>, <a
+                        href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>] </p></div>
+            <div class="d-flex justify-content-center"><b>Basic Authentication (optional):</b></div>
+            <div class="d-flex justify-content-center">
+                <input class="form-control-sm" name="username" title="Username (optional)"
+                       placeholder="Username (optional)">
+                </b>
+                <input name="password" class="form-control-sm" type='password' title="Password (optional)"
+                       placeholder="Password (optional)"></div>
+
+            <div class="d-flex justify-content-center">
+                <p></p>
+                <button type=submit value="Custom_New" class="btn btn-secondary ">
+
+                    Create
+
+                </button>
+            </div>
+
+        </form>
+    </div>
+{% endblock %}
+{% block additional_js %}
+    <script>
+        function show(event) {
+            if (event == "SmartGroupComputerMembershipChange") {
+                hiddenDiv.style.display = 'inline-block';
+                hiddenDivTwo.style.display = 'none';
+            }
+            if (event == "SmartGroupMobileDeviceMembershipChange") {
+                hiddenDiv.style.display = 'inline-block';
+                hiddenDivTwo.style.display = 'inline-block';
+            }
+        }
+    </script>
+{% endblock %}
+
+

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet"
+          href="/static/css/fonts.css">
+    <link rel="stylesheet"
+          href="/static/css/bootstrap.css">
+    <link rel="stylesheet" href="/static/css/site.css"/>
+    <link rel="stylesheet" href="/static/css/nav.css"/>
+    <link rel="stylesheet" href="/static/css/main.css"/>
+    <link rel="stylesheet" href="/static/css/account.css">
+
+    {% block additional_css %}{% endblock %}
+
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/jawa_icon.png') }}">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+<div>
+
+    <nav class="navbar fixed-top navbar-toggleable-md navbar-inverse bg-inverse navbar-expand-md">
+        <a class="navbar-brand" href="/dashboard">{% if username %}
+            <img src="/static/img/jawa_icon.png" style="width:32px;height:32px;"/>{% endif %}</a>
+
+        <button class="navbar-toggler navbar-toggle overflow-auto" type="button" data-toggle="collapse"
+                data-target="#navbarSupportedContent"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <div class="navbar-toggler-icon ">
+                <div class="nav-expand-line"></div>
+                <div class="nav-expand-line"></div>
+                <div class="nav-expand-line"></div>
+            </div>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav ml-auto">
+
+                {% if username %}
+                    {#                    <li class="nav-item"><a class="nav-link" href="/dashboard.html">Wizard</a></li>#}
+                    <li class="nav-item"><a class="nav-link" href="/webhooks">Webhooks</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/cron">Cron</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/log/home.html">Extras</a></li>
+                    {#                    <li class="nav-item"><a class="nav-link" href="/resources/files">Files</a></li>#}
+                    {#                    <li class="nav-item"><a class="nav-link" href="/log/home.html">Log</a></li>#}
+                    <li class="nav-item"><a class="nav-link" href="/setup">Setup</a></li>
+
+                    <li class="nav-item"><a class="nav-link" href="/logout" id="last_nav_link">Logout</a></li>
+
+                {% else %}
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Login</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+    {% block content %}
+    {% endblock %}
+</div>
+<footer class="footer" style="margin-top: 0px">
+    <nav class="fixed-bottom justify-content-center ">
+        <nav class="fixed-bottom justify-content-center nav-center">
+            {% if username %}
+                <div class="text-sm-center" style="font-size: 60%"> Welcome, {{ username.title() }}. <br>
+                    Discover what's possible with Jamf &.<br/>
+                    Jamf Automation + Webhook Assistant.<br/></div>
+            {% else %}
+                Discover what's possible with Jamf &.<br/>
+                Jamf Automation + Webhook Assistant.<br/>
+            {% endif %}
+        </nav>
+        {% block footer %}
+        {% endblock %}
+    </nav>
+</footer>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+        integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+        integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+        crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"
+        integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV"
+        crossorigin="anonymous"></script>
+{% block additional_js %}{% endblock %}
+</body>
+</html>

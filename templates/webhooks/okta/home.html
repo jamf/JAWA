@@ -1,0 +1,96 @@
+{% extends "shared/_layout.html" %}
+
+{% block additional_css %}
+
+{% endblock %}
+{% block title %}Okta Webhooks Dashboard{% endblock %}
+
+{% block content %}
+    <div class="test-links sub_links sticky-top">
+        <div class="stat"><a href="/webhooks">All Webhooks</a></div>
+        <div class="stat"><a href="/webhooks/okta/new">Create</a></div>
+        <div class="stat"><a href="/webhooks/okta">View</a></div>
+    </div>
+    <div class="form-container" style="min-height: 82vh">
+        <div class="table-view overflow-auto" style="max-width: 55vh">
+            <div class="d-flex justify-content-center">
+                <h4>Okta Webhooks Dashboard</h4>
+            </div>
+            <div class="d-flex justify-content-center">
+                <b>Total Okta webhooks installed</b>: {{ okta_list|length or '0' }}<br>
+            </div>
+        </div>
+        {% if not okta_list %}
+            <div class="form-container">
+                <div class="table-view" style="max-width: fit-content; text-align: center; min-width: 55vh">
+                    <div class="table-responsive">
+                        No Okta webhooks to display. <a href="/webhooks/okta/new">Create one now.</a>
+                    </div>
+                </div>
+            </div></div>
+        {% else %}
+            <div class="form-container">
+            <div class="table-view overflow-auto" style="max-height: 46vh; max-width: fit-content; text-align: center;">
+
+                {% if okta_list %}
+                    <div class="table-responsive">
+                        <table id="Okta Webhooks Table" class="table"
+                               style="max-height: 46vh; max-width: fit-content; text-align: center;">
+                            <thead class="thead-dark table-bordered">
+                            <tr>
+                                <th>Okta Webhook</th>
+                                <th>Okta URL</th>
+                                <th>Event</th>
+                                <th>Script</th>
+                                <th>Description</th>
+                            </tr>
+                            </thead>
+
+                            {% for row in okta_list %}
+
+                                <tr>
+
+                                    <td>
+                                        <div class="overflow-auto log-frame"
+                                             style="max-width: 50vh; max-height: 10vh">
+                                            {{ row.name }} (<a href="../webhooks/delete?target_webhook={{ row.name }}"
+                                                               style="color:#3c6aa7;">Delete</a>)
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="overflow-auto log-frame" style="max-width: 50vh; max-height: 10vh">
+                                            {{ row.okta_url }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="overflow-auto log-frame"
+                                             style="max-width: 50vh; max-height: 10vh">
+                                            {{ row.okta_event }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="overflow-auto log-frame" style="max-width: 50vh; max-height: 10vh">
+                                        {{ row.script }}
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <div class="overflow-auto log-frame"
+                                             style="max-width: 50vh; max-height: 10vh"> {{ row.description }}
+                                        </div>
+                                    </td>
+                                </tr>
+
+                            {% endfor %}
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+        </div>
+{% endblock %}
+{% block additional_js %}
+
+{% endblock %}
+
+

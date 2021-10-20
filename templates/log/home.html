@@ -1,0 +1,34 @@
+{% extends "shared/_layout.html" %}
+{% block title %}JAWA Log{% endblock %}
+{% block content %}
+    <div class="test-links sub_links sticky-top">
+        <div class="stat"><a href="{{ url_for('resources_view.files') }}">Files</a></div>
+        <div class="stat"><a href="/log/live.html" target="_blank">Live View</a></div>
+        <div class="stat"><a href="/log/download" target="_blank">Download</a></div>
+    </div>
+
+    <div class="form-container">
+
+        <div class="  table-view ">
+            <div class="alert-warning overflow-auto log-frame success-wrap flex-column-reverse d-flex">
+                {% if log %}
+                    {% for line in log %}
+                        <div class="inner">{{ line }}</div><br>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <div class="download-button">
+                <div class="btn-group-sm">
+                    <button class="btn btn-primary" onClick="window.location.reload();"><span
+                            class="glyphicon glyphicon-refresh"></span> Refresh
+                    </button>
+
+
+                    <a href="/log/download" button type=submit class="btn btn-success button-align">Download
+                        &raquo;</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

@@ -1,0 +1,153 @@
+{% extends "shared/_layout.html" %}
+{% block title %}New Timed Automation{% endblock %}
+{% block content %}
+    <div class="test-links sub_links sticky-top">
+        <div class="stat"><a href="/cron">All Timed Automations</a></div>
+        <div class="stat"><a href="{{ url_for('cron.new_cron') }}">New Timed Job</a></div>
+        <div class="stat"><a href="{{ url_for('cron.delete_cron') }}">Delete Timed Job</a></div>
+    </div>
+
+
+    <div class="form-container">
+        <form method="post" class="table-view" action="/cron/new" enctype="multipart/form-data">
+            <h1>New Timed Job</h1>
+            <input type="text" class="form-control" placeholder="Name of Timed Job (cron task)" name="cron_name"
+                   required autofocus
+                   oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')"></br>
+            <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
+                      class="form-control">{{ description }}</textarea><br>
+
+            <label class="form-check-label">Frequency:</label>
+            <select name="frequency" class="form-control"
+                    onchange="java_script_:show(this.options[this.selectedIndex].value)">
+                <option value=""></option>
+                <option value="everyhour">Every Hour</option>
+                <option value="everyday">Every Day</option>
+                <option value="everyweek">Every Week</option>
+                <option value="everymonth">Every Month</option>
+            </select></br>
+
+            <div id="hiddenDiv" style="display:none">
+                <label>At what time?</label>
+                <select name="daytime">
+                    <option value=""></option>
+                    {% for hour in hours %}
+                        <option value="{{ hour.id }}">{{ hour.value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="hiddenDivTwo" style="display:none">
+                <label>On what day?</label>
+                <select name="weekday">
+                    <option value=""></option>
+                    {% for day in days %}
+                        <option value="{{ day.cron }}">{{ day.value }}</option>
+                    {% endfor %}
+                </select>
+                </br>
+                <label>At what time?</label>
+                <select name="weektime">
+                    <option value=""></option>
+                    {% for hour in hours %}
+                        <option value="{{ hour.id }}">{{ hour.value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="hiddenDivThree" style="display:none">
+                <label>On what day of the month?</label>
+                <select name="monthday">
+                    <option value=""></option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                    <option value="13">13</option>
+                    <option value="14">14</option>
+                    <option value="15">15</option>
+                    <option value="16">16</option>
+                    <option value="17">17</option>
+                    <option value="18">18</option>
+                    <option value="19">19</option>
+                    <option value="20">20</option>
+                    <option value="21">21</option>
+                    <option value="22">22</option>
+                    <option value="23">23</option>
+                    <option value="24">24</option>
+                    <option value="25">25</option>
+                    <option value="26">26</option>
+                    <option value="27">27</option>
+                    <option value="28">28</option>
+                    <option value="29">29</option>
+                    <option value="30">30</option>
+                    <option value="31">31</option>
+                </select>
+                </br>
+                <label>At what time?</label>
+                <select name="monthtime">
+                    <option value=""></option>
+                    {% for hour in hours %}
+                        <option value="{{ hour.id }}">{{ hour.value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="hiddenDivFour" style="display:none">
+            </div>
+
+            <div class="d-flex justify-content-center">
+                <br><b>Script: &nbsp</b>
+                <input type="file" name="script" required
+                       accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"
+                       oninvalid="this.setCustomValidity('A script is required. Spaces cannot be in the name of the script.')"></b>
+            </div>
+
+            <div class="d-flex justify-content-center">
+                <input class="btn btn-secondary" type="submit" value="Submit"/>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+{% block additional_js %}
+    <script text="text/javascript">
+
+        function show(aval) {
+            if (aval == "everyday") {
+                hiddenDiv.style.display = 'inline-block';
+                hiddenDivTwo.style.display = 'none';
+                hiddenDivFour.style.display = 'none';
+                hiddenDivThree.style.display = 'none';
+            } else if (aval == "everyweek") {
+                hiddenDivTwo.style.display = 'inline-block';
+                hiddenDiv.style.display = 'none';
+                hiddenDivFour.style.display = 'none';
+                hiddenDivThree.style.display = 'none';
+            } else if (aval == "everymonth") {
+                hiddenDivThree.style.display = 'inline-block';
+                hiddenDiv.style.display = 'none';
+                hiddenDivTwo.style.display = 'none';
+                hiddenDivFour.style.display = 'none';
+            } else if (aval == "") {
+                hiddenDivFour.style.display = 'none';
+                hiddenDivThree.style.display = 'none';
+                hiddenDiv.style.display = 'none';
+                hiddenDivTwo.style.display = 'none';
+            } else {
+                hiddenDiv.style.display = 'none';
+                hiddenDivTwo.style.display = 'none';
+                hiddenDivFour.style.display = 'none';
+                hiddenDivThree.style.display = 'none';
+            }
+        }
+
+    </script>
+{% endblock %}

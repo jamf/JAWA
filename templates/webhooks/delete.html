@@ -1,0 +1,37 @@
+{% extends "shared/_layout.html" %}
+{% block title %}Confirm Delete{% endblock %}
+{% block content %}
+    <div class="test-links sub_links sticky-top">
+        <div class="stat"><a href="/webhooks/jamf">Jamf Pro</a></div>
+        <div class="stat"><a href="/webhooks/okta">Okta</a></div>
+        <div class="stat"><a href="/webhooks/custom">Custom</a></div>
+    </div>
+
+    <div class="form-container">
+        <form action="#" method="POST" class="table-view"
+              enctype="multipart/form-data">
+
+            <h1>Confirm Delete:</h1>
+            {{ tag.title() }} Webhook -
+            {% if target_webhook %}{{ target_webhook }}{% else %}Custom Webhook{% endif %}</h1>
+
+
+            <br>
+            <div class="d-flex justify-content-center">
+
+                <div class="log-view">Sir, the possibility of successfully navigating an asteroid field is approximately
+                    3,720 to 1.
+                </div>
+                <button type=submit name="button_choice" value="Delete" class="btn btn-danger" style="margin: 5px">
+
+                    Delete
+
+                </button>
+                </p>
+            </div>
+        </form>
+    </div>
+
+    </div>
+{% endblock %}
+</body>

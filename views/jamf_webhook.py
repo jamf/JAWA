@@ -1,9 +1,6 @@
 import os
 import json
-import time
 from collections import defaultdict
-from time import sleep
-import signal
 import requests
 import re
 from werkzeug.utils import secure_filename
@@ -97,8 +94,6 @@ def jp_new():
                 except Exception as str_error:
                     if not str_error:
                         continue
-
-                    sleep(2)
                     break
             for id_name in id_list:
                 check = 1 if id_name == request.form.get('webhook_name') else 0
@@ -138,7 +133,7 @@ def jp_new():
             'SmartGroupComputerMembershipChange',
         ]:
 
-            smart_group_notice = "NOTICE!  This webhooks is not yet enabled."
+            smart_group_notice = "NOTICE!  This webhook is not yet enabled."
             smart_group_instructions = "Specify desired Smart Group and enable: "
             webhook_enablement = 'false'
 
@@ -232,15 +227,15 @@ def edit():
     if 'username' not in session:
         return redirect(url_for('logout'))
     name = request.args.get('name')
-    print(name)
     with open(webhooks_file) as fin:
         webhooks_json = json.load(fin)
     check_for_name = [True for each_webhook in webhooks_json if each_webhook['name'] == name]
-    print(check_for_name)
     if not check_for_name:
-        jawa_logger().info("name not in json")
+        jawa_logger().info(f"Webhook '{name}' not in json")
         return redirect(url_for('jamf_pro_webhooks.jamf_webhook'))
-
+    # GET
+    webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
+    print(webhook_info)
     if request.method == 'POST':
         # print(name)
         button_choice = request.form.get('button_choice')
@@ -248,7 +243,6 @@ def edit():
             return redirect(url_for('webhooks.delete_webhook', target_webhook=name))
 
         for each_webhook in webhooks_json:
-            print(each_webhook)
             if each_webhook['name'] == name:
                 new_webhook_name = request.form.get('webhook_name')
                 if not new_webhook_name:
@@ -257,7 +251,7 @@ def edit():
                 new_event = request.form.get('event')
                 webhook_user = request.form.get('username')
                 webhook_pass = request.form.get('password')
-                print(webhook_user, webhook_pass)
+
                 if request.files.get('new_file'):
                     new_script = request.files.get('new_file')
                     owd = os.getcwd()
@@ -287,13 +281,13 @@ def edit():
                 else:
                     each_webhook['webhook_password'] = 'null'
                 each_webhook['jawa_admin'] = session.get('username')
-                if request.form.get('event') in [
+                if each_webhook.get('event') in [
                     'SmartGroupMobileDeviceMembershipChange',
                     'SmartGroupComputerMembershipChange',
                 ]:
 
-                    smart_group_notice = "NOTICE!  This webhooks is not yet enabled."
-                    smart_group_instructions = "Specify desired Smart Group and enable: "
+                    smart_group_notice = "NOTICE!  This webhook is currently disabled."
+                    smart_group_instructions = "Please verify the linked Smart Group and re-enable: "
                     webhook_enablement = 'false'
 
                 else:
@@ -309,7 +303,7 @@ def edit():
                     auth_xml = f"<authentication_type>BASIC</authentication_type>"
                     if (request.form.get('username') == 'null' and
                             request.form.get('password') == 'null'):
-                       auth_xml = "<authentication_type>NONE</authentication_type>"
+                        auth_xml = "<authentication_type>NONE</authentication_type>"
 
                     if request.form.get('username') == '':
                         auth_xml += "<username>null</username>"
@@ -330,14 +324,14 @@ def edit():
                        f"<event>{each_webhook.get('event')}</event>" \
                        f"{auth_xml}" \
                        f"</webhook>"
-                print(data, each_webhook.get('jamf_id'))
+
                 full_url = f"{session['url']}/JSSResource/webhooks/id/{each_webhook.get('jamf_id')}"
 
                 webhook_response = requests.put(full_url,
                                                 auth=(session['username'], session['password']),
                                                 headers={'Content-Type': 'application/xml'}, data=data,
                                                 verify=verify_ssl)
-                print(webhook_response.text, webhook_response.status_code)
+                jawa_logger().info(webhook_response.text, webhook_response.status_code)
                 if webhook_response.status_code == 409:
                     error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
                     return render_template('error.html',
@@ -346,10 +340,19 @@ def edit():
                                            username=str(escape(session['username'])))
                 with open(webhooks_file, 'w') as fout:
                     json.dump(webhooks_json, fout, indent=4)
-                return redirect(url_for('jamf_pro_webhooks.jamf_webhook'))
+                result = re.search('<id>(.*)</id>', webhook_response.text)
+                print(result.group(1))
+                jamf_id = result.group(1)
+                new_link = f"{format(session.get('url'))}/webhooks.html?id={jamf_id}&o=r"
+                success_msg = "Webhook edited:"
+                return {"webhooks": "success", "smart_group_instructions": smart_group_instructions,
+                        "smart_group_notice": smart_group_notice,
+                        "new_link": new_link,
+                        "new_here": new_webhook_name,
+                        "success_msg": success_msg,
+                        "username": session.get('username'), 'webhook_info': webhook_info, "webhook_name": name,
+                        "description": each_webhook.get('description')}
 
-    # GET
-    webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
-    print(webhook_info)
+
     return {'username': session.get('username'), 'webhook_name': name, 'url': session.get('url'),
             'webhook_info': webhook_info}

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Greetings, friends.  This installer is intended for Ubuntu installations of JAWA.  It will not work well for other
-# operating systems.  Run with sudo, and may the force be with you.
+# Greetings, friends.  This installer is intended for Red Hat Enterprise Linux installations of JAWA.  #
+# It will not work well for other operating systems.  Run with sudo, and may the force be with you.
 #
-#  usage: sudo bash /path/to/ubuntu_installer.sh
+#  usage: sudo bash /path/to/rhel_installer.sh
 #
 # What does this installer do?
 # - installs python and a webapp
@@ -11,7 +11,6 @@
 # - installs and configures nginx for hosting the webapp
 # - creates a systemd unit file for running the JAWA service
 # - creates a jawa service account on the server for running the webapp and managing cron
-# - enables ufw (firewall) and opens ports 22 (SSH) and 443 (JAWA).  The installer will prompt you for approval.
 #
 # What does this installer NOT do?
 # - use root's crontab
@@ -147,9 +146,6 @@ install() {
     /bin/mkdir -p "$installDir/jawa"
     /bin/chown -R jawa "$installDir/jawa"
   fi
-
-  # Install some OS dependencies:
-#  /usr/bin/apt-add-repository universe >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   /usr/bin/clear
   echo -ne '[######                  ](30%) Installing build tools from yum... '
   echo '[######                  ](30%) Installing build tools from yum...' >>/var/log/jawaInstall.log 2>&1
@@ -222,7 +218,7 @@ if [ -d "$currentDir/jawabackup-$timenow" ]; then
   /usr/bin/clear
   /bin/echo -ne '[###########             ](55%) Installing fail2ban from yum... '
   /bin/echo '[###########             ](55%) Installing fail2ban from yum... ' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/apt install fail2ban -y -q >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /usr/bin/yum install fail2ban -y -q >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
 # For the bash inclined
   /usr/bin/clear
   /bin/echo -ne '[############            ](60%) Installing jq from yum... '

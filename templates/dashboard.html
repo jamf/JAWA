@@ -26,10 +26,11 @@
                 <a href="{{ url_for('setup') }}" style="color:#3c6aa7;">Configure the JAWA</a><br>
             </div>
             <div class="d-flex justify-content-center">
-                <b>Total webhooks installed</b>: {{ total_webhooks or '0' }}<br>
+                <b>Total webhooks</b>: {{ total_webhooks or '0' }} &nbsp;<strong>Active JPS
+                webhooks</strong>: {{ jamfpro_list|length or '0' }}
             </div>
             <div class="d-flex justify-content-center">
-                <b>Total timed automations installed</b>: {{ total_cron or '0' }}<br>
+                <b>Total timed automations</b>: {{ total_cron or '0' }}<br>
             </div>
         </div>
 

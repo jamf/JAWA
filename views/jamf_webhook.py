@@ -193,12 +193,13 @@ def jp_new():
                f"</webhook>"
 
         full_url = session['url'] + '/JSSResource/webhooks/id/0'
-
+        jawa_logger().info(f"{session.get('username')} creating a new JPS webhook {request.form.get('webhook_name')}.")
         webhook_response = requests.post(full_url,
                                          auth=(session['username'], session['password']),
                                          headers={'Content-Type': 'application/xml'}, data=data,
                                          verify=verify_ssl)
         print(webhook_response.text)
+        jawa_logger().info(f"[{webhook_response.status_code}]  {webhook_response.text}")
         if webhook_response.status_code == 409:
             error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
             return render_template('error.html',
@@ -378,11 +379,12 @@ def edit():
 
                 full_url = f"{session['url']}/JSSResource/webhooks/id/{each_webhook.get('jamf_id')}"
 
+                jawa_logger().info(f"{session.get('username')} editing the JPS webhook {name}.")
                 webhook_response = requests.put(full_url,
                                                 auth=(session['username'], session['password']),
                                                 headers={'Content-Type': 'application/xml'}, data=data,
                                                 verify=verify_ssl)
-                jawa_logger().info(webhook_response.text, webhook_response.status_code)
+                jawa_logger().info(f"[{webhook_response.status_code}]  {webhook_response.text}")
                 if webhook_response.status_code == 409:
                     error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
                     return render_template('error.html',

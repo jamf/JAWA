@@ -192,8 +192,13 @@ def login():
             elif server_json.get('jps_url', 0):
                 if server_json['jps_url'] is not None and len(server_json['jps_url']) != 0:
                     session['url'] = str(server_json['jps_url'])
+            elif request.form.get('url')[-1:] == "/":
+                session['url'] = str(request.form.get('url')).rstrip(request.form.get('url')[-1])
             else:
                 session['url'] = request.form['url']
+
+        elif request.form.get('active_url')[-1:] == "/":
+            session['url'] = str(request.form.get('url')).rstrip(request.form.get('url')[-1])
         else:
             session['url'] = request.form['url']
         session['username'] = request.form['username']

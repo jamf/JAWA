@@ -60,7 +60,8 @@ Installation Steps:
 4. Download and run JAWA installer:
 
    ```bash 
-   curl -O https://raw.githubusercontent.com/jamf/JAWA/develop/bin/ubuntu_installer.sh && sudo bash ./ubuntu_installer.sh 
+   curl -O https://raw.githubusercontent.com/jamf/JAWA/master/bin/ubuntu_installer.sh && sudo bash ./ubuntu_installer.sh
+   ```
 5. After installation completes, navigate to your FQDN/IP (i.e., https://jawa.company.com) in your web browser to
    continue with the web-based setup
 

@@ -102,7 +102,11 @@ def edit_webhook():
 
                 with open(webhooks_file, 'w') as fout:
                     json.dump(webhooks_json, fout, indent=4)
-                return redirect(url_for('custom_webhook.custom_webhook'))
+                webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
+                return {"webhooks": "success",
+                        "success_msg": f"Edited custom webhook {name}.",
+                        "username": session.get('username'), 'webhook_info': webhook_info, "webhook_name": name,
+                        "description": each_webhook.get('description')}
     webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
     return {'username': session.get('username'), 'webhook_name': name, 'webhook_info': webhook_info}
 

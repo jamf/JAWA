@@ -19,18 +19,18 @@
                 <h4>JAWA Dashboard</h4>
             </div>
             <div class="d-flex justify-content-center">
-                <b>Active Jamf Pro Server</b>: &nbsp; <a class="alert-link" href="{{ session.get('url') }}"
+                <b>Active JPS</b>: &nbsp; <a class="alert-link" href="{{ session.get('url') }}"
                                                          target="_blank">{{ session['url'] }}</a> <br>
             </div>
             <div class="d-flex justify-content-center"><b>Setup Options</b>:
                 <a href="{{ url_for('setup') }}" style="color:#3c6aa7;">Configure the JAWA</a><br>
             </div>
             <div class="d-flex justify-content-center">
-                <b>Total webhooks</b>: {{ total_webhooks or '0' }} &nbsp;<strong>Active JPS
-                webhooks</strong>: {{ jamfpro_list|length or '0' }}
+                <b>Total webhooks</b>: &nbsp;<a href="/webhooks">{{ total_webhooks or '0' }}</a> &nbsp;&nbsp;<strong>Active JPS
+                webhooks</strong>: &nbsp;<a href="/webhooks/jamf">{{ jamfpro_list|length or '0' }}</a>
             </div>
             <div class="d-flex justify-content-center">
-                <b>Total timed automations</b>: {{ total_cron or '0' }}<br>
+                <b>Total timed automations</b>: &nbsp;<a href="/cron">{{ total_cron or '0' }}</a><br>
             </div>
         </div>
 

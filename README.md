@@ -1,4 +1,4 @@
-# Jamf Automation and Webhook Assistant ("JAWA") Version 3.0.0
+# Jamf Automation and Webhook Assistant ("JAWA") Version 3.0.1
 
 JAWA allows an IT Administrator to focus on providing the best end user experience through automation.
 
@@ -57,7 +57,9 @@ Installation Steps:
 3. Ensure you are in the same directory as your jawa.crt and jawa.key
 4. Download and run JAWA installer:
 
-   `curl -O https://raw.githubusercontent.com/jamf/JAWA/develop/bin/ubuntu_installer.sh && sudo bash ./ubuntu_installer.sh`
+   ```bash 
+   curl -O https://raw.githubusercontent.com/jamf/JAWA/develop/bin/ubuntu_installer.sh && sudo bash ./ubuntu_installer.sh
+   ``` 
 5. After installation completes, navigate to your FQDN/IP (i.e., https://jawa.company.com) in your web browser to
    continue with the web-based setup
 
@@ -81,30 +83,12 @@ When scripting for webhooks, verify JSON structure sent from source:
 *NOTE: To ensure continuity, webhooks created via JAWA should be modified and deleted from JAWA as Jamf Pro (or source
 of webhook) will automatically be configured/adjusted appropriately.*
 
-## Version 3.0.0
+## Version 3.0.1
 
-- Refactored:
-    - Improved page views
-    - New webhook engine
-    - Relative paths
-- Webapp:
-    - New UI and nav
-    - Branding options
-    - Log view
-    - Files repo for script resources
-    - Switch between Jamf Pro Servers (to solve issue #11)
+- Views:
+  - Success message clean-up
 - Webhooks:
-    - Basic authentication for webhooks (to solve issues #12 & #14)
-    - Custom webhook
-    - stdout/stderr logging
-- Backend:
-    - Leverages a service account for running the webapp and managing crontab
-    - Enhanced security with fail2ban, ufw requirements
-- Installer:
-    - Smaller payload (curl script from github)
-    - Choose installation path
-    - Progress bar w/ status message (`stdout`, `stderr`, and additional information about the installation can be found
-      at `/var/log/jawaInstall.log`)
+  - Additional display fields for `SmartGroupMobileDeviceMembershipChange` event
 
 
 Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)

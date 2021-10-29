@@ -24,24 +24,36 @@
             <div class="d-flex justify-content-center">
                 <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>, <a
                         href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>] </p></div>
-            <div class="d-flex justify-content-center"><b>Basic Authentication (optional):</b></div>
-            <div class="d-flex justify-content-center">
+             <div class="d-flex justify-content-center">   <label>
+                        <input type="checkbox" class="form-check-input" name="basic"
+                               onchange="java_script_:show(this.value)">
+                    </label><b>Basic Authentication (optional):</b></div>
+                <div class="d-flex justify-content-center">
+                 <div id="hiddenDiv2" style="display:none">
                 <input class="form-control-sm" name="username" title="Username (optional)"
                        placeholder="Username (optional)">
                 </b>
                 <input name="password" class="form-control-sm" type='password' title="Password (optional)"
                        placeholder="Password (optional)"></div>
-
-            <br>
+                </div>
             <div class="d-flex justify-content-center">
                 <p></p>
-                <button type=submit value="Custom_New" class="btn btn-secondary ">
+                <button type=submit value="Custom_New" class="btn btn-secondary" style="margin: 5px; padding: 5px; width: 150px">
 
                     Create
 
                 </button>
-                </p>
             </div>
 
+        </form>
     </div>
+{% endblock %}
+{% block additional_js %}
+    <script>
+        function show(event) {
+            if (event == "on") {
+                hiddenDiv2.style.display = 'inline-block';
+            }
+        }
+    </script>
 {% endblock %}

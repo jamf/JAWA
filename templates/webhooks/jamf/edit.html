@@ -23,75 +23,79 @@
                 <div class="d-flex justify-content-center">
                     <b>Jamf Event (optional):</b>
                 </div>
-                <select class="form-control" name="event" }"
-                onchange="java_script_:show(this.options[this.selectedIndex].value)">
-                <option value=""></option>
-                <option value="ComputerAdded" {% if webhook_info[0]['event'] == "ComputerAdded" %}selected {% endif %}>
-                    ComputerAdded
-                </option>
-                <option value="ComputerCheckIn" {% if webhook_info[0]['event'] == "ComputerCheckIn" %}
-                        selected {% endif %}>ComputerCheckIn
-                </option>
-                <option value="ComputerInventoryCompleted"
-                        {% if webhook_info[0]['event'] == "ComputerInventoryCompleted" %} selected {% endif %}>
-                    ComputerInventoryCompleted
-                </option>
-                <option value="ComputerPatchPolicyCompleted"
-                        {% if webhook_info[0]['event'] == "ComputerPatchPolicyCompleted" %} selected {% endif %}>
-                    ComputerPatchPolicyCompleted
-                </option>
-                <option value="ComputerPolicyFinished" {% if webhook_info[0]['event'] == "ComputerPolicyFinished" %}
-                        selected {% endif %}>ComputerPolicyFinished
-                </option>
-                <option value="ComputerPushCapabilityChanged"
-                        {% if webhook_info[0]['event'] == "ComputerPushCapabilityChanged" %} selected {% endif %}>
-                    ComputerPushCapabilityChanged
-                </option>
-                <option value="DeviceRateLimited" {% if webhook_info[0]['event'] == "DeviceRateLimited" %}
-                        selected {% endif %}>DeviceRateLimited
-                </option>
-                <option value="JSSShutdown" {% if webhook_info[0]['event'] == "JSSShutdown" %} selected {% endif %}>
-                    JSSShutdown
-                </option>
-                <option value="JSSStartup" {% if webhook_info[0]['event'] == "JSSStartup" %} selected {% endif %}>
-                    JSSStartup
-                </option>
-                <option value="MobileDeviceCheckIn" {% if webhook_info[0]['event'] == "MobileDeviceCheckIn" %}
-                        selected {% endif %}>MobileDeviceCheckIn
-                </option>
-                <option value="MobileDeviceCommandCompleted"
-                        {% if webhook_info[0]['event'] == "MobileDeviceCommandCompleted" %} selected {% endif %}>
-                    MobileDeviceCommandCompleted
-                </option>
-                <option value="MobileDeviceEnrolled" {% if webhook_info[0]['event'] == "MobileDeviceEnrolled" %}
-                        selected {% endif %}>MobileDeviceEnrolled
-                </option>
-                <option value="MobileDevicePushSent" {% if webhook_info[0]['event'] == "MobileDevicePushSent" %}
-                        selected {% endif %}>MobileDevicePushSent
-                </option>
-                <option value="MobileDeviceUnEnrolled" {% if webhook_info[0]['event'] == "MobileDeviceUnEnrolled" %}
-                        selected {% endif %}>MobileDeviceUnEnrolled
-                </option>
-                <option value="PatchSoftwareTitleUpdated"
-                        {% if webhook_info[0]['event'] == "PatchSoftwareTitleUpdated" %} selected {% endif %}>
-                    PatchSoftwareTitleUpdated
-                </option>
-                <option value="PushSent" {% if webhook_info[0]['event'] == "PushSent" %} selected {% endif %}>PushSent
-                </option>
-                <option value="RestAPIOperation" {% if webhook_info[0]['event'] == "RestAPIOperation" %}
-                        selected {% endif %}>RestAPIOperation
-                </option>
-                <option value="SCEPChallenge" {% if webhook_info[0]['event'] == "SCEPChallenge" %} selected {% endif %}>
-                    SCEPChallenge
-                </option>
-                <option value="SmartGroupComputerMembershipChange"
-                        {% if webhook_info[0]['event'] == "SmartGroupComputerMembershipChange" %} selected {% endif %}>
-                    SmartGroupComputerMembershipChange
-                </option>
-                <option value="SmartGroupMobileDeviceMembershipChange"
-                        {% if webhook_info[0]['event'] == "SmartGroupMobileDeviceMembershipChange" %}
-                        selected {% endif %}>SmartGroupMobileDeviceMembershipChange
-                </option>
+                <select class="form-control" name="event"
+                        onchange="java_script_:show(this.options[this.selectedIndex].value)">
+                    <option value=""></option>
+                    <option value="ComputerAdded"
+                            {% if webhook_info[0]['event'] == "ComputerAdded" %}selected {% endif %}>
+                        ComputerAdded
+                    </option>
+                    <option value="ComputerCheckIn" {% if webhook_info[0]['event'] == "ComputerCheckIn" %}
+                            selected {% endif %}>ComputerCheckIn
+                    </option>
+                    <option value="ComputerInventoryCompleted"
+                            {% if webhook_info[0]['event'] == "ComputerInventoryCompleted" %} selected {% endif %}>
+                        ComputerInventoryCompleted
+                    </option>
+                    <option value="ComputerPatchPolicyCompleted"
+                            {% if webhook_info[0]['event'] == "ComputerPatchPolicyCompleted" %} selected {% endif %}>
+                        ComputerPatchPolicyCompleted
+                    </option>
+                    <option value="ComputerPolicyFinished" {% if webhook_info[0]['event'] == "ComputerPolicyFinished" %}
+                            selected {% endif %}>ComputerPolicyFinished
+                    </option>
+                    <option value="ComputerPushCapabilityChanged"
+                            {% if webhook_info[0]['event'] == "ComputerPushCapabilityChanged" %} selected {% endif %}>
+                        ComputerPushCapabilityChanged
+                    </option>
+                    <option value="DeviceRateLimited" {% if webhook_info[0]['event'] == "DeviceRateLimited" %}
+                            selected {% endif %}>DeviceRateLimited
+                    </option>
+                    <option value="JSSShutdown" {% if webhook_info[0]['event'] == "JSSShutdown" %} selected {% endif %}>
+                        JSSShutdown
+                    </option>
+                    <option value="JSSStartup" {% if webhook_info[0]['event'] == "JSSStartup" %} selected {% endif %}>
+                        JSSStartup
+                    </option>
+                    <option value="MobileDeviceCheckIn" {% if webhook_info[0]['event'] == "MobileDeviceCheckIn" %}
+                            selected {% endif %}>MobileDeviceCheckIn
+                    </option>
+                    <option value="MobileDeviceCommandCompleted"
+                            {% if webhook_info[0]['event'] == "MobileDeviceCommandCompleted" %} selected {% endif %}>
+                        MobileDeviceCommandCompleted
+                    </option>
+                    <option value="MobileDeviceEnrolled" {% if webhook_info[0]['event'] == "MobileDeviceEnrolled" %}
+                            selected {% endif %}>MobileDeviceEnrolled
+                    </option>
+                    <option value="MobileDevicePushSent" {% if webhook_info[0]['event'] == "MobileDevicePushSent" %}
+                            selected {% endif %}>MobileDevicePushSent
+                    </option>
+                    <option value="MobileDeviceUnEnrolled" {% if webhook_info[0]['event'] == "MobileDeviceUnEnrolled" %}
+                            selected {% endif %}>MobileDeviceUnEnrolled
+                    </option>
+                    <option value="PatchSoftwareTitleUpdated"
+                            {% if webhook_info[0]['event'] == "PatchSoftwareTitleUpdated" %} selected {% endif %}>
+                        PatchSoftwareTitleUpdated
+                    </option>
+                    <option value="PushSent" {% if webhook_info[0]['event'] == "PushSent" %} selected {% endif %}>
+                        PushSent
+                    </option>
+                    <option value="RestAPIOperation" {% if webhook_info[0]['event'] == "RestAPIOperation" %}
+                            selected {% endif %}>RestAPIOperation
+                    </option>
+                    <option value="SCEPChallenge" {% if webhook_info[0]['event'] == "SCEPChallenge" %}
+                            selected {% endif %}>
+                        SCEPChallenge
+                    </option>
+                    <option value="SmartGroupComputerMembershipChange"
+                            {% if webhook_info[0]['event'] == "SmartGroupComputerMembershipChange" %}
+                            selected {% endif %}>
+                        SmartGroupComputerMembershipChange
+                    </option>
+                    <option value="SmartGroupMobileDeviceMembershipChange"
+                            {% if webhook_info[0]['event'] == "SmartGroupMobileDeviceMembershipChange" %}
+                            selected {% endif %}>SmartGroupMobileDeviceMembershipChange
+                    </option>
                 </select>
 
                 <div id="hiddenDiv" style="display:none">
@@ -127,47 +131,62 @@
                 <div class="d-flex justify-content-center">
                     <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>, <a
                             href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>] </p></div>
-                <div class="d-flex justify-content-center"><b>Basic Authentication (optional):</b></div>
                 <div class="d-flex justify-content-center">
-                    <input class="form-control-sm" name="username" title="Username (optional)"
-                           placeholder="Username (optional)"
-                           value="{% if webhook_info[0]['webhook_username'] != 'null' %}{{ webhook_info[0]['webhook_username'] }}{% endif %}">
-                    </b>
-                    <input name="password" class="form-control-sm" type='password' title="Password (optional)"
-                           placeholder="Password (optional)"
-                           value="{% if webhook_info[0]['webhook_password'] != 'null' %}{{ webhook_info[0]['webhook_password'] }}{% endif %}">
+                    <label>
+                        <input type="checkbox" class="form-check-input" name="basic"
+                               onchange="java_script_:show(this.value)"
+                               {% if webhook_info[0]['webhook_username'] != 'null' %} checked {% endif %}">
+                    </label><b>Basic Authentication (optional):</b></div>
+                <div class="d-flex justify-content-center">
+                {% if webhook_info[0]['webhook_username'] == 'null' %}    <div id="hiddenDiv2" style="display:none"> {% endif %}
+
+                        <input class="form-control-sm" name="username" title="Username (optional)"
+                               placeholder="Username (optional)"
+                               value="{% if webhook_info[0]['webhook_username'] != 'null' %}{{ webhook_info[0]['webhook_username'] }}{% endif %}">
+                        </b>
+                        <input name="password" class="form-control-sm" type='password' title="Password (optional)"
+                               placeholder="Password (optional)"
+                               value="{% if webhook_info[0]['webhook_password'] != 'null' %}{{ webhook_info[0]['webhook_password'] }}{% endif %}">
+                    </div>
                 </div>
-                <div class="d-flex justify-content-center">
 
-                    <button type=submit value="Custom_New" class="btn btn-secondary " style="margin: 5px">
+                <div class="d-flex justify-content-center btn-padded">
 
-                        Edit
+                    <button style="overflow: visible !important; height: 0 !important; width: 0 !important; margin: 0 !important; border: 0 !important; padding: 0 !important; display: block !important;" type="submit" value=""/>
+
+                    <button type=submit name="button_choice" value="Delete" class="btn btn-danger"
+                            style="margin: 5px; padding: 5px; width: 150px"
+                    >
+
+                    Delete
 
                     </button>
+                    <button type=submit value="Custom_New" class="btn btn-secondary "
+                            style="margin: 5px; padding: 5px; width: 150px">
 
-                    <button type=submit name="button_choice" value="Delete" class="btn btn-danger" style="margin: 5px">
-
-                        Delete
+                        Save
 
                     </button>
                 </div>
-              {%  if success_msg %}
+                {% if success_msg %}
 
-                  <h3>Success!</h3>
-                  <div class="form-container alert-warning">
-            {{ success_msg }} <br>
-            {% endif %}
-            {% if smart_group_notice %}
-                <b>{{ smart_group_notice }}</b> <br> {{ smart_group_instructions }}
-            {% endif %}
-            <a href="{{ new_link }}" style="color:#3c6aa7;" target="_blank">{{ new_here }}</a></center>
-        </div>
+                    <h3 class="alert-success">Success!</h3>
+                    <div class="form-container alert-warning">
+                    <div>{{ success_msg }} <br></div>
+                {% endif %}
+                {% if smart_group_notice %}
+                    <b>{{ smart_group_notice }}</b> <br> {{ smart_group_instructions }}
+                {% endif %}
+                <a href="{{ new_link }}" style="color:#3c6aa7;" target="_blank">{{ new_here }}</a></center>
+                </div>
 
-    </div></div>
+            </div>
+    </div>
 {% endblock %}
 {% block additional_js %}
     <script>
         function show(event) {
+
             if (event == "SmartGroupComputerMembershipChange") {
                 hiddenDiv.style.display = 'inline-block';
                 hiddenDivTwo.style.display = 'none';
@@ -176,7 +195,10 @@
                 hiddenDiv.style.display = 'inline-block';
                 hiddenDivTwo.style.display = 'inline-block';
             }
+            if (event == "on") {
+                hiddenDiv2.style.display = 'inline-block';
+            }
         }
     </script>
 {% endblock %}
-</div>
+

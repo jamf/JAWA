@@ -142,6 +142,31 @@ def jp_new():
             smart_group_instructions = ""
             webhook_enablement = 'true'
 
+        if request.form.get('event') == "SmartGroupMobileDeviceMembershipChange":
+            extra_xml = "<enable_display_fields_for_group_object>true</enable_display_fields_for_group_object>\
+                            <display_fields>\
+                                <display_field>\
+                                    <name>Asset Tag</name>\
+                                </display_field>\
+                                <display_field>\
+                                    <name>Building</name>\
+                                </display_field>\
+                                <display_field>\
+                                    <name>Department</name>\
+                                </display_field>\
+                                <display_field>\
+                                    <name>Email Address</name>\
+                                </display_field>\
+                                <display_field>\
+                                    <name>Last Inventory Update</name>\
+                                </display_field>\
+                                <display_field>\
+                                    <name>Last Enrollment</name>\
+                                </display_field>\
+                            </display_fields>"
+        else:
+            extra_xml = ""
+
         # Check for auth values
         auth_xml = "<authentication_type>NONE</authentication_type>"
         if (
@@ -164,15 +189,17 @@ def jp_new():
                f"<content_type>application/json</content_type>" \
                f"<event>{request.form.get('event')}</event>" \
                f"{auth_xml}" \
+               f"{extra_xml}" \
                f"</webhook>"
 
         full_url = session['url'] + '/JSSResource/webhooks/id/0'
-
+        jawa_logger().info(f"{session.get('username')} creating a new JPS webhook {request.form.get('webhook_name')}.")
         webhook_response = requests.post(full_url,
                                          auth=(session['username'], session['password']),
                                          headers={'Content-Type': 'application/xml'}, data=data,
                                          verify=verify_ssl)
         print(webhook_response.text)
+        jawa_logger().info(f"[{webhook_response.status_code}]  {webhook_response.text}")
         if webhook_response.status_code == 409:
             error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
             return render_template('error.html',
@@ -295,6 +322,30 @@ def edit():
                     smart_group_instructions = ""
                     webhook_enablement = 'true'
 
+                if each_webhook.get('event') == "SmartGroupMobileDeviceMembershipChange":
+                    extra_xml = "<enable_display_fields_for_group_object>true</enable_display_fields_for_group_object>\
+                                    <display_fields>\
+                                        <display_field>\
+                                            <name>Asset Tag</name>\
+                                        </display_field>\
+                                        <display_field>\
+                                            <name>Building</name>\
+                                        </display_field>\
+                                        <display_field>\
+                                            <name>Department</name>\
+                                        </display_field>\
+                                        <display_field>\
+                                            <name>Email Address</name>\
+                                        </display_field>\
+                                        <display_field>\
+                                            <name>Last Inventory Update</name>\
+                                        </display_field>\
+                                        <display_field>\
+                                            <name>Last Enrollment</name>\
+                                        </display_field>\
+                                    </display_fields>"
+                else:
+                    extra_xml = ""
                     # Check for auth values
                 auth_xml = "<authentication_type>NONE</authentication_type>"
                 if (
@@ -323,15 +374,17 @@ def edit():
                        f"<content_type>application/json</content_type>" \
                        f"<event>{each_webhook.get('event')}</event>" \
                        f"{auth_xml}" \
+                       f"{extra_xml}"\
                        f"</webhook>"
 
                 full_url = f"{session['url']}/JSSResource/webhooks/id/{each_webhook.get('jamf_id')}"
 
+                jawa_logger().info(f"{session.get('username')} editing the JPS webhook {name}.")
                 webhook_response = requests.put(full_url,
                                                 auth=(session['username'], session['password']),
                                                 headers={'Content-Type': 'application/xml'}, data=data,
                                                 verify=verify_ssl)
-                jawa_logger().info(webhook_response.text, webhook_response.status_code)
+                jawa_logger().info(f"[{webhook_response.status_code}]  {webhook_response.text}")
                 if webhook_response.status_code == 409:
                     error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
                     return render_template('error.html',
@@ -352,7 +405,6 @@ def edit():
                         "success_msg": success_msg,
                         "username": session.get('username'), 'webhook_info': webhook_info, "webhook_name": name,
                         "description": each_webhook.get('description')}
-
 
     return {'username': session.get('username'), 'webhook_name': name, 'url': session.get('url'),
             'webhook_info': webhook_info}

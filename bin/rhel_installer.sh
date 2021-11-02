@@ -147,18 +147,32 @@ install() {
     /bin/chown -R jawa "$installDir/jawa"
   fi
   /usr/bin/clear
-  echo -ne '[######                  ](30%) Installing build tools from yum... '
-  echo '[######                  ](30%) Installing build tools from yum...' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/yum install -y -q epel-release build-essential git unzip zip nload tree >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  echo -ne '[######                  ](30%) Installing git from yum... '
+  echo '[######                  ](30%) Installing git from yum...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/yum install -y git >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+/usr/bin/clear
+  echo -ne '[######                  ](31%) Installing unzip from yum... '
+  echo '[######                  ](31%) Installing unzip from yum...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/yum install -y unzip >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+/usr/bin/clear
+  echo -ne '[######                  ](32%) Installing zip from yum... '
+  echo '[######                  ](32%) Installing zip from yum...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/yum install -y zip >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+/usr/bin/clear
+  echo -ne '[######                  ](33%) Installing tree from yum... '
+  echo '[######                  ](33%) Installing tree from yum...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/yum install -y tree >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
 
   /usr/bin/clear
   /bin/echo -ne '[#######                ](35%) Installing nginx from yum... '
   /bin/echo '[#######                ](35%) Installing nginx... ' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/yum install -y -q nginx >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /usr/bin/yum install -y nginx >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   /usr/bin/clear
   echo -ne '[########                ](40%) Installing python3-pip, python3-dev, and python3-venv from yum... '
-  echo '[########                ](40%) Installing python3-pip, python3-dev, and python3-venv from yum...' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/yum install -y -q python3-pip python3-dev python3-venv >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  echo '[########                ](40%) Installing python3-pip from yum...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/yum install -y python3-pip >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+
+
   #Python check
   /usr/bin/clear
   /bin/echo -ne '[########                ](42%) Safety check... '
@@ -167,7 +181,7 @@ install() {
   if [ -e /usr/bin/python3 ]; then
     /bin/echo "Python 3 installed." >>/var/log/jawaInstall.log 2>&1
   else
-    /bin/echo "Python 3 not present, please install Python3 with pip prior to installation"
+    /bin/echo "Python 3 not present, please install python3 and python3-pip prior to installation"
     /bin/echo "Exiting..."
     exit 2
   fi
@@ -218,12 +232,12 @@ if [ -d "$currentDir/jawabackup-$timenow" ]; then
   /usr/bin/clear
   /bin/echo -ne '[###########             ](55%) Installing fail2ban from yum... '
   /bin/echo '[###########             ](55%) Installing fail2ban from yum... ' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/yum install fail2ban -y -q >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /usr/bin/yum install fail2ban -y >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
 # For the bash inclined
   /usr/bin/clear
   /bin/echo -ne '[############            ](60%) Installing jq from yum... '
   /bin/echo '[############            ](60%) Installing jq from yum... ' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/yum install -y -q jq >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /usr/bin/yum install -y jq >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   /usr/bin/clear
   /bin/echo -ne '[#############           ](65%) Setting permissions for $installDir/jawa... '
   /bin/echo '[#############           ](65%) Setting permissions for $installDir/jawa ' >>/var/log/jawaInstall.log 2>&1

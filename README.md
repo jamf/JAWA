@@ -25,7 +25,7 @@ Jamf and Okta APIs when creating webhooks in their respective services.
 
 General Server Requirements:
 
-- Ubuntu 18.04+ (coming soon: RHEL 7.x+)
+- Ubuntu 18.04+ or RHEL 7.x+
 - Minimum: 512MB RAM (2GB recommended)
 - Minimum: 5GB Storage (25GB recommended)
 - Minimum: 1 CPU Core (2 Cores recommended)
@@ -56,10 +56,15 @@ Installation Steps:
 2. Rename certificate to jawa.crt and the private key to jawa.key
 3. Ensure you are in the same directory as your jawa.crt and jawa.key
 4. Download and run JAWA installer:
+   1. Ubuntu installer: 
 
-   ```bash 
-   curl -O https://raw.githubusercontent.com/jamf/JAWA/develop/bin/ubuntu_installer.sh && sudo bash ./ubuntu_installer.sh
-   ``` 
+      ```bash 
+      curl -O https://raw.githubusercontent.com/jamf/JAWA/develop/bin/ubuntu_installer.sh && sudo bash ./ubuntu_installer.sh
+      ``` 
+   2. RHEL installer:
+       ```bash 
+      curl -O https://raw.githubusercontent.com/jamf/JAWA/develop/bin/rhel_installer.sh && sudo bash ./rhel_installer.sh
+      ``` 
 5. After installation completes, navigate to your FQDN/IP (i.e., https://jawa.company.com) in your web browser to
    continue with the web-based setup
 

@@ -21,7 +21,7 @@
 # Environment Check
 # Getting our bearings
 currentDir=$(pwd)
-installDir=$currentDir
+installDir=/usr/local
 timenow=$(date +%m-%d-%y_%T)
 
 # Checking for sudo
@@ -162,15 +162,19 @@ install() {
   echo -ne '[######                  ](33%) Installing tree from yum... '
   echo '[######                  ](33%) Installing tree from yum...' >>/var/log/jawaInstall.log 2>&1
   /usr/bin/yum install -y tree >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+/usr/bin/clear
+  echo -ne '[######                  ](34%) Installing epel-release from dnf... '
+  echo '[######                  ](34%) Installing epel-release from dnf...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/dnf install -y epel-release >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
 
   /usr/bin/clear
   /bin/echo -ne '[#######                ](35%) Installing nginx from yum... '
   /bin/echo '[#######                ](35%) Installing nginx... ' >>/var/log/jawaInstall.log 2>&1
   /usr/bin/yum install -y nginx >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   /usr/bin/clear
-  echo -ne '[########                ](40%) Installing python3-pip, python3-dev, and python3-venv from yum... '
-  echo '[########                ](40%) Installing python3-pip from yum...' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/yum install -y python3-pip >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  echo -ne '[########                ](40%) Installing python from yum... '
+  echo '[########                ](40%) Installing python from yum...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/yum install -y python3 >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
 
 
   #Python check
@@ -181,14 +185,14 @@ install() {
   if [ -e /usr/bin/python3 ]; then
     /bin/echo "Python 3 installed." >>/var/log/jawaInstall.log 2>&1
   else
-    /bin/echo "Python 3 not present, please install python3 and python3-pip prior to installation"
+    /bin/echo "Python 3 not present, please install python3 prior to installation"
     /bin/echo "Exiting..."
     exit 2
   fi
 
 # change places!
   cd "$installDir"
-  # cloning, like in that movie The Fly
+  # cloning, like in that Jeff Goldblum film.  You know the one.
   /usr/bin/clear
   /bin/echo -ne '[#########               ](45%) Cloning the JAWA project from GitHub... '
   /bin/echo '[#########               ](45%) Cloning the JAWA project from GitHub... ' >>/var/log/jawaInstall.log 2>&1
@@ -232,7 +236,7 @@ if [ -d "$currentDir/jawabackup-$timenow" ]; then
   /usr/bin/clear
   /bin/echo -ne '[###########             ](55%) Installing fail2ban from yum... '
   /bin/echo '[###########             ](55%) Installing fail2ban from yum... ' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/yum install fail2ban -y >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /usr/bin/dnf install fail2ban -y >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
 # For the bash inclined
   /usr/bin/clear
   /bin/echo -ne '[############            ](60%) Installing jq from yum... '

@@ -1,4 +1,8 @@
+
 # Jamf Automation and Webhook Assistant ("JAWA") Version 3.0.1
+
+<p align="center"> <img src="https://github.com/jamf/JAWA/blob/master/static/img/jawa_icon.png" width="384"/> </p>
+
 
 JAWA allows an IT Administrator to focus on providing the best end user experience through automation.
 

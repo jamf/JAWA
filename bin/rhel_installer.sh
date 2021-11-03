@@ -666,7 +666,7 @@ certsMenu() {
 }
 selfsigned() {
   /bin/echo "Creating SSL cert" >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/openssl req -x509 -nodes -days 365 -newkey rsa:2048 -subj "/C=US/ST=MN/L=Minneapolis/CN=jawa" -keyout "$installDir/jawa.key" -out "$installDir/jawa.crt" >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/openssl req -x509 -nodes -days 365 -newkey rsa:2048 -subj "/C=US/ST=MN/L=Minneapolis/CN=jawa" -keyout "$currentDir/jawa.key" -out "$currentDir/jawa.crt" >>/var/log/jawaInstall.log 2>&1
   install
 }
 upgradeFromV2() {

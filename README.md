@@ -59,11 +59,11 @@ Installation Steps:
    1. Ubuntu installer: 
 
       ```bash 
-      curl -O https://raw.githubusercontent.com/jamf/JAWA/develop/bin/ubuntu_installer.sh && sudo bash ./ubuntu_installer.sh
+      curl -O https://raw.githubusercontent.com/jamf/JAWA/master/bin/ubuntu_installer.sh && sudo bash ./ubuntu_installer.sh
       ``` 
    2. RHEL installer:
        ```bash 
-      curl -O https://raw.githubusercontent.com/jamf/JAWA/develop/bin/rhel_installer.sh && sudo bash ./rhel_installer.sh
+      curl -O https://raw.githubusercontent.com/jamf/JAWA/master/bin/rhel_installer.sh && sudo bash ./rhel_installer.sh
       ``` 
 5. After installation completes, navigate to your FQDN/IP (i.e., https://jawa.company.com) in your web browser to
    continue with the web-based setup
@@ -88,13 +88,16 @@ When scripting for webhooks, verify JSON structure sent from source:
 *NOTE: To ensure continuity, webhooks created via JAWA should be modified and deleted from JAWA as Jamf Pro (or source
 of webhook) will automatically be configured/adjusted appropriately.*
 
-## Version 3.0.1
-
-- Views:
-  - Success message clean-up
-- Webhooks:
-  - Additional display fields for `SmartGroupMobileDeviceMembershipChange` event
-
 
 Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
 
+
+### JAWA v3.0.1 release
+- New features
+    - display fields enabled for `SmartGroupMobileDeviceMembershipChange` event
+    - success banner when creating & editing webhooks
+    - dashboard updated with new counters and links
+    - JAWA version displayed in footer
+- Installer:
+    - NEW! RHEL 7+ installer (resolved #9)
+     

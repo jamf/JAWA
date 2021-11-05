@@ -1,6 +1,8 @@
+
+# Jamf Automation and Webhook Assistant ("JAWA") Version 3.0.1
+
 <p align="center"> <img src="https://github.com/jamf/JAWA/blob/master/static/img/jawa_icon.png" width="384"/> </p>
 
-# Jamf Automation and Webhook Assistant ("JAWA") Version 3.0.0
 
 JAWA allows an IT Administrator to focus on providing the best end user experience through automation.
 
@@ -27,7 +29,7 @@ Jamf and Okta APIs when creating webhooks in their respective services.
 
 General Server Requirements:
 
-- Ubuntu 18.04+ (coming soon: RHEL 7.x+)
+- Ubuntu 18.04+ or RHEL 7.x+
 - Minimum: 512MB RAM (2GB recommended)
 - Minimum: 5GB Storage (25GB recommended)
 - Minimum: 1 CPU Core (2 Cores recommended)
@@ -58,10 +60,15 @@ Installation Steps:
 2. Rename certificate to jawa.crt and the private key to jawa.key
 3. Ensure you are in the same directory as your jawa.crt and jawa.key
 4. Download and run JAWA installer:
+   1. Ubuntu installer: 
 
-   ```bash 
-   curl -O https://raw.githubusercontent.com/jamf/JAWA/master/bin/ubuntu_installer.sh && sudo bash ./ubuntu_installer.sh
-   ```
+      ```bash 
+      curl -O https://raw.githubusercontent.com/jamf/JAWA/master/bin/ubuntu_installer.sh && sudo bash ./ubuntu_installer.sh
+      ``` 
+   2. RHEL installer:
+       ```bash 
+      curl -O https://raw.githubusercontent.com/jamf/JAWA/master/bin/rhel_installer.sh && sudo bash ./rhel_installer.sh
+      ``` 
 5. After installation completes, navigate to your FQDN/IP (i.e., https://jawa.company.com) in your web browser to
    continue with the web-based setup
 
@@ -85,31 +92,16 @@ When scripting for webhooks, verify JSON structure sent from source:
 *NOTE: To ensure continuity, webhooks created via JAWA should be modified and deleted from JAWA as Jamf Pro (or source
 of webhook) will automatically be configured/adjusted appropriately.*
 
-## Version 3.0.0
-
-- Refactored:
-    - Improved page views
-    - New webhook engine
-    - Relative paths
-- Webapp:
-    - New UI and nav
-    - Branding options
-    - Log view
-    - Files repo for script resources
-    - Switch between Jamf Pro Servers (to solve issue #11)
-- Webhooks:
-    - Basic authentication for webhooks (to solve issues #12 & #14)
-    - Custom webhook
-    - stdout/stderr logging
-- Backend:
-    - Leverages a service account for running the webapp and managing crontab
-    - Enhanced security with fail2ban, ufw requirements
-- Installer:
-    - Smaller payload (curl script from github)
-    - Choose installation path
-    - Progress bar w/ status message (`stdout`, `stderr`, and additional information about the installation can be found
-      at `/var/log/jawaInstall.log`)
-
 
 Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
 
+
+### JAWA v3.0.1 release
+- New features
+    - display fields enabled for `SmartGroupMobileDeviceMembershipChange` event
+    - success banner when creating & editing webhooks
+    - dashboard updated with new counters and links
+    - JAWA version displayed in footer
+- Installer:
+    - NEW! RHEL 7+ installer (resolved #9)
+     

@@ -61,15 +61,15 @@
         {% else %}
             <div class="form-container">
             <div class="table-view overflow-auto table-responsive"
-                 style="max-height: 46vh; max-width: fit-content; text-align: center;">
+                 style="max-height: 60vh; max-width: fit-content; text-align: center; min-width: 80%; min-height: ">
 
 
 
 
             {% if jamfpro_list %}
                 <div class="table-responsive">
-                    <table id="Jamf Pro Webhooks Table" class="table table-responsive"
-                           style="max-height: 66vh; max-width: fit-content; text-align: center;">
+                    <table id="Jamf Pro Webhooks Table" class="table"
+                           style="max-height: 66vh; max-width: fit-content; text-align: center; min-width: 100%;">
                         <thead class="thead-dark table-bordered">
                         <tr>
                             <th>Jamf Pro Webhook</th>
@@ -90,13 +90,13 @@
                                     </td>
                                     <td>
                                         <div class="overflow-auto log-frame"
-                                             style="max-width: 50vh; max-height: 10vh">
+                                             style="max-width: 20vh; max-height: 10vh">
                                             {{ row.event }}
                                         </div>
                                     </td>
-                                    <td>
+                                    <td class="overflow-auto">
                                         <div class="overflow-auto log-frame"
-                                             style="max-width: 50vh; max-height: 10vh"> {{ row.script }}</div>
+                                             style="max-width: 20vh; max-height: 10vh"> {{ row.script }}</div>
                                     </td>
                                     <td>
                                         <div class="overflow-auto log-frame"
@@ -109,7 +109,7 @@
             {% endif %}
             {% if okta_list %}
                 <table id="Okta Webhooks Table" class="table"
-                       style="max-height: 66vh; max-width: fit-content; text-align: center; min-width: 110vh;">
+                       style="max-height: 66vh; max-width: fit-content; text-align: center; min-width: 100%;">
                     <thead class="thead-dark table-bordered">
                     <tr>
                         <th>Okta Webhook</th>
@@ -161,7 +161,7 @@
             {% if custom_list %}
                 <div class="table-responsive">
                     <table id="Custom Webhooks Table" class="table"
-                           style="max-height: 66vh; max-width: fit-content; text-align: center; min-width: 110vh;">
+                           style="max-height: 66vh; max-width: fit-content; text-align: center; min-width: 100%;">
                         <thead class="thead-dark table-bordered">
                         <tr>
                             <th>Custom Webhook</th>
@@ -198,7 +198,7 @@
             {% if cron_list %}
                 <div class="table-responsive overflow-auto">
                 <table id="Cron Table" class="table overflow-auto"
-                       style="max-height: 66vh; max-width: fit-content; text-align: center; min-width: 110vh">
+                       style="max-height: 66vh; max-width: fit-content; text-align: center; min-width: 100%">
                     <thead class="thead-dark table-bordered">
                     <tr>
                         <th>Timed Automation</th>

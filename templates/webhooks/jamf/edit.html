@@ -48,6 +48,9 @@
                             {% if webhook_info[0]['event'] == "ComputerPushCapabilityChanged" %} selected {% endif %}>
                         ComputerPushCapabilityChanged
                     </option>
+                    <option value="DeviceAddedToDEP" {% if webhook_info[0]['event'] == "DeviceAddedToDEP" %}
+                            selected {% endif %}>DeviceAddedToDEP
+                    </option>
                     <option value="DeviceRateLimited" {% if webhook_info[0]['event'] == "DeviceRateLimited" %}
                             selected {% endif %}>DeviceRateLimited
                     </option>
@@ -95,6 +98,10 @@
                     <option value="SmartGroupMobileDeviceMembershipChange"
                             {% if webhook_info[0]['event'] == "SmartGroupMobileDeviceMembershipChange" %}
                             selected {% endif %}>SmartGroupMobileDeviceMembershipChange
+                    </option>
+                    <option value="SmartGroupUserMembershipChange"
+                            {% if webhook_info[0]['event'] == "SmartGroupUserMembershipChange" %}
+                            selected {% endif %}>SmartGroupUserMembershipChange
                     </option>
                 </select>
 

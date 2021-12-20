@@ -218,9 +218,11 @@ def login():
             resp.raise_for_status()
 
         except requests.exceptions.HTTPError as err:
+            jawa_logger().info(f"Error occurred: {err}")
             return redirect(url_for('logout'))
-
-        response_json = resp.json()
+        except requests.exceptions.ConnectTimeout as err:
+            jawa_logger().info(f"Error occurred: {err}")
+            return (redirect(url_for('logout')))
 
         jawa_logger().info(
             f"[{session.get('url')}] Logging In: " + str(escape(session['username'])))
@@ -233,7 +235,6 @@ def login():
     return redirect(url_for('dashboard'))
 
 
-@app.route('/')
 @app.route('/home.html')
 def index():
     return load_home()

@@ -57,7 +57,8 @@ def webhook_handler(webhook_name):
         return okta_verification.verify_new_webhook(request.headers.get('x-okta-verification-challenge'))
     if request.method != 'POST':
         jawa_logger().info(f"Invalid request, {request.method} for /hooks/{webhook_name}.")
-        return "405 - Method not allowed. These aren't the droids you're looking for. You can go about your business. Move along.", 405
+        return "405 - Method not allowed. These aren't the droids you're looking for. You can go about your business. " \
+               "Move along.", 405
     auth = request.authorization
     webhook_user = "null"
     webhook_pass = "null"
@@ -71,4 +72,4 @@ def webhook_handler(webhook_name):
     else:
         jawa_logger().info(f"{webhook_name} not validated!")
         return "Unauthorized", 401
-    return webhook_data, 200
+    return f"{webhook_data} - 202 Accepted", 202

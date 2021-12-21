@@ -198,7 +198,6 @@ def jp_new():
                                          auth=(session['username'], session['password']),
                                          headers={'Content-Type': 'application/xml'}, data=data,
                                          verify=verify_ssl)
-        print(webhook_response.text)
         jawa_logger().info(f"[{webhook_response.status_code}]  {webhook_response.text}")
         if webhook_response.status_code == 409:
             error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
@@ -208,9 +207,11 @@ def jp_new():
                                    username=str(escape(session['username'])))
 
         result = re.search('<id>(.*)</id>', webhook_response.text)
-        print(result.group(1))
         jamf_id = result.group(1)
         new_link = "{}/webhooks.html?id={}&o=r".format(session['url'], result.group(1))
+        jawa_logger().info(f"{session.get('username')} created a new webhook:"
+                           f"Name: {request.form.get('name')}"
+                           f"Jamf link: {new_link}")
 
         data = json.load(open(webhooks_file))
         webhook_username = request.form.get('username')
@@ -394,10 +395,12 @@ def edit():
                 with open(webhooks_file, 'w') as fout:
                     json.dump(webhooks_json, fout, indent=4)
                 result = re.search('<id>(.*)</id>', webhook_response.text)
-                print(result.group(1))
                 jamf_id = result.group(1)
                 new_link = f"{format(session.get('url'))}/webhooks.html?id={jamf_id}&o=r"
                 success_msg = "Webhook edited:"
+                jawa_logger().info(f"{session.get('username')} edited a Jamf webhook:"
+                                   f"Name: {request.form.get('name')}"
+                                   f"Jamf link: {new_link}")
                 return {"webhooks": "success", "smart_group_instructions": smart_group_instructions,
                         "smart_group_notice": smart_group_notice,
                         "new_link": new_link,

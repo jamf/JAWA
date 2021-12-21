@@ -7,10 +7,8 @@
 
 {% block content %}
     <div class="test-links sub_links sticky-top">
-        {#        <div class="stat"><a href="/wizard">Dashboard</a></div>#}
-        {#        <div class="stat"><a href="/wizard">Dashboard</a></div>#}
-        {#        <div class="stat"><a href="/wizard">Dashboard</a></div>#}
-        {#        <div class="stat"><a href="/wizard">Dashboard</a></div>#}
+    {#    It’s the ship that made the Kessel Run in less than 12 parsecs.    #}
+    {#    Sorry about the mess.    #}
     </div>
 
     <div class="form-container">
@@ -90,17 +88,17 @@
                                     </td>
                                     <td>
                                         <div class="overflow-auto log-frame"
-                                             style="max-width: 20vh; max-height: 10vh">
+                                             style="max-width: 100vh; max-height: 10vh">
                                             {{ row.event }}
                                         </div>
                                     </td>
-                                    <td class="overflow-auto">
-                                        <div class="overflow-auto log-frame"
-                                             style="max-width: 20vh; max-height: 10vh"> {{ row.script }}</div>
+                                    <td class="overflow-auto log-frame">
+                                        <div class="overflow-auto"
+                                             style="max-width: 100vh; max-height: 10vh"> {{ row.script }}</div>
                                     </td>
                                     <td>
                                         <div class="overflow-auto log-frame"
-                                             style="max-width: 50vh; max-height: 10vh"> {{ row.description }}</div>
+                                             style="max-width: 100vh; max-height: 10vh"> {{ row.description }}</div>
                                     </td>
                                 </tr>
                             {% endif %}
@@ -126,30 +124,30 @@
                             {#                                <td>{{ row.name }} (<a href="{{ webhook_url }}/webhooks.html?id={{ row.jamf_id }}"#}
                             <td>
                                 <div class="overflow-auto log-frame"
-                                     style="max-width: 50vh; max-height: 10vh">
+                                     style="max-width: 100vh; max-height: 10vh">
                                     {{ row.name }} (<a href="../webhooks/delete?target_webhook={{ row.name }}"
                                                        style="color:#3c6aa7;">Delete</a>)
                                 </div>
                             </td>
                             <td>
                                 <div class="overflow-auto log-frame"
-                                     style="max-width: 50vh; max-height: 10vh">
+                                     style="max-width: 100vh; max-height: 10vh">
                                     {{ row.okta_event }}
                                 </div>
                             </td>
                             <td>
                                 <div class="overflow-auto log-frame text-break"
-                                     style="max-width: 30vh; max-height: 10vh">
+                                     style="max-width: 100vh; max-height: 10vh">
                                     {{ row.script }}
                                 </div>
                             </td>
                             <td>
-                                <div class="overflow-auto log-frame" style="max-width: 30vh; max-height: 10vh">
+                                <div class="overflow-auto log-frame" style="max-width: 100vh; max-height: 10vh">
                                     {{ row.okta_url }}
                                 </div>
                             </td>
                             <td>
-                                <div class="overflow-auto log-frame" style="max-width: 50vh; max-height: 10vh">
+                                <div class="overflow-auto log-frame" style="max-width: 100vh; max-height: 10vh">
                                     {{ row.description }}
                                 </div>
                             </td>
@@ -177,12 +175,12 @@
                                                            style="color:#3c6aa7;">Edit</a>)
                                     </td>
                                     <td>
-                                        <div class="overflow-auto log-frame" style="max-width: 50vh; max-height: 10vh">
+                                        <div class="overflow-auto log-frame" style="max-width: 100vh; max-height: 10vh">
                                             {{ row.script }}
                                         </div>
                                     </td>
                                     <td>
-                                        <div class="overflow-auto log-frame" style="max-width: 50vh; max-height: 10vh">
+                                        <div class="overflow-auto log-frame" style="max-width: 100vh; max-height: 10vh">
                                             {{ row.description }}
                                         </div>
                                     </td>
@@ -208,16 +206,14 @@
                     </tr>
                     </thead>
                     {% for row in cron_list %}
-                        {#                        {% if row.url == session['url'] %}#}
                         <tr>
-                            {#                                <td>{{ row.name }} (<a href="{{ webhook_url }}/webhooks.html?id={{ row.jamf_id }}"#}
-                            <td>{{ row.name }}
-                                {#                                (<a href="../cron/edit?name={{ row.name }}" style="color:#3c6aa7;">Edit</a>)#}
+                            <td>{{ row.name }} (<a href="../cron/edit?name={{ row.name }}"
+                                                               style="color:#3c6aa7;">Edit</a>)
                             </td>
                             <td>{{ row.frequency }}</td>
                             <td>{{ row.script }}</td>
                             <td>
-                                <div class="overflow-auto log-frame" style="max-width: 50vh; max-height: 10vh">
+                                <div class="overflow-auto log-frame" style="max-width: 100vh; max-height: 10vh">
                                     {{ row.description }}
                                 </div>
                             </td>

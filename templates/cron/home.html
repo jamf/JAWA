@@ -6,9 +6,8 @@
 {% block title %}Timed Automations Dashboard{% endblock %}
 {% block content %}
     <div class="test-links sub_links sticky-top">
-        <div class="stat"><a href="/dashboard">JAWA Dashboard</a></div>
-        <div class="stat"><a href="/cron/new">Create Timed Job</a></div>
-        <div class="stat"><a href="/cron/delete">Delete Timed Job</a></div>
+        <div class="stat"><a href="/cron/new">New Timed Job</a></div>
+        <div class="stat"><a href="/cron">All Timed Automations</a></div>
     </div>
     <div class="form-container" style="min-height: 82vh">
         <div class="table-view overflow-auto" style="max-width: 55vh">
@@ -46,7 +45,8 @@
                         {#                        {% if row.url == session['url'] %}#}
                         <tr>
                             {#                                <td>{{ row.name }} (<a href="{{ webhook_url }}/webhooks.html?id={{ row.jamf_id }}"#}
-                            <td>{{ row.name }}
+                            <td>{{ row.name }}  (<a href="../cron/edit?name={{ row.name }}"
+                                                               style="color:#3c6aa7;">Edit</a>)
                                 {#                                (<a href="../cron/edit?name={{ row.name }}" style="color:#3c6aa7;">Edit</a>)#}
                             </td>
                             <td>{{ row.frequency }}</td>

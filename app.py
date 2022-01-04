@@ -1,8 +1,7 @@
 #!/usr/bin/python3
-# encoding: utf-8
+
 from collections import defaultdict
 from datetime import timedelta
-
 from flask import (Flask, request, render_template,
                    session, redirect, url_for, escape)
 import glob
@@ -253,26 +252,25 @@ def load_home():
         return render_template('home.html')
     brand = server_json.get("brand")
 
-    if 'jps_url' not in server_json:
+    if (
+            'jps_url' not in server_json
+            or server_json['jps_url'] is None
+            or len(server_json['jps_url']) == 0
+    ):
         return render_template('home.html', app_name=brand)
-    elif server_json['jps_url'] is None:
+    if 'alternate_jps' not in server_json:
         return render_template('home.html', app_name=brand)
-    elif len(server_json['jps_url']) == 0:
-        return render_template('home.html', app_name=brand)
-    else:
-        if 'alternate_jps' not in server_json:
-            return render_template('home.html', app_name=brand)
 
-        if server_json['alternate_jps'] != "":
-            return render_template('home.html',
-                                   jps_url=server_json['jps_url'],
-                                   jps_url2=server_json['alternate_jps'],
-                                   welcome="true", jsslock="true", app_name=brand)
-
-        session['url'] = server_json['jps_url']
+    if server_json['alternate_jps'] != "":
         return render_template('home.html',
-                               jps_url=str(escape(session['url'])),
+                               jps_url=server_json['jps_url'],
+                               jps_url2=server_json['alternate_jps'],
                                welcome="true", jsslock="true", app_name=brand)
+
+    session['url'] = server_json['jps_url']
+    return render_template('home.html',
+                           jps_url=str(escape(session['url'])),
+                           welcome="true", jsslock="true", app_name=brand)
 
 
 @app.route("/")
@@ -281,18 +279,16 @@ def home():
         return redirect(url_for('dashboard'))
     with open(server_json_file) as json_file:
         server_json = json.load(json_file)
-    # print(server_json)
-    if 'jps_url' not in server_json:
+    if (
+            'jps_url' not in server_json
+            or server_json['jps_url'] is None
+            or len(server_json['jps_url']) == 0
+    ):
         return render_template('home.html')
-    elif server_json['jps_url'] is None:
-        return render_template('home.html')
-    elif len(server_json['jps_url']) == 0:
-        return render_template('home.html')
-    else:
-        session['url'] = server_json['jps_url']
-        return render_template('home.html',
-                               jps_url=str(escape(session['url'])),
-                               welcome="true", jsslock="true")
+    session['url'] = server_json['jps_url']
+    return render_template('home.html',
+                           jps_url=str(escape(session['url'])),
+                           welcome="true", jsslock="true")
 
 
 @app.route("/dashboard")
@@ -321,15 +317,21 @@ def dashboard():
         with open(cron_file, "w") as outfile:
             json.dump(data, outfile)
 
-    with open(cron_file) as cron_json:
-        cron_list = json.load(cron_json)
-        cron_json = []
-        for cron in cron_list:
-            script = cron['script'].rsplit('/', 1)
-            cron_json.append({"name": cron['name'],
-                              "frequency": cron['frequency'],
-                              "script": script[1],
-                              "description": cron['description']})
+    with open(cron_file, "r") as cron_json:
+        try:
+            cron_list = json.load(cron_json)
+        except json.decoder.JSONDecodeError as err:
+            with open(cron_file, "w") as cron_json:
+                cron_list = []
+                json.dump(cron_list, cron_json, indent=4)
+
+    cron_json = []
+    for cron in cron_list:
+        script = cron['script'].rsplit('/', 1)
+        cron_json.append({"name": cron['name'],
+                          "frequency": cron['frequency'],
+                          "script": script[1],
+                          "description": cron['description']})
 
     webhook_url = session['url']
 
@@ -355,7 +357,7 @@ def dashboard():
 @app.route('/success', methods=['GET', 'POST'])
 def success():
     if 'username' not in session:
-        jawa_logger().info(f"No user logged in - returning to login page.")
+        jawa_logger().info("No user logged in - returning to login page.")
         return redirect(url_for('logout'))
     return render_template(
         'success.html',

@@ -300,6 +300,7 @@ def edit_cron():
                 script_file = os.path.join(scripts_dir, new_script_name)
                 os.chmod(script_file, mode=0o0755)
                 os.chdir(owd)
+                each_cron['script'] = script_file
             else:
                 script_file = each_cron.get('script')
         try:

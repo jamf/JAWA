@@ -275,21 +275,7 @@ def load_home():
 
 @app.route("/")
 def home():
-    if 'username' in session:
-        return redirect(url_for('dashboard'))
-    with open(server_json_file) as json_file:
-        server_json = json.load(json_file)
-    if (
-            'jps_url' not in server_json
-            or server_json['jps_url'] is None
-            or len(server_json['jps_url']) == 0
-    ):
-        return render_template('home.html')
-    session['url'] = server_json['jps_url']
-    return render_template('home.html',
-                           jps_url=str(escape(session['url'])),
-                           welcome="true", jsslock="true")
-
+    return load_home()
 
 @app.route("/dashboard")
 def dashboard():

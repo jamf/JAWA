@@ -25,6 +25,7 @@
                 <option value="everyday">Every Day</option>
                 <option value="everyweek">Every Week</option>
                 <option value="everymonth">Every Month</option>
+                <option value="custom">Custom</option>
             </select></br>
 
             <div id="hiddenDiv" style="display:none">
@@ -103,7 +104,10 @@
 
             <div id="hiddenDivFour" style="display:none">
             </div>
-
+                 <div id="hiddenDivFive" style="display:none">
+                <label>Set your custom frequency:</label>
+               <input type="text" name="customfreq">
+            </div>
             <div class="d-flex justify-content-center">
                 <br><b>Script: &nbsp</b>
                 <input type="file" name="script" required
@@ -124,28 +128,39 @@
             if (aval == "everyday") {
                 hiddenDiv.style.display = 'inline-block';
                 hiddenDivTwo.style.display = 'none';
-                hiddenDivFour.style.display = 'none';
                 hiddenDivThree.style.display = 'none';
+                hiddenDivFour.style.display = 'none';
+                hiddenDivFive.style.display = 'none';
             } else if (aval == "everyweek") {
+                hiddenDiv.style.display = 'none';
                 hiddenDivTwo.style.display = 'inline-block';
-                hiddenDiv.style.display = 'none';
-                hiddenDivFour.style.display = 'none';
                 hiddenDivThree.style.display = 'none';
+                hiddenDivFour.style.display = 'none';
+                hiddenDivFive.style.display = 'none';
             } else if (aval == "everymonth") {
+                hiddenDiv.style.display = 'none';
+                hiddenDivTwo.style.display = 'none';
                 hiddenDivThree.style.display = 'inline-block';
+                hiddenDivFour.style.display = 'none';
+                hiddenDivFive.style.display = 'none';
+            } else if (aval == "custom") {
                 hiddenDiv.style.display = 'none';
                 hiddenDivTwo.style.display = 'none';
-                hiddenDivFour.style.display = 'none';
-            } else if (aval == "") {
-                hiddenDivFour.style.display = 'none';
                 hiddenDivThree.style.display = 'none';
+                hiddenDivFour.style.display = 'none';
+                hiddenDivFive.style.display = 'inline-block';
+            } else if (aval == "") {
                 hiddenDiv.style.display = 'none';
                 hiddenDivTwo.style.display = 'none';
+                hiddenDivThree.style.display = 'none';
+                hiddenDivFour.style.display = 'none';
+                hiddenDivFive.style.display = 'none';
             } else {
                 hiddenDiv.style.display = 'none';
                 hiddenDivTwo.style.display = 'none';
-                hiddenDivFour.style.display = 'none';
                 hiddenDivThree.style.display = 'none';
+                hiddenDivFour.style.display = 'none';
+                hiddenDivFive.style.display = 'none';
             }
         }
 

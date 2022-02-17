@@ -65,7 +65,6 @@ def new_cron():
     script = request.files['script']
     if ' ' in script.filename:
         script.filename = script.filename.replace(" ", "-")
-        print(str(script.filename))
     new_script_name = f"cron_{cron_name}_{script.filename}"
     script.save(secure_filename(new_script_name))
     script_file = os.path.join(scripts_dir, new_script_name)
@@ -102,9 +101,6 @@ def new_cron():
                  "frequency": frequency,
                  "script": script_file})
 
-    with open(cron_json_file, 'w') as outfile:
-        json.dump(data, outfile, indent=4)
-
     if frequency == "everyhour":
         job1 = cron.new(command=script_file, comment=cron_name)
         job1.every().hours()
@@ -137,6 +133,18 @@ def new_cron():
         job1.minute.on(0)
         cron.write()
 
+    if frequency == "custom":
+        custom_frequency = request.form.get('customfreq')
+        try:
+            job1 = cron.new(command=script_file, comment=cron_name)
+            job1.setall(f'{custom_frequency}')
+            cron.write()
+        except KeyError or ValueError as err:
+            return render_template('error.html', error="Custom Crontab Frequency Error",
+                                   error_message=f"The custom job frequency that was presented is invalid:  '{err}'.  "
+                                                 f"Please check your syntax and try again.")
+    with open(cron_json_file, 'w') as outfile:
+        json.dump(data, outfile, indent=4)
     success_msg = f"{session.get('username')} created {cron_name} for every {frequency[5:]}."
     jawa_logger().info(f"{session.get('username')} created {cron_name} for every {frequency[5:]}.")
 
@@ -195,7 +203,7 @@ def delete_cron():
     for d in data:
         if d['name'] == target_job:
             script_path = (d['script'])
-            new_script_path = script_path + '.old'
+            new_script_path = f'{script_path}.old'
             if os.path.exists(script_path):
                 os.rename(script_path, new_script_path)
 
@@ -289,7 +297,6 @@ def edit_cron():
             script = request.files.get('script')
             if ' ' in script.filename:
                 script.filename = script.filename.replace(" ", "-")
-                print(str(script.filename))
             if script.filename:
                 if not os.path.isdir(scripts_dir):
                     os.mkdir(scripts_dir)
@@ -337,6 +344,16 @@ def edit_cron():
                     each_job.day.on(day)
                     each_job.hour.on(time)
                     each_job.minute.on(0)
+                if frequency == "custom":
+                    custom_frequency = request.form.get('customfreq')
+                    try:
+                        each_job.setall(f'{custom_frequency}')
+                    except KeyError or ValueError as err:
+                        custom_frequency = custom_frequency.replace(" ", "_")
+                        return render_template('error.html', error="Custom Crontab Frequency Error",
+                                               error_message=f"The custom job frequency that was presented is invalid:  '{err}'.  "
+                                                             f"Please check your syntax and try again.\n"
+                                                             f"Check your syntax:  ", link=f"https://crontab.guru/#{custom_frequency}")
 
             cron.write()
 

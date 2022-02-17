@@ -381,17 +381,27 @@ def edit():
                 full_url = f"{session['url']}/JSSResource/webhooks/id/{each_webhook.get('jamf_id')}"
 
                 jawa_logger().info(f"{session.get('username')} editing the JPS webhook {name}.")
-                webhook_response = requests.put(full_url,
+                try:
+                    webhook_response = requests.put(full_url,
                                                 auth=(session['username'], session['password']),
                                                 headers={'Content-Type': 'application/xml'}, data=data,
                                                 verify=verify_ssl)
-                jawa_logger().info(f"[{webhook_response.status_code}]  {webhook_response.text}")
-                if webhook_response.status_code == 409:
-                    error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
+                except:
+                    error_message = f"The request could not be sent to your Jamf Pro server," \
+                                    f"check your network connection."
                     return render_template('error.html',
                                            error_message=error_message,
                                            error="error",
                                            username=str(escape(session['username'])))
+                jawa_logger().info(f"[{webhook_response.status_code}]  {webhook_response.text}")
+                if webhook_response.status_code == 409:
+                    error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
+                    return redirect(url_for('error', error="Duplicate", error_message=error_message, username=session.get('username')))
+                elif webhook_response.status_code == 401:
+                    error_message = f"{session.get('username').title()} doesn't have privileges to update webhooks." \
+                                    f"Check your account privileges in Jamf Pro Settings"
+                    return redirect(url_for('error', error="Insufficient privileges", error_message=error_message,
+                                            username=session.get('username')))
                 with open(webhooks_file, 'w') as fout:
                     json.dump(webhooks_json, fout, indent=4)
                 result = re.search('<id>(.*)</id>', webhook_response.text)

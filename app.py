@@ -353,11 +353,13 @@ def success():
 
 @app.route('/error', methods=['GET', 'POST'])
 def error():
+    error_title = request.args.get('error')
+    error_message = request.args.get('error_message')
     if 'username' not in session:
         return redirect(url_for('logout'))
     jawa_logger().info(
         f"[{session.get('url')}] {session.get('username').title()} was a victim of a series of accidents, as are we all. (/error)")
-    return render_template('error.html', username=session.get('username'))
+    return render_template('error.html', username=session.get('username'), error_message=error_title, error=error_message)
 
 
 @app.errorhandler(404)

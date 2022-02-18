@@ -81,8 +81,7 @@ def new_cron():
     data = json.load(open(cron_json_file))
 
     for i in data:
-        print(i)
-        print(" ~ ~ ~ ~ ~")  # Mister Krabs
+        # Mister Krabs
         if str(i['name']) == cron_name:
             error_message = "Name already exists!"
             return render_template('error.html',
@@ -142,7 +141,9 @@ def new_cron():
         except KeyError or ValueError as err:
             return render_template('error.html', error="Custom Crontab Frequency Error",
                                    error_message=f"The custom job frequency that was presented is invalid:  '{err}'.  "
-                                                 f"Please check your syntax and try again.")
+                                                 f"Please check your syntax and try again.\n"
+                                                 f"Check your syntax:  ",
+                                   link=f"https://crontab.guru/#{custom_frequency}")
     with open(cron_json_file, 'w') as outfile:
         json.dump(data, outfile, indent=4)
     success_msg = f"{session.get('username')} created {cron_name} for every {frequency[5:]}."

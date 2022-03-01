@@ -25,7 +25,7 @@ blueprint = Blueprint('cron', __name__)
 @response(template_file='cron/home.html')
 def cron_home():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     jawa_logger().info(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
     with open(cron_json_file, 'r') as fin:
         cron_json = json.load(fin)
@@ -36,7 +36,7 @@ def cron_home():
 @blueprint.route('/cron/new', methods=['GET', 'POST'])
 def new_cron():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     jawa_logger().info(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
     days, frequencies, hours = time_definitions()
 
@@ -95,11 +95,6 @@ def new_cron():
         os.remove(script_file)
         return render_template('error.html', error=err, username=session.get('username'))
 
-    data.append({"name": cron_name,
-                 "description": cron_description,
-                 "frequency": frequency,
-                 "script": script_file})
-
     if frequency == "everyhour":
         job1 = cron.new(command=script_file, comment=cron_name)
         job1.every().hours()
@@ -144,10 +139,17 @@ def new_cron():
                                                  f"Please check your syntax and try again.\n"
                                                  f"Check your syntax:  ",
                                    link=f"https://crontab.guru/#{custom_frequency}")
+        frequency = f"Custom [ {custom_frequency} ]"
+
+    data.append({"name": cron_name,
+                 "description": cron_description,
+                 "frequency": frequency,
+                 "script": script_file})
+
     with open(cron_json_file, 'w') as outfile:
         json.dump(data, outfile, indent=4)
-    success_msg = f"{session.get('username')} created {cron_name} for every {frequency[5:]}."
-    jawa_logger().info(f"{session.get('username')} created {cron_name} for every {frequency[5:]}.")
+    success_msg = f"{session.get('username')} created {cron_name} to run at the frequency:  {frequency}."
+    jawa_logger().info(f"{success_msg}")
 
     return render_template('success.html',
                            webhooks="success", success_msg=success_msg,
@@ -182,7 +184,7 @@ def time_definitions():
 @blueprint.route('/cron/delete', methods=['GET', 'POST'])
 def delete_cron():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     jawa_logger().info(f"[{session.get('url')}] {session.get('username')} viewed {request.path}")
     target_job = request.args.get('target_job')
     with open(cron_json_file) as fin:
@@ -232,7 +234,7 @@ def delete_cron():
 @blueprint.route('/cron/edit', methods=['GET', 'POST'])
 def edit_cron():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     jawa_logger().info(f"[{session.get('url')}] {session.get('username')} viewed {request.path}")
     with open(cron_json_file) as fin:
         cron_json = json.load(fin)
@@ -294,7 +296,12 @@ def edit_cron():
                 frequency = each_cron.get('frequency')
             else:
                 frequency_change = True
-            each_cron['frequency'] = frequency
+            if frequency == "custom":
+                frequency_change = True
+                custom_frequency = request.form.get('customfreq')
+                each_cron['frequency'] = f"Custom [ {custom_frequency} ]"
+            else:
+                each_cron['frequency'] = frequency
             script = request.files.get('script')
             if ' ' in script.filename:
                 script.filename = script.filename.replace(" ", "-")
@@ -354,14 +361,15 @@ def edit_cron():
                         return render_template('error.html', error="Custom Crontab Frequency Error",
                                                error_message=f"The custom job frequency that was presented is invalid:  '{err}'.  "
                                                              f"Please check your syntax and try again.\n"
-                                                             f"Check your syntax:  ", link=f"https://crontab.guru/#{custom_frequency}")
+                                                             f"Check your syntax:  ",
+                                               link=f"https://crontab.guru/#{custom_frequency}")
 
             cron.write()
 
     with open(cron_json_file, 'w') as outfile:
         json.dump(cron_json, outfile, indent=4)
-    success_msg = f"{session.get('username')} created {new_cron_name} for every {frequency[5:]}."
-    jawa_logger().info(f"{session.get('username')} created {new_cron_name} for every {frequency[5:]}.")
+    success_msg = f"{session.get('username')} created {new_cron_name} to run at the frequency:  {frequency}."
+    jawa_logger().info(f"{success_msg}")
 
     return render_template('success.html',
                            webhooks="success",

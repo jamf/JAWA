@@ -218,10 +218,13 @@ def login():
 
         except requests.exceptions.HTTPError as err:
             jawa_logger().info(f"Error occurred: {err}")
-            return redirect(url_for('logout'))
+            return redirect(url_for('logout', error_title="HTTP Error", error_message=err))
         except requests.exceptions.ConnectTimeout as err:
             jawa_logger().info(f"Error occurred: {err}")
-            return (redirect(url_for('logout')))
+            return redirect(url_for('logout', error_title="Connection Timeout", error_message=err))
+        except requests.exceptions.ConnectionError as err:
+            jawa_logger().info(f"Error occurred: {err}")
+            return redirect(url_for('logout', error_title="HTTP Error", error_message=err))
 
         jawa_logger().info(
             f"[{session.get('url')}] Logging In: " + str(escape(session['username'])))
@@ -239,7 +242,7 @@ def index():
     return load_home()
 
 
-def load_home():
+def load_home(error_title="", error_message=""):
     if 'username' in session:
         return redirect(url_for('dashboard'))
     if not os.path.isfile(server_json_file):
@@ -259,28 +262,31 @@ def load_home():
     ):
         return render_template('home.html', app_name=brand)
     if 'alternate_jps' not in server_json:
-        return render_template('home.html', app_name=brand)
+        return render_template('home.html', app_name=brand, error_title=error_title, error_message=error_message)
 
     if server_json['alternate_jps'] != "":
         return render_template('home.html',
                                jps_url=server_json['jps_url'],
                                jps_url2=server_json['alternate_jps'],
-                               welcome="true", jsslock="true", app_name=brand)
+                               welcome="true", jsslock="true", app_name=brand, error_title=error_title,
+                               error_message=error_message)
 
     session['url'] = server_json['jps_url']
     return render_template('home.html',
                            jps_url=str(escape(session['url'])),
-                           welcome="true", jsslock="true", app_name=brand)
+                           welcome="true", jsslock="true", app_name=brand, error_title=error_title,
+                           error_message=error_message)
 
 
 @app.route("/")
 def home():
     return load_home()
 
+
 @app.route("/dashboard")
 def dashboard():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     jawa_logger().info(f"[{session.get('url')}] {session.get('username')} rendering /dashboard.")
     with open(webhooks_file) as webhook_json:
         webhooks_installed = json.load(webhook_json)
@@ -359,7 +365,8 @@ def error():
         return redirect(url_for('logout'))
     jawa_logger().info(
         f"[{session.get('url')}] {session.get('username').title()} was a victim of a series of accidents, as are we all. (/error)")
-    return render_template('error.html', username=session.get('username'), error_message=error_title, error=error_message)
+    return render_template('error.html', username=session.get('username'), error_message=error_title,
+                           error=error_message)
 
 
 @app.errorhandler(404)
@@ -375,10 +382,12 @@ def page_not_found(error):
 
 @app.route('/logout')
 def logout():
+    error_title = request.args.get('error_title')
+    error_message = request.args.get('error_message')
     if session.get('username'):
         logger.info("Logging Out: " + str(escape(session['username'])))
         session.pop('username', None)
-    return load_home()
+    return load_home(error_title, error_message)
 
 
 if __name__ == '__main__':

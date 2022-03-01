@@ -23,7 +23,7 @@ blueprint = Blueprint('jamf_pro_webhooks', __name__)
 @response(template_file='webhooks/jamf/home.html')
 def jamf_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     with open(webhooks_file, 'r') as fin:
         webhooks_json = json.load(fin)
     jamf_pro_list = []
@@ -41,7 +41,7 @@ def jamf_webhook():
 @blueprint.route('/webhooks/jamf/new', methods=['GET', 'POST'])
 def jp_new():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if not os.path.isfile(server_json_file):
         return render_template('setup/setup.html',
                                setup="setup",
@@ -62,7 +62,7 @@ def jp_new():
             json.dump(data, outfile, indent=4)
 
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if request.method != 'POST':
         return render_template('webhooks/jamf/new.html',
                                webhooks="webhooks",
@@ -253,7 +253,7 @@ def jp_new():
 @response(template_file='webhooks/jamf/edit.html')
 def edit():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     name = request.args.get('name')
     with open(webhooks_file) as fin:
         webhooks_json = json.load(fin)

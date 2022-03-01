@@ -20,7 +20,7 @@ blueprint = Blueprint('resources_view', __name__, template_folder='templates')
 @blueprint.route('/resources/files', methods=['GET', 'POST'])
 def files():
     if 'username' not in session:
-        return load_home()
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     target_file = request.args.get('target_file')
     button_choice = request.args.get('button_choice')
     if target_file:
@@ -58,7 +58,7 @@ def files():
 @response(template_file='setup/branding.html')
 def rebrand():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if not os.path.isfile(server_file):
         with open(server_file, "w") as fout:
             json.dump({}, fout)
@@ -90,7 +90,7 @@ def rebrand():
 @response(template_file="resources/python.html")
 def python():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     return {"username": session.get('username')}
 
 
@@ -98,7 +98,7 @@ def python():
 @response(template_file="resources/bash.html")
 def bash():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     return {"username": session.get('username')}
 
 

@@ -23,7 +23,7 @@ scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scr
 @response(template_file='webhooks/custom/home.html')
 def custom_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     with open(webhooks_file, 'r') as fin:
         webhooks_json = json.load(fin)
     custom_webhooks_list = []
@@ -41,7 +41,7 @@ def custom_webhook():
 @response(template_file='webhooks/custom/edit.html')
 def edit_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     name = request.args.get('name')
     jawa_logger().info(f"Checking for custom webhook '{name}'")
     with open(webhooks_file) as fin:
@@ -106,7 +106,7 @@ def edit_webhook():
 @response(template_file='webhooks/custom/new.html')
 def new_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if request.method == 'POST':
         new_custom_name = request.form.get('custom_name')
         description = request.form.get('description')

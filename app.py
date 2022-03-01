@@ -104,7 +104,7 @@ def register_blueprints():
 @app.route('/setup', methods=['GET', 'POST'])
 def setup():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if request.method == 'POST':
         jawa_logger().debug(f"[{session.get('url')}] {session.get('username')} /setup - POST")
         server_url = request.form.get('address')
@@ -165,7 +165,7 @@ def setup():
 @response(template_file="setup/cleanup.html")
 def cleanup():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if request.method != 'POST':
         return {"username": session.get('username'), "scripts_dir": scripts_directory}
     logger.info(f"[{session.get('url')}] {session.get('username')} is cleaning up scripts...")
@@ -206,7 +206,7 @@ def login():
         jawa_logger().info(f"[{session.get('url')}] Attempting login for: {session.get('username')}")
 
         if request.form['password'] == "":
-            return redirect(url_for('logout'))
+            return redirect(url_for('logout', error_title="Authentication error", error_message="Passwords can't be blank"))
         try:
             resp = requests.get(
                 session['url'] + '/JSSResource/activationcode',
@@ -232,7 +232,7 @@ def login():
         return redirect(url_for('dashboard'))
 
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
 
     return redirect(url_for('dashboard'))
 
@@ -350,7 +350,7 @@ def dashboard():
 def success():
     if 'username' not in session:
         jawa_logger().info("No user logged in - returning to login page.")
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     return render_template(
         'success.html',
         login="true",

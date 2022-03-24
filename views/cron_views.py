@@ -29,7 +29,6 @@ def cron_home():
     jawa_logger().info(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
     with open(cron_json_file, 'r') as fin:
         cron_json = json.load(fin)
-    print(cron_json)
     return {"username": session.get('username'), "cron_list": cron_json}
 
 
@@ -89,9 +88,9 @@ def new_cron():
                                    error="error",
                                    username=str(escape(session['username'])))
     try:
-        cron = CronTab(user='jawa')
+        cron = CronTab(user=True)
     except IOError as err:
-        print(err)
+        jawa_logger().info(f"{err}")
         os.remove(script_file)
         return render_template('error.html', error=err, username=session.get('username'))
 
@@ -133,12 +132,14 @@ def new_cron():
             job1 = cron.new(command=script_file, comment=cron_name)
             job1.setall(f'{custom_frequency}')
             cron.write()
-        except KeyError or ValueError as err:
-            return render_template('error.html', error="Custom Crontab Frequency Error",
-                                   error_message=f"The custom job frequency that was presented is invalid:  '{err}'.  "
-                                                 f"Please check your syntax and try again.\n"
-                                                 f"Check your syntax:  ",
-                                   link=f"https://crontab.guru/#{custom_frequency}")
+        except (KeyError, ValueError) as err:
+            return render_template(
+                'error.html',
+                error="Custom Crontab Frequency Error",
+                error_message=f"The custom job frequency that was presented is invalid:  '{err}'.  Please check your syntax and try again.\nCheck your syntax:  ",
+                link=f"https://crontab.guru/#{custom_frequency}",
+            )
+
         frequency = f"Custom [ {custom_frequency} ]"
 
     data.append({"name": cron_name,
@@ -148,7 +149,7 @@ def new_cron():
 
     with open(cron_json_file, 'w') as outfile:
         json.dump(data, outfile, indent=4)
-    success_msg = f"{session.get('username')} created {cron_name} to run at the frequency:  {frequency}."
+    success_msg = f"{session.get('username')} created {cron_name} to run at the frequency:\n {frequency}."
     jawa_logger().info(f"{success_msg}")
 
     return render_template('success.html',
@@ -211,9 +212,9 @@ def delete_cron():
                 os.rename(script_path, new_script_path)
 
     try:
-        cron = CronTab(user='jawa')
+        cron = CronTab(user=True)
     except IOError as err:
-        print(err)
+        jawa_logger().info(f"{err}")
         return render_template('error.html', error=err, username=session.get('username'))
 
     for job in cron:
@@ -253,7 +254,7 @@ def edit_cron():
     jawa_logger().info(f"{session.get('username').title()} checking for job '{name}' in JAWA's crontab")
 
     try:
-        cron = CronTab(user="jawa")
+        cron = CronTab(user=True)
     except IOError as err:
         jawa_logger().info(f"Error accessing crontab - {err}")
         return render_template('error.html', error=err, username=session.get('username'))
@@ -274,6 +275,13 @@ def edit_cron():
         return render_template('cron/edit.html',
                                content=names, edit_name=name, description=description, days=days, hours=hours,
                                frequencies=frequencies, username=str(escape(session['username'])))
+
+    if ' ' in request.form.get('cron_name'):
+        error_message = "Single-string name only."
+        return render_template('error.html',
+                               error_message=error_message,
+                               error="error",
+                               username=str(escape(session['username'])))
 
     button_choice = request.form.get('button_choice')
     if button_choice == 'Delete':
@@ -319,7 +327,7 @@ def edit_cron():
             else:
                 script_file = each_cron.get('script')
         try:
-            cron = CronTab(user='jawa')
+            cron = CronTab(user=True)
         except IOError as err:
             jawa_logger().info(f"Error accessing crontab - {err}")
             return render_template('error.html', error=err, username=session.get('username'))
@@ -371,6 +379,6 @@ def edit_cron():
     success_msg = f"{session.get('username')} created {new_cron_name} to run at the frequency:  {frequency}."
     jawa_logger().info(f"{success_msg}")
 
-    return render_template('success.html',
+    return render_template('success.html', success_msg=success_msg,
                            webhooks="success",
                            username=str(escape(session['username'])))

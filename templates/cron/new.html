@@ -12,7 +12,7 @@
         <form method="post" class="table-view" action="/cron/new" enctype="multipart/form-data">
             <h1>New Timed Job</h1>
             <input type="text" class="form-control" placeholder="Name of Timed Job (cron task)" name="cron_name"
-                   required autofocus
+                   required autofocus pattern="[^' ']+"
                    oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')"></br>
             <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
                       class="form-control">{{ description }}</textarea><br>

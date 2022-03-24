@@ -15,7 +15,7 @@
                 <h1>Edit {% if request.args.get('name') %}{{ request.args.get('name') }}{% else %}Timed
                     Automation{% endif %}</h1>
                 <input type="text" class="form-control" placeholder="Edit Timed Automation Name (optional)"
-                       name="cron_name"
+                       name="cron_name" pattern="[^' ']+"
                        required autofocus value="{{ request.args.get('name') }}"
                        oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')"></br>
                 <textarea name="description" rows=3 type="text" placeholder="Description (optional)"

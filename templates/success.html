@@ -9,7 +9,11 @@
     <form method="get" class="table-view" action="/dashboard">
         <h3 class="alert-success">Success!</h3>
         <div class="  overflow-auto" style="max-width: 100vh">
-            {{ success_msg }} <br>
+            <p>
+                {% for each_line in success_msg.split('\n') %}
+                {{ each_line }}<br>
+                </p>
+            {% endfor %}
             {% if smart_group_notice %}
                 <b>{{ smart_group_notice }}</b> <br> {{ smart_group_instructions }}
             {% endif %}

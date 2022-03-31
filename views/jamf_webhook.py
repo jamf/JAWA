@@ -23,7 +23,7 @@ blueprint = Blueprint('jamf_pro_webhooks', __name__)
 @response(template_file='webhooks/jamf/home.html')
 def jamf_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     with open(webhooks_file, 'r') as fin:
         webhooks_json = json.load(fin)
     jamf_pro_list = []
@@ -41,7 +41,7 @@ def jamf_webhook():
 @blueprint.route('/webhooks/jamf/new', methods=['GET', 'POST'])
 def jp_new():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if not os.path.isfile(server_json_file):
         return render_template('setup/setup.html',
                                setup="setup",
@@ -62,7 +62,7 @@ def jp_new():
             json.dump(data, outfile, indent=4)
 
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if request.method != 'POST':
         return render_template('webhooks/jamf/new.html',
                                webhooks="webhooks",
@@ -131,6 +131,7 @@ def jp_new():
         if request.form.get('event') in [
             'SmartGroupMobileDeviceMembershipChange',
             'SmartGroupComputerMembershipChange',
+            'SmartGroupUserMembershipChange'
         ]:
 
             smart_group_notice = "NOTICE!  This webhook is not yet enabled."
@@ -198,7 +199,6 @@ def jp_new():
                                          auth=(session['username'], session['password']),
                                          headers={'Content-Type': 'application/xml'}, data=data,
                                          verify=verify_ssl)
-        print(webhook_response.text)
         jawa_logger().info(f"[{webhook_response.status_code}]  {webhook_response.text}")
         if webhook_response.status_code == 409:
             error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
@@ -208,9 +208,11 @@ def jp_new():
                                    username=str(escape(session['username'])))
 
         result = re.search('<id>(.*)</id>', webhook_response.text)
-        print(result.group(1))
         jamf_id = result.group(1)
         new_link = "{}/webhooks.html?id={}&o=r".format(session['url'], result.group(1))
+        jawa_logger().info(f"{session.get('username')} created a new webhook:"
+                           f"Name: {request.form.get('name')}"
+                           f"Jamf link: {new_link}")
 
         data = json.load(open(webhooks_file))
         webhook_username = request.form.get('username')
@@ -252,7 +254,7 @@ def jp_new():
 @response(template_file='webhooks/jamf/edit.html')
 def edit():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     name = request.args.get('name')
     with open(webhooks_file) as fin:
         webhooks_json = json.load(fin)
@@ -311,6 +313,7 @@ def edit():
                 if each_webhook.get('event') in [
                     'SmartGroupMobileDeviceMembershipChange',
                     'SmartGroupComputerMembershipChange',
+                    'SmartGroupUserMembershipChange'
                 ]:
 
                     smart_group_notice = "NOTICE!  This webhook is currently disabled."
@@ -380,24 +383,36 @@ def edit():
                 full_url = f"{session['url']}/JSSResource/webhooks/id/{each_webhook.get('jamf_id')}"
 
                 jawa_logger().info(f"{session.get('username')} editing the JPS webhook {name}.")
-                webhook_response = requests.put(full_url,
+                try:
+                    webhook_response = requests.put(full_url,
                                                 auth=(session['username'], session['password']),
                                                 headers={'Content-Type': 'application/xml'}, data=data,
                                                 verify=verify_ssl)
-                jawa_logger().info(f"[{webhook_response.status_code}]  {webhook_response.text}")
-                if webhook_response.status_code == 409:
-                    error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
+                except:
+                    error_message = f"The request could not be sent to your Jamf Pro server," \
+                                    f"check your network connection."
                     return render_template('error.html',
                                            error_message=error_message,
                                            error="error",
                                            username=str(escape(session['username'])))
+                jawa_logger().info(f"[{webhook_response.status_code}]  {webhook_response.text}")
+                if webhook_response.status_code == 409:
+                    error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
+                    return redirect(url_for('error', error="Duplicate", error_message=error_message, username=session.get('username')))
+                elif webhook_response.status_code == 401:
+                    error_message = f"{session.get('username').title()} doesn't have privileges to update webhooks." \
+                                    f"Check your account privileges in Jamf Pro Settings"
+                    return redirect(url_for('error', error="Insufficient privileges", error_message=error_message,
+                                            username=session.get('username')))
                 with open(webhooks_file, 'w') as fout:
                     json.dump(webhooks_json, fout, indent=4)
                 result = re.search('<id>(.*)</id>', webhook_response.text)
-                print(result.group(1))
                 jamf_id = result.group(1)
                 new_link = f"{format(session.get('url'))}/webhooks.html?id={jamf_id}&o=r"
                 success_msg = "Webhook edited:"
+                jawa_logger().info(f"{session.get('username')} edited a Jamf webhook:"
+                                   f"Name: {request.form.get('name')}"
+                                   f"Jamf link: {new_link}")
                 return {"webhooks": "success", "smart_group_instructions": smart_group_instructions,
                         "smart_group_notice": smart_group_notice,
                         "new_link": new_link,

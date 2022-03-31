@@ -131,6 +131,7 @@ def jp_new():
         if request.form.get('event') in [
             'SmartGroupMobileDeviceMembershipChange',
             'SmartGroupComputerMembershipChange',
+            'SmartGroupUserMembershipChange'
         ]:
 
             smart_group_notice = "NOTICE!  This webhook is not yet enabled."
@@ -312,6 +313,7 @@ def edit():
                 if each_webhook.get('event') in [
                     'SmartGroupMobileDeviceMembershipChange',
                     'SmartGroupComputerMembershipChange',
+                    'SmartGroupUserMembershipChange'
                 ]:
 
                     smart_group_notice = "NOTICE!  This webhook is currently disabled."

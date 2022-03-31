@@ -61,7 +61,8 @@ def webhook_handler(webhook_name):
                "Move along.", 405
     webhook_user = "null"
     webhook_pass = "null"
-    if auth := request.authorization:
+    auth = request.authorization
+    if auth:
         webhook_user = auth.get("username")
         webhook_pass = auth.get("password")
 

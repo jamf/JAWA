@@ -69,7 +69,6 @@ def okta_new():
                                error="error",
                                username=str(escape(session['username'])))
 
-
     # if not os.path.isdir('/usr/local/jawa/'):
     #     os.mkdir('/usr/local/jawa/')
 
@@ -179,4 +178,5 @@ def okta_new():
                                error="error",
                                username=str(escape(session['username'])))
 
-    return render_template('success.html', username=session.get('username'), login="true")
+    return render_template('success.html', username=session.get('username'), login="true",
+                           success_msg="Okta Webhook Created.")

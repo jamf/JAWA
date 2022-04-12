@@ -141,6 +141,7 @@ def setup():
 
         return render_template('success.html',
                                webhooks="success",
+                               success_msg="JAWA Setup Complete!",
                                username=str(escape(session['username'])))
     else:
         jawa_logger().debug(f"[{session.get('url')}] {session.get('username')} - /setup - GET")
@@ -353,6 +354,7 @@ def success():
         return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     return render_template(
         'success.html',
+        success_msg="",
         login="true",
         username=str(escape(session['username'])))
 

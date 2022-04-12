@@ -196,7 +196,7 @@ install() {
   /usr/bin/clear
   /bin/echo -ne '[#########               ](45%) Cloning the JAWA project from GitHub... '
   /bin/echo '[#########               ](45%) Cloning the JAWA project from GitHub... ' >>/var/log/jawaInstall.log 2>&1
-  git clone --branch develop https://github.com/jamf/JAWA.git jawa >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  git clone https://github.com/jamf/JAWA.git jawa >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   # Restore backup?
   /usr/bin/clear
   /bin/echo -ne '[##########              ](50%) Checking for backups... '

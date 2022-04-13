@@ -189,6 +189,15 @@ install() {
     /bin/echo "Exiting..."
     exit 2
   fi
+  /usr/bin/python3 -m pip
+  if [ $? -eq 0 ]; then
+    /bin/echo "python3-pip installed." >>/var/log/jawaInstall.log 2>&1
+  else
+    /bin/echo "python3-pip was not installed successfully via the installer.  Please install python3-pip manually and try again.  Exiting..." >>/var/log/jawaInstall.log 2>&1
+    /bin/echo "python3-pip was not installed successfully via the installer.  Please install python3-pip manually and try again."
+    /bin/echo "Exiting..."
+    exit 2
+  fi
 
 # change places!
   cd "$installDir"
@@ -442,6 +451,23 @@ EOF
   /bin/sleep 1.5
 
   /usr/bin/clear
+  status=$(/bin/systemctl is-active --quiet jawa && echo Service is running)
+  if [ "$status" != "Service is running" ]; then
+      echo "Uh oh!  The jawa service is not running. Check /var/log/jawaInstall.log for errors and restart the service."
+      echo "Uh oh!  The jawa service is not running. Check /var/log/jawaInstall.log for errors and restart the service." >>/var/log/jawaInstall.log 2>&1
+      echo "Double-check your dependencies (python3, python3-pip, git, curl, etc.) and try again."
+      echo "Double-check your dependencies (python3, python3-pip, git, curl, etc.) and try again." >>/var/log/jawaInstall.log 2>&1
+      echo ""
+      if [[ $jawaPassword != "" ]]; then
+        /bin/echo "The following service account was created on your OS for running the JAWA application, and for creating the cron tasks."
+        /bin/echo "It is not used for signing in to the web interface.  Please remember the password or change the credentials."
+        /bin/echo "Username: jawa"
+        /bin/echo "Password: $jawaPassword"
+      fi
+      exit 2
+  else
+      echo "Jawa service is running!" >>/var/log/jawaInstall.log 2>&1
+  fi
 
   if [ -e "$installDir/jawa/static/jawadone.txt" ]; then
     /bin/cat "$installDir/jawa/static/jawadone.txt"

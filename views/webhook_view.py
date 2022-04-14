@@ -28,7 +28,7 @@ scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scr
 @response(template_file='webhooks/delete.html')
 def delete_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     target_webhook = request.args.get('target_webhook')
     if not target_webhook:
         return redirect(url_for('custom_webhook.custom_webhook'))
@@ -76,7 +76,7 @@ def delete_webhook():
 @response(template_file='webhooks/home.html')
 def webhooks():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     with open(webhooks_file, 'r') as fin:
         webhooks_json = json.load(fin)
     jamf_pro_webhooks_list = []

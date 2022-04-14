@@ -9,7 +9,8 @@
     <div class="form-container">
         <div class="error">
             <div class="success-form">An error occurred:<br>
-                <div class="success-wrap alert alert-danger">{{ error }} - {{ error_message }}</div>
+                <div class="success-wrap alert alert-danger">{{ error }} - {{ error_message }}
+                    {% if link %}<a href="{{ link }}" target="_blank">{{ link }}</a> {% endif %}</div>
                 <div class="text-center">
                     <a type=submit onclick="history.back(-1)" value=Back
                        class="btn btn-primary button-align">&laquo;Back</a>

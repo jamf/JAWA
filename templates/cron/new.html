@@ -4,7 +4,7 @@
     <div class="test-links sub_links sticky-top">
         <div class="stat"><a href="/cron">All Timed Automations</a></div>
         <div class="stat"><a href="{{ url_for('cron.new_cron') }}">New Timed Job</a></div>
-        <div class="stat"><a href="{{ url_for('cron.delete_cron') }}">Delete Timed Job</a></div>
+        <div class="stat"><a href="{{ url_for('cron.edit_cron') }}">Edit Timed Job</a></div>
     </div>
 
 
@@ -12,7 +12,7 @@
         <form method="post" class="table-view" action="/cron/new" enctype="multipart/form-data">
             <h1>New Timed Job</h1>
             <input type="text" class="form-control" placeholder="Name of Timed Job (cron task)" name="cron_name"
-                   required autofocus
+                   required autofocus pattern="[^' ']+"
                    oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')"></br>
             <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
                       class="form-control">{{ description }}</textarea><br>
@@ -25,6 +25,7 @@
                 <option value="everyday">Every Day</option>
                 <option value="everyweek">Every Week</option>
                 <option value="everymonth">Every Month</option>
+                <option value="custom">Custom</option>
             </select></br>
 
             <div id="hiddenDiv" style="display:none">
@@ -103,7 +104,10 @@
 
             <div id="hiddenDivFour" style="display:none">
             </div>
-
+                 <div id="hiddenDivFive" style="display:none">
+                     <label>Cron expression (<a href="https://crontab.guru" target="_blank">example</a>):</label>
+               <input type="text" name="customfreq" pattern="^((((\d+,)+\d+|(\d+(\/|-|#)\d+)|\d+L?|\*(\/\d+)?|L(-\d+)?|\?|[A-Z]{3}(-[A-Z]{3})?) ?){5,7})$" title="Use a valid cron expression.">
+            </div>
             <div class="d-flex justify-content-center">
                 <br><b>Script: &nbsp</b>
                 <input type="file" name="script" required
@@ -124,28 +128,39 @@
             if (aval == "everyday") {
                 hiddenDiv.style.display = 'inline-block';
                 hiddenDivTwo.style.display = 'none';
-                hiddenDivFour.style.display = 'none';
                 hiddenDivThree.style.display = 'none';
+                hiddenDivFour.style.display = 'none';
+                hiddenDivFive.style.display = 'none';
             } else if (aval == "everyweek") {
+                hiddenDiv.style.display = 'none';
                 hiddenDivTwo.style.display = 'inline-block';
-                hiddenDiv.style.display = 'none';
-                hiddenDivFour.style.display = 'none';
                 hiddenDivThree.style.display = 'none';
+                hiddenDivFour.style.display = 'none';
+                hiddenDivFive.style.display = 'none';
             } else if (aval == "everymonth") {
+                hiddenDiv.style.display = 'none';
+                hiddenDivTwo.style.display = 'none';
                 hiddenDivThree.style.display = 'inline-block';
+                hiddenDivFour.style.display = 'none';
+                hiddenDivFive.style.display = 'none';
+            } else if (aval == "custom") {
                 hiddenDiv.style.display = 'none';
                 hiddenDivTwo.style.display = 'none';
-                hiddenDivFour.style.display = 'none';
-            } else if (aval == "") {
-                hiddenDivFour.style.display = 'none';
                 hiddenDivThree.style.display = 'none';
+                hiddenDivFour.style.display = 'none';
+                hiddenDivFive.style.display = 'inline-block';
+            } else if (aval == "") {
                 hiddenDiv.style.display = 'none';
                 hiddenDivTwo.style.display = 'none';
+                hiddenDivThree.style.display = 'none';
+                hiddenDivFour.style.display = 'none';
+                hiddenDivFive.style.display = 'none';
             } else {
                 hiddenDiv.style.display = 'none';
                 hiddenDivTwo.style.display = 'none';
-                hiddenDivFour.style.display = 'none';
                 hiddenDivThree.style.display = 'none';
+                hiddenDivFour.style.display = 'none';
+                hiddenDivFive.style.display = 'none';
             }
         }
 

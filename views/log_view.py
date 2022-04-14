@@ -20,7 +20,7 @@ blueprint = Blueprint('log_view', __name__, template_folder='templates')
 @blueprint.route('/log/home.html', methods=['GET'])
 def log_home():
     if 'username' not in session:
-        return load_home()
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     jawa_logger().debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
     with open(log_file, 'r') as fin:
         lines = [re.sub('\n', '', line) for line in fin.readlines()]
@@ -32,7 +32,7 @@ def log_home():
 @blueprint.route('/log/view', methods=['GET'])
 def log_view():
     if 'username' not in session:
-        return load_home()
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     jawa_logger().debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
     with open(log_file, 'r') as fin:
         lines = [re.sub('\n', '', line) for line in fin.readlines()]
@@ -44,8 +44,8 @@ def log_view():
 @blueprint.route('/log/live.html', methods=['GET'])
 @response(template_file="log/live.html")
 def stream():
-    if not 'username' in session:
-        return flask.redirect(flask.url_for('logout'))
+    if 'username' not in session:
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     jawa_logger().debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
 
     def generate():
@@ -58,6 +58,8 @@ def stream():
 
 @blueprint.route('/log/yield')
 def yield_log():
+    if 'username' not in session:
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     jawa_logger().info(f"/log/yield accessed by {session.get('username') or 'nobody'}")
 
     def inner():
@@ -77,7 +79,7 @@ def yield_log():
 @blueprint.route('/log/download')
 def download_logs():
     if 'username' not in session:
-        return redirect(url_for('logout'))
+        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     jawa_logger().info(f"[{session.get('url')}] {session.get('username')} used {request.path} to download the log.")
     timestamp = datetime.now()
     jawa_logger().info(f"Downloading log file...{timestamp}-jawa.log")

@@ -24,7 +24,13 @@
         {% endif %}
         <input name="username" type="text" placeholder="Username" required class="form-control" autofocus>
         <input name="password" type="password" placeholder="Password" required class="form-control">
+       {% if error_message %}
+        <br>
+        <div class="alert alert-warning text-center">Authentication Failed <br>
+            {{ error_title }} - {{error_message.replace('(',' ').replace(')', '')}}
+        </div>
 
+        {% endif %}
         <p>
         <div class="d-flex justify-content-center">
             <input class="btn btn-primary" type=submit value=Login>

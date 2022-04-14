@@ -1,5 +1,5 @@
 
-# Jamf Automation and Webhook Assistant ("JAWA") Version 3.0.1
+# Jamf Automation and Webhook Assistant ("JAWA") Version 3.0.2
 
 <p align="center"> <img src="https://github.com/jamf/JAWA/blob/master/static/img/jawa_icon.png" width="384"/> </p>
 
@@ -11,16 +11,16 @@ JAWA allows an IT Administrator to focus on providing the best end user experien
 ## What is it?
 
 Jamf Automation and Webhook Assistant, "JAWA", is a web server for hosting automation tools that interacts with Jamf
-Pro, Okta, and more. It includes a _webhook receiver_ for real-time if-this-then-that automation workflows and _crontab_
+Pro, Okta, and more. It includes a _webhook receiver_ for if-this-then-that automation workflows in real-time, and _crontab_
 for the timed execution of scripts and automated report generation. JAWA is intended to make webhooks and automation
 more accessible to admins of Jamf Pro by providing them with a simple framework with which they can design time-saving
-workflows and further integrate with other services owned by their organization.
+workflows and encourage integrations that connect multiple services within an organization.
 
 *Check out [JAWA on the Jamf Marketplace](https://marketplace.jamf.com/details/jawa/) for screenshots.*
 
 ## How it works?
 
-JAWA is a Python Flask web app which runs on Linux and can be accessed via web-browser. Once installed, the IT Admin is
+JAWA is a Python Flask web app which runs on Linux and can be accessed from a web-browser. Once installed, the IT Admin is
 able to use JAWA to upload, edit, or adjust webhook and timed automations managed by JAWA. Automation scripts can be
 uploaded by the IT admin and be configured to run when triggered (webhook), or run on a timer (cron). JAWA leverages
 Jamf and Okta APIs when creating webhooks in their respective services.
@@ -30,10 +30,10 @@ Jamf and Okta APIs when creating webhooks in their respective services.
 General Server Requirements:
 
 - Ubuntu 18.04+ or RHEL 7.x+
-- Minimum: 512MB RAM (2GB recommended)
-- Minimum: 5GB Storage (25GB recommended)
+- Minimum: 512MB RAM (4GB recommended)
+- Minimum: 12GB Storage (64GB recommended)
 - Minimum: 1 CPU Core (2 Cores recommended)
-- Python 3.6+ (with pip)
+- Python 3.7+ (with pip)
 
 Network Requirements:
 
@@ -96,12 +96,11 @@ of webhook) will automatically be configured/adjusted appropriately.*
 Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
 
 
-### JAWA v3.0.1 release
+### JAWA v3.0.2 release
 - New features
-    - display fields enabled for `SmartGroupMobileDeviceMembershipChange` event
-    - success banner when creating & editing webhooks
-    - dashboard updated with new counters and links
-    - JAWA version displayed in footer
+    - added events `SmartGroupUserMembershipChange` and `DeviceAddedToDEP` to Jamf Webhooks (resolving #25)
+    - added 'Custom' frequency for Timed Automations
+    - Timed Automations can now be edited
 - Installer:
-    - NEW! RHEL 7+ installer (resolved #9)
+    - improved safety checks and error handling
      

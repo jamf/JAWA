@@ -1,5 +1,6 @@
+import datetime
 import flask
-from flask import request
+from flask import request, make_response
 import json
 import os
 import subprocess
@@ -68,8 +69,9 @@ def webhook_handler(webhook_name):
 
     if validate_webhook(webhook_data, webhook_name, webhook_user, webhook_pass):
         jawa_logger().info(f"{webhook_name} validated!")
-        run_script(webhook_data, webhook_name)
+        output = run_script(webhook_data, webhook_name)
+        return {"webhook": f"{webhook_name}", "result": f"{output}"}
     else:
         jawa_logger().info(f"{webhook_name} not validated!")
-        return "Unauthorized", 401
+        return f"Unauthorized - incorrect authentication for {webhook_name}.", 401
     return f"{webhook_data} - 202 Accepted", 202

@@ -50,7 +50,7 @@ def script_results(webhook_data, each_webhook):
 
 @blueprint.route('/hooks/<webhook_name>', methods=['POST', 'GET'])
 def webhook_handler(webhook_name):
-    jawa_logger().info(webhook_name)
+    jawa_logger().info(f"Incoming request at /hooks/{webhook_name} ...")
     webhook_data = request.get_json()
     if request.headers.get('x-okta-verification-challenge'):
         jawa_logger().info("This is an Okta verification challenge...")
@@ -67,9 +67,9 @@ def webhook_handler(webhook_name):
         webhook_pass = auth.get("password")
 
     if validate_webhook(webhook_data, webhook_name, webhook_user, webhook_pass):
-        jawa_logger().info(f"{webhook_name} validated!")
-        run_script(webhook_data, webhook_name)
+        jawa_logger().info(f"Validated authentication for /hooks/{webhook_name}, running script...")
+        output = run_script(webhook_data, webhook_name)
+        return {"webhook": f"{webhook_name}", "result": f"{output}"}, 202
     else:
-        jawa_logger().info(f"{webhook_name} not validated!")
-        return "Unauthorized", 401
-    return f"{webhook_data} - 202 Accepted", 202
+        jawa_logger().info(f"401 - Incorrect authentication provided for /hooks/{webhook_name}.")
+        return f"Unauthorized - incorrect authentication provided for /hooks/{webhook_name}.", 401

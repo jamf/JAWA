@@ -216,7 +216,10 @@ def login():
                 verify=verify_ssl)
 
             resp.raise_for_status()
-
+            resp_json = resp.json()
+        except json.JSONDecodeError as err:
+            jawa_logger().info(f"Error occurred: {err}")
+            return redirect(url_for('logout', error_title="Invalid Response", error_message="check your JPS url"))
         except requests.exceptions.HTTPError as err:
             jawa_logger().info(f"Error occurred: {err}")
             return redirect(url_for('logout', error_title="HTTP Error", error_message=err))
@@ -226,7 +229,7 @@ def login():
         except requests.exceptions.ConnectionError as err:
             jawa_logger().info(f"Error occurred: {err}")
             return redirect(url_for('logout', error_title="HTTP Error", error_message=err))
-
+        activation_code = resp_json['activation_code'].get('code')
         jawa_logger().info(
             f"[{session.get('url')}] Logging In: " + str(escape(session['username'])))
 

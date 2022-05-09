@@ -1,0 +1,18 @@
+FROM ubuntu:20.04
+
+MAINTAINER Christopher Ball "christopher.ball@jamf.com"
+
+RUN apt-get update -y && \
+    apt-get install -y python3-pip python3-dev cron git curl nano
+
+COPY ./requirements.txt /app/requirements.txt
+
+WORKDIR /usr/local/jawa
+
+RUN pip install -r requirements.txt
+
+COPY . /usr/local/jawa
+
+ENTRYPOINT [ "python3" ]
+
+CMD [ "app.py" ]

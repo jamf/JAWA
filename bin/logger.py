@@ -9,7 +9,7 @@ log_backupCount = 10
 
 def setup_logger(log_name, log_filename):
     # log_file = os.path.abspath(os.path.join(os.path.dirname(__file__), 'data', 'jawa.log'))
-
+    logging.basicConfig(level=logging.INFO)
     log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data'))
     print(f'log_path: {log_path}')
     if not os.path.isdir(log_path):
@@ -26,12 +26,14 @@ def setup_logger(log_name, log_filename):
     #     logger.setLevel(logging.DEBUG)
     # else:
     logger.setLevel(logging.DEBUG)
+    print('created logger.')
     return logger
 
 
 def setup_child_logger(name):
     return logging.getLogger(logger_name).getChild(name)
 
-
+print('going to create logthis.')
 logthis = setup_logger(logger_name, f'{logger_name}.log')
+print('created logthis.')
 logthis.debug('this got logged by the main logger')

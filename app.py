@@ -22,6 +22,25 @@ logthis.info("JAWA Logger from the main page.")
 logthis.debug("App.py SAYS: this is a Debug Message.")
 logthis.info("App.py SAYS: this is an Info Message.")
 
+# def jawa_logger():
+#     global oldlogger
+#     log_file = os.path.abspath(os.path.join(os.path.dirname(__file__), 'data', 'jawa.log'))
+#     logging.basicConfig(level=logging.INFO)
+#     oldlogger = logging.getLogger('jawa')
+#     oldlogger.setLevel(logging.INFO)
+#     handler = handlers.RotatingFileHandler(log_file, maxBytes=(1048576 * 100), backupCount=10)
+#     handler.setLevel(logging.INFO)
+#     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+#     handler.setFormatter(formatter)
+#
+#     if oldlogger.hasHandlers():
+#         oldlogger.handlers.clear()
+#     oldlogger.addHandler(handler)
+#     return oldlogger
+
+
+# Flask logging
+
 error_message = ""
 verify_ssl = True  # Enables Jamf Pro SSL certificate verification
 

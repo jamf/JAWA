@@ -14,6 +14,10 @@ from flask import (Flask, request, render_template,
 from bin.load_home import load_home
 from bin.view_modifiers import response
 from app import jawa_logger
+from bin import logger
+
+logthis = logger.setup_child_logger(__name__)
+logthis.debug(f'this got logged by {__name__} child')
 
 blueprint = Blueprint('webhooks', __name__, template_folder='templates')
 
@@ -37,7 +41,7 @@ def delete_webhook():
     tag = [each_webhook['tag'] for each_webhook in webhook_json if each_webhook['name'] == target_webhook]
 
     if request.method == 'POST':
-        jawa_logger().info(f"Deleting {tag} webhook: {target_webhook}")
+        logthis.info(f"Deleting {tag} webhook: {target_webhook}")
         for each_webhook in webhook_json:
             if each_webhook['name'] == target_webhook:
                 script_file = each_webhook['script']

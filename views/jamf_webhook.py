@@ -11,6 +11,10 @@ from flask import (Flask, request, render_template,
 from bin.load_home import load_home
 from bin.view_modifiers import response
 from app import jawa_logger
+from bin import logger
+
+logthis = logger.setup_child_logger(__name__)
+logthis.debug(f'this got logged by {__name__} child')
 
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
 webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))
@@ -32,7 +36,7 @@ def jamf_webhook():
         tag = data['tag']
         if tag == "jamfpro":
             jamf_pro_list.append(each_webhook)
-    print(jamf_pro_list)
+    # print(jamf_pro_list)
 
     return {'username': session.get('username'),
             'jamf_list': jamf_pro_list, 'url': session.get('url')}
@@ -194,12 +198,12 @@ def jp_new():
                f"</webhook>"
 
         full_url = session['url'] + '/JSSResource/webhooks/id/0'
-        jawa_logger().info(f"{session.get('username')} creating a new JPS webhook {request.form.get('webhook_name')}.")
+        logthis.info(f"{session.get('username')} creating a new JPS webhook {request.form.get('webhook_name')}.")
         webhook_response = requests.post(full_url,
                                          auth=(session['username'], session['password']),
                                          headers={'Content-Type': 'application/xml'}, data=data,
                                          verify=verify_ssl)
-        jawa_logger().info(f"[{webhook_response.status_code}]  {webhook_response.text}")
+        logthis.info(f"[{webhook_response.status_code}]  {webhook_response.text}")
         if webhook_response.status_code == 409:
             error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
             return render_template('error.html',
@@ -210,7 +214,7 @@ def jp_new():
         result = re.search('<id>(.*)</id>', webhook_response.text)
         jamf_id = result.group(1)
         new_link = "{}/webhooks.html?id={}&o=r".format(session['url'], result.group(1))
-        jawa_logger().info(f"{session.get('username')} created a new webhook:"
+        logthis.info(f"{session.get('username')} created a new webhook:"
                            f"Name: {request.form.get('name')}"
                            f"Jamf link: {new_link}")
 
@@ -260,7 +264,7 @@ def edit():
         webhooks_json = json.load(fin)
     check_for_name = [True for each_webhook in webhooks_json if each_webhook['name'] == name]
     if not check_for_name:
-        jawa_logger().info(f"Webhook '{name}' not in json")
+        logthis.info(f"Webhook '{name}' not in json")
         return redirect(url_for('jamf_pro_webhooks.jamf_webhook'))
     # GET
     webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
@@ -382,7 +386,7 @@ def edit():
 
                 full_url = f"{session['url']}/JSSResource/webhooks/id/{each_webhook.get('jamf_id')}"
 
-                jawa_logger().info(f"{session.get('username')} editing the JPS webhook {name}.")
+                logthis.info(f"{session.get('username')} editing the JPS webhook {name}.")
                 try:
                     webhook_response = requests.put(full_url,
                                                 auth=(session['username'], session['password']),
@@ -395,7 +399,7 @@ def edit():
                                            error_message=error_message,
                                            error="error",
                                            username=str(escape(session['username'])))
-                jawa_logger().info(f"[{webhook_response.status_code}]  {webhook_response.text}")
+                logthis.info(f"[{webhook_response.status_code}]  {webhook_response.text}")
                 if webhook_response.status_code == 409:
                     error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
                     return redirect(url_for('error', error="Duplicate", error_message=error_message, username=session.get('username')))
@@ -410,7 +414,7 @@ def edit():
                 jamf_id = result.group(1)
                 new_link = f"{format(session.get('url'))}/webhooks.html?id={jamf_id}&o=r"
                 success_msg = "Webhook edited:"
-                jawa_logger().info(f"{session.get('username')} edited a Jamf webhook:"
+                logthis.info(f"{session.get('username')} edited a Jamf webhook:"
                                    f"Name: {request.form.get('name')}"
                                    f"Jamf link: {new_link}")
                 return {"webhooks": "success", "smart_group_instructions": smart_group_instructions,

@@ -14,6 +14,10 @@ from flask import (Flask, request, render_template,
                    send_from_directory, Blueprint, abort)
 
 from bin.view_modifiers import response
+from bin import logger
+
+logthis = logger.setup_child_logger(__name__)
+logthis.debug(f'this got logged by {__name__} child')
 
 blueprint = Blueprint('okta_webhook', __name__)
 
@@ -81,7 +85,7 @@ def okta_new():
     okta_event = request.form.get('event')
     description = request.form.get('description')
     webhook_server_url = server_address + '/hooks/' + okta_name
-    print(webhook_server_url)
+    logthis.info(webhook_server_url)
     owd = os.getcwd()
     os.chdir(scripts_dir)
 
@@ -107,6 +111,7 @@ def okta_new():
     for i in data:
         if str(i['name']) == okta_name:
             error_message = "Name already exists!"
+            logthis.info("okta webhook erorr")
             return render_template('error.html',
                                    error_message=error_message,
                                    error="error",

@@ -14,23 +14,29 @@ import uuid
 from waitress import serve
 
 from bin.view_modifiers import response
+from bin import logger
 
+logthis = logger.setup_child_logger('app')
+logthis.info(f'this got logged by app.py child')
+logthis.info("JAWA Logger from the main page.")
+logthis.debug("App.py SAYS: this is a Debug Message.")
+logthis.info("App.py SAYS: this is an Info Message.")
 
 def jawa_logger():
-    global logger
+    global oldlogger
     log_file = os.path.abspath(os.path.join(os.path.dirname(__file__), 'data', 'jawa.log'))
     logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger('jawa')
-    logger.setLevel(logging.INFO)
+    oldlogger = logging.getLogger('jawa')
+    oldlogger.setLevel(logging.INFO)
     handler = handlers.RotatingFileHandler(log_file, maxBytes=(1048576 * 100), backupCount=10)
     handler.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
 
-    if logger.hasHandlers():
-        logger.handlers.clear()
-    logger.addHandler(handler)
-    return logger
+    if oldlogger.hasHandlers():
+        oldlogger.handlers.clear()
+    oldlogger.addHandler(handler)
+    return oldlogger
 
 
 # Flask logging
@@ -50,13 +56,13 @@ def func():
 
 def main():
     base_dir = os.path.dirname(__file__)
-    jawa_logger().info(f"JAWA initializing...\n Sandcrawler home:  {base_dir}")
+    logthis.info(f"JAWA initializing...\n Sandcrawler home:  {base_dir}")
     environment_setup(base_dir)
     register_blueprints()
     app.secret_key = str(uuid.uuid4())
     app.permanent_session_lifetime = timedelta(minutes=10)
-    serve(app, url_scheme='https', host='0.0.0.0', port=8000, threads=15)
-
+    # serve(app, url_scheme='https', host='0.0.0.0', port=8000, threads=15)
+    serve(app, url_scheme='http', host='0.0.0.0', port=8000, threads=15)
 
 def environment_setup(project_dir):
     global webhooks_file, cron_file, server_json_file, scripts_directory
@@ -64,7 +70,7 @@ def environment_setup(project_dir):
     cron_file = os.path.abspath(os.path.join(project_dir, 'data', 'cron.json'))
     server_json_file = os.path.abspath(os.path.join(project_dir, 'data', 'server.json'))
     scripts_directory = os.path.abspath(os.path.join(project_dir, 'scripts'))
-    jawa_logger().info(f"Detecting JAWA environment:\n"
+    logthis.info(f"Detecting JAWA environment:\n"
                        f"Webhooks configuration file: {webhooks_file}\n"
                        f"Cron configuration file: {cron_file}\n"
                        f"Server configuration file: {server_json_file}\n"
@@ -106,14 +112,14 @@ def setup():
     if 'username' not in session:
         return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if request.method == 'POST':
-        jawa_logger().debug(f"[{session.get('url')}] {session.get('username')} /setup - POST")
+        logthis.debug(f"[{session.get('url')}] {session.get('username')} /setup - POST")
         server_url = request.form.get('address')
         if not server_url:
             return redirect(url_for('setup'))
         jps_url = request.form.get('jss-lock')
         jps2_check = request.form.get('alternate-jamf')
         jps_url2 = request.form.get('alternate')
-        jawa_logger().info(f"{session.get('username')} made JAWA Setup Changes\n"
+        logthis.info(f"{session.get('username')} made JAWA Setup Changes\n"
                            f"JAWA URL: {server_url}\n"
                            f"Primary JPS: {jps_url}\n"
                            f"Alternate JPS: {jps_url2}\n"
@@ -144,7 +150,7 @@ def setup():
                                success_msg="JAWA Setup Complete!",
                                username=str(escape(session['username'])))
     else:
-        jawa_logger().debug(f"[{session.get('url')}] {session.get('username')} - /setup - GET")
+        logthis.debug(f"[{session.get('url')}] {session.get('username')} - /setup - GET")
         if not os.path.isfile(server_json_file):
             with open(server_json_file, "w") as outfile:
                 server_json = {'jawa_address': '', 'jps_url': '', 'alternate_jps': ''}
@@ -169,13 +175,13 @@ def cleanup():
         return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if request.method != 'POST':
         return {"username": session.get('username'), "scripts_dir": scripts_directory}
-    logger.info(f"[{session.get('url')}] {session.get('username')} is cleaning up scripts...")
+    oldlogger.info(f"[{session.get('url')}] {session.get('username')} is cleaning up scripts...")
     owd = os.getcwd()
     if not os.path.isdir(scripts_directory):
         os.mkdir(scripts_directory)
     os.chdir(scripts_directory)
     for file in glob.glob("*.old"):
-        logger.info(f"[{session.get('url')}] {session.get('username')} removed the script {file}...")
+        oldlogger.info(f"[{session.get('url')}] {session.get('username')} removed the script {file}...")
         os.remove(file)
     os.chdir(owd)
     return redirect(url_for('success'))
@@ -204,7 +210,7 @@ def login():
         session['username'] = request.form['username']
         session['password'] = request.form['password']
 
-        jawa_logger().info(f"[{session.get('url')}] Attempting login for: {session.get('username')}")
+        logthis.info(f"[{session.get('url')}] Attempting login for: {session.get('username')}")
 
         if request.form['password'] == "":
             return redirect(url_for('logout', error_title="Authentication error", error_message="Passwords can't be blank"))
@@ -218,16 +224,16 @@ def login():
             resp.raise_for_status()
 
         except requests.exceptions.HTTPError as err:
-            jawa_logger().info(f"Error occurred: {err}")
+            logthis.info(f"Error occurred: {err}")
             return redirect(url_for('logout', error_title="HTTP Error", error_message=err))
         except requests.exceptions.ConnectTimeout as err:
-            jawa_logger().info(f"Error occurred: {err}")
+            logthis.info(f"Error occurred: {err}")
             return redirect(url_for('logout', error_title="Connection Timeout", error_message=err))
         except requests.exceptions.ConnectionError as err:
-            jawa_logger().info(f"Error occurred: {err}")
+            logthis.info(f"Error occurred: {err}")
             return redirect(url_for('logout', error_title="HTTP Error", error_message=err))
 
-        jawa_logger().info(
+        logthis.info(
             f"[{session.get('url')}] Logging In: " + str(escape(session['username'])))
 
         return redirect(url_for('dashboard'))
@@ -288,7 +294,7 @@ def home():
 def dashboard():
     if 'username' not in session:
         return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
-    jawa_logger().info(f"[{session.get('url')}] {session.get('username')} rendering /dashboard.")
+    logthis.info(f"[{session.get('url')}] {session.get('username')} rendering /dashboard.")
     with open(webhooks_file) as webhook_json:
         webhooks_installed = json.load(webhook_json)
     jamf_pro_webhooks = []
@@ -330,7 +336,7 @@ def dashboard():
 
     if not cron_json:
         cron_json = ''
-    jawa_logger().info(f"Total webhooks managed by JAWA: {len(webhooks_installed)}")
+    logthis.info(f"Total webhooks managed by JAWA: {len(webhooks_installed)}")
     if webhook_json == cron_json:
         return redirect(url_for('first_automation'))
     return render_template(
@@ -350,7 +356,7 @@ def dashboard():
 @app.route('/success', methods=['GET', 'POST'])
 def success():
     if 'username' not in session:
-        jawa_logger().info("No user logged in - returning to login page.")
+        logthis.info("No user logged in - returning to login page.")
         return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     return render_template(
         'success.html',
@@ -365,7 +371,7 @@ def error():
     error_message = request.args.get('error_message')
     if 'username' not in session:
         return redirect(url_for('logout'))
-    jawa_logger().info(
+    logthis.info(
         f"[{session.get('url')}] {session.get('username').title()} was a victim of a series of accidents, as are we all. (/error)")
     return render_template('error.html', username=session.get('username'), error_message=error_title,
                            error=error_message)
@@ -374,10 +380,10 @@ def error():
 @app.errorhandler(404)
 def page_not_found(error):
     if 'username' in session:
-        jawa_logger().info(
+        logthis.info(
             f"[{session.get('url')}] {session.get('username')} wandered off course  ({request.path}) - redirecting to /dashboard.")
         return redirect(url_for('dashboard'))
-    jawa_logger().info(
+    logthis.info(
         f"An invalid path ({request.path}) was provided and no user is logged in.  Returning login page.")
     return load_home()
 
@@ -387,7 +393,7 @@ def logout():
     error_title = request.args.get('error_title')
     error_message = request.args.get('error_message')
     if session.get('username'):
-        logger.info("Logging Out: " + str(escape(session['username'])))
+        oldlogger.info("Logging Out: " + str(escape(session['username'])))
         session.pop('username', None)
     return load_home(error_title, error_message)
 

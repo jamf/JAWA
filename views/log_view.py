@@ -6,10 +6,15 @@ from time import sleep
 from bin.load_home import load_home
 from bin.view_modifiers import response
 from app import jawa_logger
+from bin import logger
 
 import flask
 from flask import current_app, session, render_template, Blueprint, send_file, request, redirect, url_for
 import os
+
+logthis = logger.setup_child_logger(__name__)
+logthis.debug(f'this got logged by {__name__} child')
+logthis.info(f'this got logged by {__name__} child')
 
 log_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'jawa.log'))
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
@@ -21,7 +26,7 @@ blueprint = Blueprint('log_view', __name__, template_folder='templates')
 def log_home():
     if 'username' not in session:
         return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
-    jawa_logger().debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
+    logthis.debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
     with open(log_file, 'r') as fin:
         lines = [re.sub('\n', '', line) for line in fin.readlines()]
         lines.reverse()
@@ -33,7 +38,7 @@ def log_home():
 def log_view():
     if 'username' not in session:
         return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
-    jawa_logger().debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
+    logthis.debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
     with open(log_file, 'r') as fin:
         lines = [re.sub('\n', '', line) for line in fin.readlines()]
         lines.reverse()
@@ -46,7 +51,7 @@ def log_view():
 def stream():
     if 'username' not in session:
         return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
-    jawa_logger().debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
+    logthis.debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
 
     def generate():
         with open(log_file) as f:
@@ -60,7 +65,7 @@ def stream():
 def yield_log():
     if 'username' not in session:
         return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
-    jawa_logger().info(f"/log/yield accessed by {session.get('username') or 'nobody'}")
+    logthis.info(f"/log/yield accessed by {session.get('username') or 'nobody'}")
 
     def inner():
         proc = subprocess.Popen(
@@ -80,7 +85,7 @@ def yield_log():
 def download_logs():
     if 'username' not in session:
         return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
-    jawa_logger().info(f"[{session.get('url')}] {session.get('username')} used {request.path} to download the log.")
+    logthis.info(f"[{session.get('url')}] {session.get('username')} used {request.path} to download the log.")
     timestamp = datetime.now()
-    jawa_logger().info(f"Downloading log file...{timestamp}-jawa.log")
+    logthis.info(f"Downloading log file...{timestamp}-jawa.log")
     return send_file(log_file, as_attachment=True, attachment_filename=f"{datetime.now()}-jawa.log")

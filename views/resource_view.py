@@ -2,11 +2,15 @@ import json
 from datetime import datetime
 from flask import current_app, session, redirect, url_for, render_template, Flask, Blueprint, send_file, request
 from app import jawa_logger
+from bin import logger
 import os
 from werkzeug.utils import secure_filename
 
 from bin.load_home import load_home
 from bin.view_modifiers import response
+
+logthis = logger.setup_child_logger(__name__)
+logthis.info(f'this got logged by {__name__} child')
 
 log_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'jawa.log'))
 server_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
@@ -25,21 +29,21 @@ def files():
     button_choice = request.args.get('button_choice')
     if target_file:
         if button_choice == "Download":
-            jawa_logger().info(f"[{session.get('url')}] {session.get('username')} downloading file: {target_file}.")
+            logthis.info(f"[{session.get('url')}] {session.get('username')} downloading file: {target_file}.")
             return send_file(f'{files_dir}/{target_file}', as_attachment=True)
         elif button_choice == "Delete":
-            jawa_logger().info(f"[{session.get('url')}] {session.get('username')} deleting file: {target_file}.")
+            logthis.info(f"[{session.get('url')}] {session.get('username')} deleting file: {target_file}.")
             if os.path.exists(os.path.join(files_dir, target_file)):
                 os.remove(os.path.join(files_dir, target_file))
     if request.method == "POST":
-        jawa_logger().info(f"[{session.get('url')}] {session.get('username')} {request.path} {request.method}")
+        logthis.info(f"[{session.get('url')}] {session.get('username')} {request.path} {request.method}")
         upload_files_list = request.files.getlist('upload')
         for each_upload in upload_files_list:
             if ' ' in each_upload.filename:
                 each_upload.filename = each_upload.filename.replace(" ", "-")
-            jawa_logger().info(f"[{session.get('url')}] {session.get('username')} uploaded {each_upload.filename}.")
+            logthis.info(f"[{session.get('url')}] {session.get('username')} uploaded {each_upload.filename}.")
             each_upload.save(os.path.join(files_dir, secure_filename(each_upload.filename)))
-    jawa_logger().info(f"[{session.get('url')}] {session.get('username')} {request.path} {request.method}")
+    logthis.info(f"[{session.get('url')}] {session.get('username')} {request.path} {request.method}")
     file_list = os.listdir(files_dir)
     for file in file_list:
         if file[0] == '.':

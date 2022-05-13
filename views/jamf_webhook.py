@@ -10,7 +10,6 @@ from flask import (Flask, request, render_template,
 
 from bin.load_home import load_home
 from bin.view_modifiers import response
-from app import jawa_logger
 from bin import logger
 
 logthis = logger.setup_child_logger(__name__)

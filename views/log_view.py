@@ -5,7 +5,6 @@ from time import sleep
 
 from bin.load_home import load_home
 from bin.view_modifiers import response
-from app import jawa_logger
 from bin import logger
 
 import flask

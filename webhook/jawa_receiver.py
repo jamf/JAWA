@@ -4,8 +4,11 @@ import json
 import os
 import subprocess
 
-from app import jawa_logger
 from bin import okta_verification
+from bin import logger
+
+logthis = logger.setup_child_logger(__name__)
+logthis.debug(f'this got logged by {__name__} child')
 
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
 jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))

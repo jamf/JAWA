@@ -11,7 +11,6 @@ from flask import (Flask, request, render_template,
 
 from crontab import CronTab
 
-from app import jawa_logger
 from bin import logger
 from bin.view_modifiers import response
 

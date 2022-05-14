@@ -16,31 +16,8 @@ from waitress import serve
 from bin.view_modifiers import response
 from bin import logger
 
-logthis = logger.setup_child_logger('app')
-logthis.info(f'this got logged by app.py child')
-logthis.info("JAWA Logger from the main page.")
-logthis.debug("App.py SAYS: this is a Debug Message.")
-logthis.info("App.py SAYS: this is an Info Message.")
-
-# def jawa_logger():
-#     global oldlogger
-#     log_file = os.path.abspath(os.path.join(os.path.dirname(__file__), 'data', 'jawa.log'))
-#     logging.basicConfig(level=logging.INFO)
-#     oldlogger = logging.getLogger('jawa')
-#     oldlogger.setLevel(logging.INFO)
-#     handler = handlers.RotatingFileHandler(log_file, maxBytes=(1048576 * 100), backupCount=10)
-#     handler.setLevel(logging.INFO)
-#     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-#     handler.setFormatter(formatter)
-#
-#     if oldlogger.hasHandlers():
-#         oldlogger.handlers.clear()
-#     oldlogger.addHandler(handler)
-#     return oldlogger
-
-
 # Flask logging
-
+logthis = logger.setup_child_logger('app')
 error_message = ""
 verify_ssl = True  # Enables Jamf Pro SSL certificate verification
 
@@ -62,7 +39,7 @@ def main():
     app.secret_key = str(uuid.uuid4())
     app.permanent_session_lifetime = timedelta(minutes=10)
     # serve(app, url_scheme='https', host='0.0.0.0', port=8000, threads=15)
-    serve(app, url_scheme='http', host='0.0.0.0', port=8000, threads=15)
+    serve(app, url_scheme='https', host='0.0.0.0', port=8000, threads=15)
 
 def environment_setup(project_dir):
     global webhooks_file, cron_file, server_json_file, scripts_directory
@@ -175,13 +152,13 @@ def cleanup():
         return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if request.method != 'POST':
         return {"username": session.get('username'), "scripts_dir": scripts_directory}
-    oldlogger.info(f"[{session.get('url')}] {session.get('username')} is cleaning up scripts...")
+    logthis.info(f"[{session.get('url')}] {session.get('username')} is cleaning up scripts...")
     owd = os.getcwd()
     if not os.path.isdir(scripts_directory):
         os.mkdir(scripts_directory)
     os.chdir(scripts_directory)
     for file in glob.glob("*.old"):
-        oldlogger.info(f"[{session.get('url')}] {session.get('username')} removed the script {file}...")
+        logthis.info(f"[{session.get('url')}] {session.get('username')} removed the script {file}...")
         os.remove(file)
     os.chdir(owd)
     return redirect(url_for('success'))
@@ -393,7 +370,7 @@ def logout():
     error_title = request.args.get('error_title')
     error_message = request.args.get('error_message')
     if session.get('username'):
-        oldlogger.info("Logging Out: " + str(escape(session['username'])))
+        logthis.info("Logging Out: " + str(escape(session['username'])))
         session.pop('username', None)
     return load_home(error_title, error_message)
 

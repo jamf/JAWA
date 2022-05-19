@@ -44,7 +44,9 @@ def script_results(webhook_data, each_webhook):
     proc = subprocess.Popen([each_webhook['script'], f"{webhook_data}"], stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT)
     output = proc.stdout.read()
-    logthis.info(output.decode())
+    for each_line in output.decode().split('\n'):
+        if each_line:
+            logthis.info(f"{each_webhook.get('name')} - {each_line}")
     return output
 
 

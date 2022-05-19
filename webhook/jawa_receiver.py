@@ -1,17 +1,18 @@
-import flask
-from flask import request
+from flask import Blueprint, request
 import json
 import os
 import subprocess
 
-from app import jawa_logger
 from bin import okta_verification
+from bin import logger
+
+logthis = logger.setup_child_logger('jawa', 'webhook_receiver')
 
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
 jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))
 scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
-blueprint = flask.Blueprint('jawa_receiver', __name__, template_folder='templates')
+blueprint = Blueprint('jawa_receiver', __name__, template_folder='templates')
 
 
 def validate_webhook(webhook_data, webhook_name, webhook_user, webhook_pass):
@@ -39,24 +40,25 @@ def run_script(webhook_data, webhook_name):
 
 
 def script_results(webhook_data, each_webhook):
-    print(webhook_data)
     webhook_data = json.dumps(webhook_data)
     proc = subprocess.Popen([each_webhook['script'], f"{webhook_data}"], stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT)
     output = proc.stdout.read()
-    jawa_logger().info(output.decode())
+    for each_line in output.decode().split('\n'):
+        if each_line:
+            logthis.info(f"{each_webhook.get('name')} - {each_line}")
     return output
 
 
 @blueprint.route('/hooks/<webhook_name>', methods=['POST', 'GET'])
 def webhook_handler(webhook_name):
-    jawa_logger().info(f"Incoming request at /hooks/{webhook_name} ...")
+    logthis.info(f"Incoming request at /hooks/{webhook_name} ...")
     webhook_data = request.get_json()
     if request.headers.get('x-okta-verification-challenge'):
-        jawa_logger().info("This is an Okta verification challenge...")
+        logthis.info("This is an Okta verification challenge...")
         return okta_verification.verify_new_webhook(request.headers.get('x-okta-verification-challenge'))
     if request.method != 'POST':
-        jawa_logger().info(f"Invalid request, {request.method} for /hooks/{webhook_name}.")
+        logthis.info(f"Invalid request, {request.method} for /hooks/{webhook_name}.")
         return "405 - Method not allowed. These aren't the droids you're looking for. You can go about your business. " \
                "Move along.", 405
     webhook_user = "null"
@@ -67,9 +69,9 @@ def webhook_handler(webhook_name):
         webhook_pass = auth.get("password")
 
     if validate_webhook(webhook_data, webhook_name, webhook_user, webhook_pass):
-        jawa_logger().info(f"Validated authentication for /hooks/{webhook_name}, running script...")
+        logthis.info(f"Validated authentication for /hooks/{webhook_name}, running script...")
         output = run_script(webhook_data, webhook_name)
         return {"webhook": f"{webhook_name}", "result": f"{output}"}, 202
     else:
-        jawa_logger().info(f"401 - Incorrect authentication provided for /hooks/{webhook_name}.")
+        logthis.info(f"401 - Incorrect authentication provided for /hooks/{webhook_name}.")
         return f"Unauthorized - incorrect authentication provided for /hooks/{webhook_name}.", 401

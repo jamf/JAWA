@@ -1,5 +1,5 @@
 
-# Jamf Automation and Webhook Assistant ("JAWA") Version 3.0.3b
+# Jamf Automation and Webhook Assistant ("JAWA") Version 3.0.3b_logging
 
 <p align="center"> <img src="https://github.com/jamf/JAWA/blob/master/static/img/jawa_icon.png" width="384"/> </p>
 

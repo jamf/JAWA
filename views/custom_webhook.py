@@ -1,14 +1,15 @@
-import os
-import json
 from collections import defaultdict
+from flask import (Blueprint, escape, redirect, render_template,
+                   request, session, url_for)
+import json
+import os
 from werkzeug.utils import secure_filename
-from flask import (Flask, request, render_template,
-                   session, redirect, url_for, escape,
-                   send_from_directory, Blueprint, abort)
 
-from bin.load_home import load_home
+
 from bin.view_modifiers import response
-from app import jawa_logger
+from bin import logger
+
+logthis = logger.setup_child_logger('jawa', __name__)
 
 blueprint = Blueprint('custom_webhook', __name__, template_folder='templates')
 
@@ -43,21 +44,21 @@ def edit_webhook():
     if 'username' not in session:
         return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
     name = request.args.get('name')
-    jawa_logger().info(f"Checking for custom webhook '{name}'")
+    logthis.info(f"Checking for custom webhook '{name}'")
     with open(webhooks_file) as fin:
         webhooks_json = json.load(fin)
     check_for_name = [True for each_webhook in webhooks_json if each_webhook['name'] == name]
-    jawa_logger().info(f"Name exists? {check_for_name}")
+    logthis.info(f"Name exists? {check_for_name}")
     if not check_for_name:
-        jawa_logger().info(f"JAWA is not aware of any custom webhook named {name}")
+        logthis.info(f"JAWA is not aware of any custom webhook named {name}")
         return redirect(url_for('custom_webhook.custom_webhook'))
     if request.method == 'POST':
         button_choice = request.form.get('button_choice')
         if button_choice == 'Delete':
-            jawa_logger().info(f"{session.get('username')} is considering deleting a custom webhook ({name})...")
+            logthis.info(f"{session.get('username')} is considering deleting a custom webhook ({name})...")
             return redirect(url_for('webhooks.delete_webhook', target_webhook=name))
         for each_webhook in webhooks_json:
-            jawa_logger().info(f"{session.get('username')} is editing a custom webhook ({name})...")
+            logthis.info(f"{session.get('username')} is editing a custom webhook ({name})...")
             if each_webhook['name'] == name:
                 new_custom_name = request.form.get('custom_name')
                 if not new_custom_name:
@@ -112,7 +113,7 @@ def new_webhook():
         description = request.form.get('description')
         if request.form.get('custom_name') != '':
             check = 0
-            jawa_logger().info(f"New webhook name: {request.form.get('custom_name')}")
+            logthis.info(f"New webhook name: {request.form.get('custom_name')}")
 
             with open(webhooks_file, 'r') as json_file:
                 webhooks_json = json.load(json_file)
@@ -137,7 +138,7 @@ def new_webhook():
             os.chdir(owd)
             if check != 0:
                 error_message = "Name already exists!"
-                jawa_logger().info(f"Could not create new webhook. Message: {error_message}")
+                logthis.info(f"Could not create new webhook. Message: {error_message}")
                 return {"error": error_message, "username": session.get('username'), 'name': new_custom_name,
                         'description': description}
             new_webhook_user = request.form.get('username', 'null')

@@ -1,8 +1,11 @@
+from flask import render_template, session, redirect, url_for
+from glob import escape
 import json
 import os
-from glob import escape
 
-from flask import render_template, session, redirect, url_for
+from bin import logger
+
+logthis = logger.setup_child_logger('jawa', __name__)
 
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
 

@@ -1,18 +1,15 @@
-#!/usr/bin/python
-# encoding: utf-8
-import os
-import json
-from time import sleep
-import re
-from werkzeug.utils import secure_filename
-from flask import (Flask, request, render_template,
-                   session, redirect, url_for, escape,
-                   send_from_directory, Blueprint, abort)
-
 from crontab import CronTab
+from flask import (Blueprint, escape, redirect, render_template,
+                   request, session, url_for)
+import getpass
+import json
+import os
+from werkzeug.utils import secure_filename
 
-from app import jawa_logger
+from bin import logger
 from bin.view_modifiers import response
+
+logthis = logger.setup_child_logger('jawa', __name__)
 
 cron_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'cron.json'))
 time_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'time.json'))
@@ -26,7 +23,7 @@ blueprint = Blueprint('cron', __name__)
 def cron_home():
     if 'username' not in session:
         return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
-    jawa_logger().info(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
+    logthis.debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
     with open(cron_json_file, 'r') as fin:
         cron_json = json.load(fin)
     return {"username": session.get('username'), "cron_list": cron_json}
@@ -36,7 +33,7 @@ def cron_home():
 def new_cron():
     if 'username' not in session:
         return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
-    jawa_logger().info(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
+    logthis.debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
     days, frequencies, hours = time_definitions()
 
     if request.method != 'POST':
@@ -90,7 +87,7 @@ def new_cron():
     try:
         cron = CronTab(user=True)
     except IOError as err:
-        jawa_logger().info(f"{err}")
+        logthis.info(f"Error accessing crontab for {getpass.getuser()} - {err}")
         os.remove(script_file)
         return render_template('error.html', error=err, username=session.get('username'))
 
@@ -149,8 +146,8 @@ def new_cron():
 
     with open(cron_json_file, 'w') as outfile:
         json.dump(data, outfile, indent=4)
-    success_msg = f"{session.get('username')} created {cron_name} to run at the frequency:\n {frequency}."
-    jawa_logger().info(f"{success_msg}")
+    success_msg = f"[{session.get('url')}] {session.get('username')} created {cron_name} to run at the frequency:\n {frequency}."
+    logthis.info(f"{success_msg}")
 
     return render_template('success.html',
                            webhooks="success", success_msg=success_msg,
@@ -186,7 +183,7 @@ def time_definitions():
 def delete_cron():
     if 'username' not in session:
         return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
-    jawa_logger().info(f"[{session.get('url')}] {session.get('username')} viewed {request.path}")
+    logthis.debug(f"[{session.get('url')}] {session.get('username')} viewed {request.path}")
     target_job = request.args.get('target_job')
     with open(cron_json_file) as fin:
         cron_json = json.load(fin)
@@ -214,12 +211,12 @@ def delete_cron():
     try:
         cron = CronTab(user=True)
     except IOError as err:
-        jawa_logger().info(f"{err}")
+        logthis.info(f"Error accessing crontab for {getpass.getuser()} - {err}")
         return render_template('error.html', error=err, username=session.get('username'))
 
     for job in cron:
         if job.comment == target_job:
-            jawa_logger().info(f"[{session.get('url')}] {session.get('username')} removed cron job {target_job}")
+            logthis.info(f"[{session.get('url')}] {session.get('username')} removed cron job {target_job}")
             cron.remove(job)
             cron.write()
 
@@ -227,7 +224,7 @@ def delete_cron():
 
     with open(cron_json_file, 'w') as outfile:
         json.dump(data, outfile, indent=4)
-    success_msg = f"{session.get('username')} successfully deleted the Timed Automation: {target_job}."
+    success_msg = f"[{session.get('url')}] {session.get('username')} successfully deleted the Timed Automation: {target_job}."
     return render_template('success.html', success_msg=success_msg,
                            username=str(escape(session['username'])))
 
@@ -236,7 +233,14 @@ def delete_cron():
 def edit_cron():
     if 'username' not in session:
         return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
-    jawa_logger().info(f"[{session.get('url')}] {session.get('username')} viewed {request.path}")
+    logthis.debug(f"[{session.get('url')}] {session.get('username')} viewed {request.path}")
+
+    try:
+        cron = CronTab(user=True)
+    except IOError as err:
+        logthis.info(f"Error accessing crontab for {getpass.getuser()} - {err}")
+        return render_template('error.html', error=err, username=session.get('username'))
+
     with open(cron_json_file) as fin:
         cron_json = json.load(fin)
     names = []
@@ -246,24 +250,16 @@ def edit_cron():
         if item.get('name') == name:
             description = item.get('description')
     if not name:
-        jawa_logger().info(
-            '/cron/edit - Warning: No name provided, redirecting to cron home '
-        )
+        logthis.info(f'{request.path} - Warning: No name provided for editing, redirecting to cron home')
 
         return redirect(url_for('cron.cron_home'))
-    jawa_logger().info(f"{session.get('username').title()} checking for job '{name}' in JAWA's crontab")
-
-    try:
-        cron = CronTab(user=True)
-    except IOError as err:
-        jawa_logger().info(f"Error accessing crontab - {err}")
-        return render_template('error.html', error=err, username=session.get('username'))
+    logthis.debug(f"[{session.get('url')}] {session.get('username').title()} checking for job '{name}' in {cron.user}'s crontab")
 
     check_for_name = [True for job in cron if job.comment == name]
-    jawa_logger().info(f"Name exists? {check_for_name}")
+    logthis.debug(f"Does {name} exist in {cron.user}'s crontab? {check_for_name}")
 
     if not check_for_name:
-        jawa_logger().info(f"JAWA is not aware of any job named {name} in JAWA's crontab")
+        logthis.debug(f"JAWA is not aware of any job named {name} in {cron.user}'s crontab")
         return redirect(url_for('cron.cron_home'))
 
     if not names:
@@ -285,7 +281,7 @@ def edit_cron():
 
     button_choice = request.form.get('button_choice')
     if button_choice == 'Delete':
-        jawa_logger().info(f"{session.get('username')} is considering deleting a Timed Automation ({name})...")
+        logthis.debug(f"[{session.get('url')}] {session.get('username')} is considering deleting a Timed Automation ({name})...")
         return redirect(url_for('cron.delete_cron', target_job=name))
 
     for each_cron in cron_json:
@@ -326,11 +322,6 @@ def edit_cron():
                 each_cron['script'] = script_file
             else:
                 script_file = each_cron.get('script')
-        try:
-            cron = CronTab(user=True)
-        except IOError as err:
-            jawa_logger().info(f"Error accessing crontab - {err}")
-            return render_template('error.html', error=err, username=session.get('username'))
 
     for each_job in cron:
         if each_job.comment == name:
@@ -376,8 +367,8 @@ def edit_cron():
 
     with open(cron_json_file, 'w') as outfile:
         json.dump(cron_json, outfile, indent=4)
-    success_msg = f"{session.get('username')} created {new_cron_name} to run at the frequency:  {frequency}."
-    jawa_logger().info(f"{success_msg}")
+    success_msg = f"[{session.get('url')}] {session.get('username')} edited {new_cron_name} to run at the frequency:  {frequency}."
+    logthis.info(f"{success_msg}")
 
     return render_template('success.html', success_msg=success_msg,
                            webhooks="success",

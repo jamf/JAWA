@@ -1,19 +1,14 @@
-import os
-import json
-import glob
-import time
 from collections import defaultdict
-from time import sleep
+from flask import (Blueprint, redirect, request, session, url_for)
+import json
+import os
 import requests
-import re
-from werkzeug.utils import secure_filename
-from flask import (Flask, request, render_template,
-                   session, redirect, url_for, escape,
-                   send_from_directory, Blueprint, abort)
+import time
 
-from bin.load_home import load_home
+from bin import logger
 from bin.view_modifiers import response
-from app import jawa_logger
+
+logthis = logger.setup_child_logger('jawa', __name__)
 
 blueprint = Blueprint('webhooks', __name__, template_folder='templates')
 
@@ -37,7 +32,7 @@ def delete_webhook():
     tag = [each_webhook['tag'] for each_webhook in webhook_json if each_webhook['name'] == target_webhook]
 
     if request.method == 'POST':
-        jawa_logger().info(f"Deleting {tag} webhook: {target_webhook}")
+        logthis.info(f"Deleting {tag} webhook: {target_webhook}")
         for each_webhook in webhook_json:
             if each_webhook['name'] == target_webhook:
                 script_file = each_webhook['script']
@@ -67,8 +62,6 @@ def delete_webhook():
                 with open(webhooks_file, 'w') as fout:
                     json.dump(webhook_json, fout, indent=4)
         return redirect(url_for('webhooks.webhooks'))
-
-    print(target_webhook, tag[0])
     return {'username': session.get('username'), 'target_webhook': target_webhook, 'tag': tag[0]}
 
 
@@ -91,6 +84,5 @@ def webhooks():
             jamf_pro_webhooks_list.append(each_webhook)
         elif tag == 'okta':
             okta_webhooks_list.append(each_webhook)
-    print(okta_webhooks_list)
     return {'username': session.get('username'), 'custom_list': custom_webhooks_list,
             'jamf_list': jamf_pro_webhooks_list, 'okta_list': okta_webhooks_list, 'url': session.get('url')}

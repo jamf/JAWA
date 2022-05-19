@@ -209,8 +209,8 @@ def jp_new():
         jamf_id = result.group(1)
         new_link = "{}/webhooks.html?id={}&o=r".format(session['url'], result.group(1))
         logthis.info(f"{session.get('username')} created a new webhook:"
-                           f"Name: {request.form.get('name')}"
-                           f"Jamf link: {new_link}")
+                     f"Name: {request.form.get('name')}"
+                     f"Jamf link: {new_link}")
 
         data = json.load(open(webhooks_file))
         webhook_username = request.form.get('username')
@@ -373,17 +373,17 @@ def edit():
                        f"<content_type>application/json</content_type>" \
                        f"<event>{each_webhook.get('event')}</event>" \
                        f"{auth_xml}" \
-                       f"{extra_xml}"\
+                       f"{extra_xml}" \
                        f"</webhook>"
 
                 full_url = f"{session['url']}/JSSResource/webhooks/id/{each_webhook.get('jamf_id')}"
 
-                logthis.info(f"{session.get('username')} editing the JPS webhook {name}.")
+                logthis.debug(f"{session.get('username')} editing the JPS webhook {name}.")
                 try:
                     webhook_response = requests.put(full_url,
-                                                auth=(session['username'], session['password']),
-                                                headers={'Content-Type': 'application/xml'}, data=data,
-                                                verify=verify_ssl)
+                                                    auth=(session['username'], session['password']),
+                                                    headers={'Content-Type': 'application/xml'}, data=data,
+                                                    verify=verify_ssl)
                 except:
                     error_message = f"The request could not be sent to your Jamf Pro server," \
                                     f"check your network connection."
@@ -391,13 +391,17 @@ def edit():
                                            error_message=error_message,
                                            error="error",
                                            username=str(escape(session['username'])))
-                logthis.info(f"[{webhook_response.status_code}]  {webhook_response.text}")
+                logthis.debug(f"[{webhook_response.status_code}]  {webhook_response.text}")
                 if webhook_response.status_code == 409:
-                    error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
-                    return redirect(url_for('error', error="Duplicate", error_message=error_message, username=session.get('username')))
+                    error_message = f"The webhooks name \"{name}\" already exists in your Jamf Pro Server."
+                    logthis.info(
+                        f"[{session.get('url')}] {session.get('username').title()} - error editing webhook. {error_message}")
+                    return redirect(url_for('error', error="Duplicate", error_message=error_message,
+                                            username=session.get('username')))
                 elif webhook_response.status_code == 401:
                     error_message = f"{session.get('username').title()} doesn't have privileges to update webhooks." \
                                     f"Check your account privileges in Jamf Pro Settings"
+                    logthis.info(f"[{session.get('url')}] {error_message}")
                     return redirect(url_for('error', error="Insufficient privileges", error_message=error_message,
                                             username=session.get('username')))
                 with open(webhooks_file, 'w') as fout:
@@ -407,8 +411,8 @@ def edit():
                 new_link = f"{format(session.get('url'))}/webhooks.html?id={jamf_id}&o=r"
                 success_msg = "Webhook edited:"
                 logthis.info(f"{session.get('username')} edited a Jamf webhook:"
-                                   f"Name: {request.form.get('name')}"
-                                   f"Jamf link: {new_link}")
+                             f"Name: {name}"
+                             f"Jamf link: {new_link}")
                 return {"webhooks": "success", "smart_group_instructions": smart_group_instructions,
                         "smart_group_notice": smart_group_notice,
                         "new_link": new_link,

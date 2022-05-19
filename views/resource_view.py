@@ -1,15 +1,14 @@
 import json
 from datetime import datetime
-from flask import current_app, session, redirect, url_for, render_template, Flask, Blueprint, send_file, request
+from flask import (Blueprint, escape, redirect, render_template,
+                   request, send_file, session, url_for)
 from bin import logger
 import os
 from werkzeug.utils import secure_filename
 
-from bin.load_home import load_home
 from bin.view_modifiers import response
 
-logthis = logger.setup_child_logger(__name__)
-logthis.info(f'this got logged by {__name__} child')
+logthis = logger.setup_child_logger('jawa', __name__)
 
 log_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'jawa.log'))
 server_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
@@ -47,7 +46,6 @@ def files():
     for file in file_list:
         if file[0] == '.':
             file_list.remove(file)
-    print(file_list)
     files_list = []
     for each_file in file_list:
         mtime = os.path.getmtime(os.path.join(files_dir, each_file))

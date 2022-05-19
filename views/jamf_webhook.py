@@ -1,19 +1,16 @@
-import os
-import json
 from collections import defaultdict
-import requests
+from flask import (Blueprint, escape, redirect, render_template,
+                   request, session, url_for)
+import json
+import os
 import re
+import requests
 from werkzeug.utils import secure_filename
-from flask import (Flask, request, render_template,
-                   session, redirect, url_for, escape,
-                   send_from_directory, Blueprint, abort)
 
-from bin.load_home import load_home
 from bin.view_modifiers import response
 from bin import logger
 
-logthis = logger.setup_child_logger(__name__)
-logthis.debug(f'this got logged by {__name__} child')
+logthis = logger.setup_child_logger('jawa', __name__)
 
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
 webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))
@@ -35,7 +32,6 @@ def jamf_webhook():
         tag = data['tag']
         if tag == "jamfpro":
             jamf_pro_list.append(each_webhook)
-    # print(jamf_pro_list)
 
     return {'username': session.get('username'),
             'jamf_list': jamf_pro_list, 'url': session.get('url')}
@@ -76,7 +72,6 @@ def jp_new():
 
     if request.form.get('webhook_name') != '':
         check = 0
-        print(check)
         if ' ' in request.form.get('webhook_name'):
             error_message = "Single-string name only."
             return render_template('error.html',
@@ -267,9 +262,7 @@ def edit():
         return redirect(url_for('jamf_pro_webhooks.jamf_webhook'))
     # GET
     webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
-    print(webhook_info)
     if request.method == 'POST':
-        # print(name)
         button_choice = request.form.get('button_choice')
         if button_choice == 'Delete':
             return redirect(url_for('webhooks.delete_webhook', target_webhook=name))

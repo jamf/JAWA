@@ -1,21 +1,14 @@
-#!/usr/bin/python
-# encoding: utf-8
-import os
-import json
-from time import sleep
-import re
-from werkzeug.utils import secure_filename
-from flask import (Flask, request, render_template,
-                   session, redirect, url_for, escape,
-                   send_from_directory, Blueprint, abort)
-
 from crontab import CronTab
+from flask import (Blueprint, escape, redirect, render_template,
+                   request, session, url_for)
+import json
+import os
+from werkzeug.utils import secure_filename
 
 from bin import logger
 from bin.view_modifiers import response
 
-logthis = logger.setup_child_logger(__name__)
-logthis.debug(f'this got logged by {__name__} child')
+logthis = logger.setup_child_logger('jawa', __name__)
 
 cron_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'cron.json'))
 time_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'time.json'))

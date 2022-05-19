@@ -6,8 +6,6 @@ from flask import (Flask, request, render_template,
                    session, redirect, url_for, escape)
 import glob
 import json
-import logging
-from logging import handlers
 import os
 import requests
 import uuid
@@ -17,7 +15,7 @@ from bin.view_modifiers import response
 from bin import logger
 
 # Flask logging
-logthis = logger.setup_child_logger('app')
+logthis = logger.setup_child_logger('jawa', 'app')
 error_message = ""
 verify_ssl = True  # Enables Jamf Pro SSL certificate verification
 
@@ -38,8 +36,8 @@ def main():
     register_blueprints()
     app.secret_key = str(uuid.uuid4())
     app.permanent_session_lifetime = timedelta(minutes=10)
-    # serve(app, url_scheme='https', host='0.0.0.0', port=8000, threads=15)
     serve(app, url_scheme='https', host='0.0.0.0', port=8000, threads=15)
+
 
 def environment_setup(project_dir):
     global webhooks_file, cron_file, server_json_file, scripts_directory
@@ -48,10 +46,10 @@ def environment_setup(project_dir):
     server_json_file = os.path.abspath(os.path.join(project_dir, 'data', 'server.json'))
     scripts_directory = os.path.abspath(os.path.join(project_dir, 'scripts'))
     logthis.info(f"Detecting JAWA environment:\n"
-                       f"Webhooks configuration file: {webhooks_file}\n"
-                       f"Cron configuration file: {cron_file}\n"
-                       f"Server configuration file: {server_json_file}\n"
-                       f"Scripts directory: {scripts_directory}")
+                 f"Webhooks configuration file: {webhooks_file}\n"
+                 f"Cron configuration file: {cron_file}\n"
+                 f"Server configuration file: {server_json_file}\n"
+                 f"Scripts directory: {scripts_directory}")
 
 
 def register_blueprints():
@@ -97,10 +95,10 @@ def setup():
         jps2_check = request.form.get('alternate-jamf')
         jps_url2 = request.form.get('alternate')
         logthis.info(f"{session.get('username')} made JAWA Setup Changes\n"
-                           f"JAWA URL: {server_url}\n"
-                           f"Primary JPS: {jps_url}\n"
-                           f"Alternate JPS: {jps_url2}\n"
-                           f"Alternate enabled?: {jps2_check}")
+                     f"JAWA URL: {server_url}\n"
+                     f"Primary JPS: {jps_url}\n"
+                     f"Alternate JPS: {jps_url2}\n"
+                     f"Alternate enabled?: {jps2_check}")
         new_json = {}
         if server_url != '':
             new_json['jawa_address'] = server_url
@@ -190,7 +188,9 @@ def login():
         logthis.info(f"[{session.get('url')}] Attempting login for: {session.get('username')}")
 
         if request.form['password'] == "":
-            return redirect(url_for('logout', error_title="Authentication error", error_message="Passwords can't be blank"))
+            title = "Authentication error"
+            msg = "Passwords can't be blank"
+            return redirect(url_for('logout', error_title=title, error_message=msg))
         try:
             resp = requests.get(
                 session['url'] + '/JSSResource/activationcode',

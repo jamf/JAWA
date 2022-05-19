@@ -1,19 +1,16 @@
 from datetime import datetime
+import flask
+from flask import (Blueprint, current_app, escape, redirect, render_template, Response,
+                   request, send_file, session, url_for)
+import os
 import re
 import subprocess
 from time import sleep
 
-from bin.load_home import load_home
 from bin.view_modifiers import response
 from bin import logger
 
-import flask
-from flask import current_app, session, render_template, Blueprint, send_file, request, redirect, url_for
-import os
-
-logthis = logger.setup_child_logger(__name__)
-logthis.debug(f'this got logged by {__name__} child')
-logthis.info(f'this got logged by {__name__} child')
+logthis = logger.setup_child_logger('jawa', __name__)
 
 log_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'jawa.log'))
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
@@ -77,7 +74,7 @@ def yield_log():
             sleep(.1)  # Don't need this just shows the text streaming
             yield line.rstrip().decode() + '<br/>\n'
 
-    return flask.Response(inner(), mimetype='text/html')
+    return Response(inner(), mimetype='text/html')
 
 
 @blueprint.route('/log/download')

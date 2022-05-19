@@ -1,5 +1,4 @@
-import flask
-from flask import request
+from flask import Blueprint, request
 import json
 import os
 import subprocess
@@ -7,14 +6,13 @@ import subprocess
 from bin import okta_verification
 from bin import logger
 
-logthis = logger.setup_child_logger(__name__)
-logthis.debug(f'this got logged by {__name__} child')
+logthis = logger.setup_child_logger('jawa', 'webhook_receiver')
 
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
 jp_webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))
 scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
-blueprint = flask.Blueprint('jawa_receiver', __name__, template_folder='templates')
+blueprint = Blueprint('jawa_receiver', __name__, template_folder='templates')
 
 
 def validate_webhook(webhook_data, webhook_name, webhook_user, webhook_pass):
@@ -42,7 +40,6 @@ def run_script(webhook_data, webhook_name):
 
 
 def script_results(webhook_data, each_webhook):
-    print(webhook_data)
     webhook_data = json.dumps(webhook_data)
     proc = subprocess.Popen([each_webhook['script'], f"{webhook_data}"], stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT)

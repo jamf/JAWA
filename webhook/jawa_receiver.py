@@ -68,9 +68,14 @@ def webhook_handler(webhook_name):
     webhook_pass = "null"
     webhook_apikey = "null"
     auth = request.authorization
+
     if auth:
         webhook_user = auth.get("username")
         webhook_pass = auth.get("password")
+
+    apikey = request.headers.get('x-api-key')
+    if apikey:
+        webhook_apikey = request.headers.get('x-api-key')
 
     if validate_webhook(webhook_data, webhook_name, webhook_user, webhook_pass):
         logthis.info(f"Validated authentication for /hooks/{webhook_name}, running script...")

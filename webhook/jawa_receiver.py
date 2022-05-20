@@ -54,6 +54,9 @@ def script_results(webhook_data, each_webhook):
 def webhook_handler(webhook_name):
     logthis.info(f"Incoming request at /hooks/{webhook_name} ...")
     webhook_data = request.get_json()
+    if request.headers.get('x-api-key'):
+        print(request.headers.get('x-api-key'))
+        logthis.info("This is a custom webhook with an api key...")
     if request.headers.get('x-okta-verification-challenge'):
         logthis.info("This is an Okta verification challenge...")
         return okta_verification.verify_new_webhook(request.headers.get('x-okta-verification-challenge'))
@@ -63,6 +66,7 @@ def webhook_handler(webhook_name):
                "Move along.", 405
     webhook_user = "null"
     webhook_pass = "null"
+    webhook_apikey = "null"
     auth = request.authorization
     if auth:
         webhook_user = auth.get("username")

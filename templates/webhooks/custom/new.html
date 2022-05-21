@@ -24,17 +24,27 @@
             <div class="d-flex justify-content-center">
                 <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>, <a
                         href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>] </p></div>
-             <div class="d-flex justify-content-center">   <label>
-                        <input type="checkbox" class="form-check-input" name="basic"
-                               onchange="java_script_:show(this.value)">
-                    </label><b>Basic Authentication (optional):</b></div>
+             <div class="d-flex justify-content-center"><label>
+                <input type="checkbox" class="form-check-input" name="basic" value="basic"
+                       onchange="java_script_:show(this.value)">
+            </label><b>Basic Authentication (optional):</b></div>
+            <div class="d-flex justify-content-center">
+                <div id="hiddenDiv2" style="display:none" class="center_box">
+                    <div class="d-flex justify-content-center">
+                    <input class="form-control-sm" name="username" title="Username (optional)"
+                           placeholder="Username (optional)">
+                    </b>
+                    <input name="password" class="form-control-sm" type='password' title="Password (optional)"
+                           placeholder="Password (optional)"></div></div>
+            </div>
+                <div class="d-flex justify-content-center"><label>
+                    <input type="checkbox" class="form-check-input" name="custom" value="custom"
+                           onchange="java_script_:show(this.value)">
+                </label><b>Custom Authentication (optional):</b></div>
                 <div class="d-flex justify-content-center">
-                 <div id="hiddenDiv2" style="display:none">
-                <input class="form-control-sm" name="username" title="Username (optional)"
-                       placeholder="Username (optional)">
-                </b>
-                <input name="password" class="form-control-sm" type='password' title="Password (optional)"
-                       placeholder="Password (optional)"></div>
+                    <div id="hiddenDiv3" style="display:none">
+                        <input name="api_key" class="form-control-sm" type='api_key' title="X-API-KEY (optional)"
+                               placeholder="X-API-KEY value (optional)"></div>
                 </div>
             <div class="d-flex justify-content-center">
                 <p></p>
@@ -51,8 +61,11 @@
 {% block additional_js %}
     <script>
         function show(event) {
-            if (event == "on") {
+            if (event == "basic") {
                 hiddenDiv2.style.display = 'inline-block';
+            }
+            if (event == "custom") {
+                hiddenDiv3.style.display = 'inline-block';
             }
         }
     </script>

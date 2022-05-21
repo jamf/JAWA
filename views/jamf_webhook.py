@@ -66,8 +66,6 @@ def jp_new():
         return render_template('webhooks/jamf/new.html',
                                webhooks="webhooks",
                                url=session['url'],
-                               # found_mobile_device_groups=found_mobile_device_groups,
-                               # found_computer_groups=found_computer_groups,
                                username=str(escape(session['username'])))
 
     if request.form.get('webhook_name') != '':
@@ -168,18 +166,19 @@ def jp_new():
 
         # Check for auth values
         auth_xml = "<authentication_type>NONE</authentication_type>"
-        if (
-                request.form.get('username') != '' or
-                request.form.get('password') != ''):
-            auth_xml = f"<authentication_type>BASIC</authentication_type>"
-            if request.form.get('username') == '':
-                auth_xml += "<username>null</username>"
-            else:
-                auth_xml += f"<username>{request.form.get('username')}</username>"
-            if request.form.get('password') == '':
-                auth_xml += "<password>null</password>"
-            else:
-                auth_xml += f"<password>{request.form.get('password')}</password>"
+        if request.form.get('basic'):
+            if (
+                    request.form.get('username') != '' or
+                    request.form.get('password') != ''):
+                auth_xml = f"<authentication_type>BASIC</authentication_type>"
+                if request.form.get('username') == '':
+                    auth_xml += "<username>null</username>"
+                else:
+                    auth_xml += f"<username>{request.form.get('username')}</username>"
+                if request.form.get('password') == '':
+                    auth_xml += "<password>null</password>"
+                else:
+                    auth_xml += f"<password>{request.form.get('password')}</password>"
 
         data = f"<webhook>" \
                f"<name>{request.form.get('webhook_name')}</name>" \
@@ -213,18 +212,23 @@ def jp_new():
                      f"Jamf link: {new_link}")
 
         data = json.load(open(webhooks_file))
-        webhook_username = request.form.get('username')
-        webhook_password = request.form.get('password')
-        if webhook_username == "":
-            webhook_username = "null"
-        if webhook_password == "":
-            webhook_password = "null"
+        if request.form.get('basic'):
+            webhook_username = request.form.get('username', 'null')
+            webhook_password = request.form.get('password', 'null')
+        else:
+            webhook_username = 'null'
+            webhook_password = 'null'
+        if request.form.get('custom'):
+            webhook_apikey = request.form.get('api_key', 'null')
+        else:
+            webhook_apikey = 'null'
 
         data.append({"url": str(session['url']),
                      "jawa_admin": str(session['username']),
                      "name": request.form.get('webhook_name'),
                      "webhook_username": webhook_username,
                      "webhook_password": webhook_password,
+                     "api_key": webhook_apikey,
                      "event": request.form.get('event'),
                      "script": new_script_file,
                      "description": request.form.get('description'),
@@ -274,8 +278,16 @@ def edit():
                     new_webhook_name = name
                 description = request.form.get('description')
                 new_event = request.form.get('event')
-                webhook_user = request.form.get('username')
-                webhook_pass = request.form.get('password')
+                if request.form.get('basic'):
+                    webhook_user = request.form.get('username', 'null')
+                    webhook_pass = request.form.get('password', 'null')
+                else:
+                    webhook_user = 'null'
+                    webhook_pass = 'null'
+                if request.form.get('custom'):
+                    webhook_apikey = request.form.get('api_key', 'null')
+                else:
+                    webhook_apikey = 'null'
 
                 if request.files.get('new_file'):
                     new_script = request.files.get('new_file')
@@ -303,6 +315,10 @@ def edit():
                     each_webhook['webhook_username'] = 'null'
                 if webhook_pass and webhook_pass != "":
                     each_webhook['webhook_password'] = webhook_pass
+                else:
+                    each_webhook['webhook_password'] = 'null'
+                if webhook_apikey and webhook_apikey != "":
+                    each_webhook['api_key'] = webhook_apikey
                 else:
                     each_webhook['webhook_password'] = 'null'
                 each_webhook['jawa_admin'] = session.get('username')
@@ -347,22 +363,23 @@ def edit():
                     extra_xml = ""
                     # Check for auth values
                 auth_xml = "<authentication_type>NONE</authentication_type>"
-                if (
-                        request.form.get('username') != '' or
-                        request.form.get('password') != ''):
-                    auth_xml = f"<authentication_type>BASIC</authentication_type>"
-                    if (request.form.get('username') == 'null' and
-                            request.form.get('password') == 'null'):
-                        auth_xml = "<authentication_type>NONE</authentication_type>"
+                if request.form.get('basic'):
+                    if (
+                            request.form.get('username') != '' or
+                            request.form.get('password') != ''):
+                        auth_xml = f"<authentication_type>BASIC</authentication_type>"
+                        if (request.form.get('username') == 'null' and
+                                request.form.get('password') == 'null'):
+                            auth_xml = "<authentication_type>NONE</authentication_type>"
 
-                    if request.form.get('username') == '':
-                        auth_xml += "<username>null</username>"
-                    else:
-                        auth_xml += f"<username>{request.form.get('username')}</username>"
-                    if request.form.get('password') == '':
-                        auth_xml += "<password>null</password>"
-                    else:
-                        auth_xml += f"<password>{request.form.get('password')}</password>"
+                        if request.form.get('username') == '':
+                            auth_xml += "<username>null</username>"
+                        else:
+                            auth_xml += f"<username>{request.form.get('username')}</username>"
+                        if request.form.get('password') == '':
+                            auth_xml += "<password>null</password>"
+                        else:
+                            auth_xml += f"<password>{request.form.get('password')}</password>"
                 with open(server_json_file) as fin:
                     server_json = json.load(fin)
                 server_address = server_json['jawa_address']

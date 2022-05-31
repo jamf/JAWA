@@ -53,7 +53,15 @@ def script_results(webhook_data, each_webhook):
 @blueprint.route('/hooks/<webhook_name>', methods=['POST', 'GET'])
 def webhook_handler(webhook_name):
     logthis.info(f"Incoming request at /hooks/{webhook_name} ...")
-    webhook_data = request.get_json()
+    try:
+        webhook_data = request.get_json()
+    except Exception as err:
+        logthis.debug(f"Error loading JSON ({err}). Trying to load from form payload.")
+        webhook_data = json.loads(request.form.get('payload'))
+    if not webhook_data:
+        logthis.info(f"418.  Error processing /hooks/{webhook_name} - no data provided. I'm a teapot.")
+        return "418 - I'm a teapot.", 418
+    logthis.debug(f"{webhook_name} payload: {webhook_data}")
     if request.headers.get('x-okta-verification-challenge'):
         logthis.info("This is an Okta verification challenge...")
         return okta_verification.verify_new_webhook(request.headers.get('x-okta-verification-challenge'))

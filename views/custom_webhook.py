@@ -58,8 +58,8 @@ def edit_webhook():
             logthis.info(f"{session.get('username')} is considering deleting a custom webhook ({name})...")
             return redirect(url_for('webhooks.delete_webhook', target_webhook=name))
         for each_webhook in webhooks_json:
-            logthis.info(f"{session.get('username')} is editing a custom webhook ({name})...")
             if each_webhook['name'] == name:
+                logthis.info(f"{session.get('username')} is editing a custom webhook ({name})...")
                 new_custom_name = request.form.get('custom_name')
                 if not new_custom_name:
                     new_custom_name = name

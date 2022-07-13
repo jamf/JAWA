@@ -212,16 +212,18 @@ def jp_new():
                      f"Jamf link: {new_link}")
 
         data = json.load(open(webhooks_file))
-        if request.form.get('basic'):
+        if request.form.get('choice') == 'basic':
             webhook_username = request.form.get('username', 'null')
             webhook_password = request.form.get('password', 'null')
         else:
             webhook_username = 'null'
             webhook_password = 'null'
-        if request.form.get('custom'):
+        if request.form.get('choice') == 'custom':
             webhook_apikey = request.form.get('api_key', 'null')
+            extra_notice = 'Copy and paste the following into the custom headers section of Jamf Pro webhooks {"api_key" : ' + f'"{webhook_apikey}"'+ '}'
         else:
             webhook_apikey = 'null'
+            extra_notice = None
 
         data.append({"url": str(session['url']),
                      "jawa_admin": str(session['username']),
@@ -247,7 +249,7 @@ def jp_new():
                            smart_group_notice=smart_group_notice,
                            new_link=new_link,
                            new_here=new_here,
-                           success_msg=success_msg,
+                           success_msg=success_msg, extra_notice=extra_notice,
                            username=str(escape(session['username'])))
 
 
@@ -278,16 +280,18 @@ def edit():
                     new_webhook_name = name
                 description = request.form.get('description')
                 new_event = request.form.get('event')
-                if request.form.get('basic'):
+                if request.form.get('choice') == 'basic':
                     webhook_user = request.form.get('username', 'null')
                     webhook_pass = request.form.get('password', 'null')
                 else:
                     webhook_user = 'null'
                     webhook_pass = 'null'
-                if request.form.get('custom'):
+                if request.form.get('choice') == 'custom':
                     webhook_apikey = request.form.get('api_key', 'null')
+                    extra_notice = 'Copy and paste the following into the custom headers section of Jamf Pro webhooks {"api_key" : ' + f'"{webhook_apikey}"'+ '}'
                 else:
                     webhook_apikey = 'null'
+                    extra_notice = None
 
                 if request.files.get('new_file'):
                     new_script = request.files.get('new_file')
@@ -434,7 +438,7 @@ def edit():
                         "smart_group_notice": smart_group_notice,
                         "new_link": new_link,
                         "new_here": new_webhook_name,
-                        "success_msg": success_msg,
+                        "success_msg": success_msg, "extra_notice": extra_notice,
                         "username": session.get('username'), 'webhook_info': webhook_info, "webhook_name": name,
                         "description": each_webhook.get('description')}
 

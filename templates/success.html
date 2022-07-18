@@ -18,6 +18,9 @@
                 <b>{{ smart_group_notice }}</b> <br> {{ smart_group_instructions }}
             {% endif %}
             <a href="{{ new_link }}" style="color:#3c6aa7;" target="_blank">{{ new_here }}</a></center>
+            {% if extra_notice %}
+                {{ extra_notice }}
+            {% endif %}
             </br></br>
 
             <div class="d-flex justify-content-center">

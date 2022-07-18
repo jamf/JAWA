@@ -14,6 +14,20 @@
               enctype="multipart/form-data">
             <div class="overflow-auto" style="max-height: 60vh; margin: auto">
                 <h1>Edit {% if webhook_name %}{{ webhook_name }}{% else %}Jamf Pro Webhook{% endif %}</h1>
+            {% if success_msg %}
+
+                        <h3 class="alert-success">Success!</h3>
+                        <div class="form-container alert-warning">
+                        <div>{{ success_msg }} <br></div>
+                    {% endif %}
+                    {% if smart_group_notice %}
+                        <b>{{ smart_group_notice }}</b> <br> {{ smart_group_instructions }}
+                    {% endif %}
+                    <a href="{{ new_link }}" style="color:#3c6aa7;" target="_blank">{{ new_here }}</a>
+                    {% if extra_notice %}
+                        {{ extra_notice }}
+                        </div></div>
+                    {% endif %}
                 <input name="webhook_name" value="{{ webhook_name }}" type="text" pattern="[^' ']+"
                        placeholder="Edit Webhook Name (optional)"
                        title="No spaces, please." class="form-control" value="{{ name }}" autofocus>
@@ -129,7 +143,7 @@
       </select></br></br>
        -->
                 <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
-                          class="form-control">{{ webhook_info[0]['description'] }}</textarea><br>
+                          class="form-control">{{ webhook_info[0].get('description') }}</textarea><br>
 
                 <div class="d-flex justify-content-center">
                     Script file: &nbsp<input type="file" name="new_file" pattern="[^' ']+"
@@ -140,54 +154,65 @@
                             href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>] </p></div>
                 <div class="d-flex justify-content-center">
                     <label>
-                        <input type="checkbox" class="form-check-input" name="basic"
+                        <input type="radio" class="form-check-label" name="choice" value="basic"
                                onchange="java_script_:show(this.value)"
-                               {% if webhook_info[0]['webhook_username'] != 'null' %} checked {% endif %}">
-                    </label><b>Basic Authentication (optional):</b></div>
+                                {% if webhook_info[0]['webhook_username'] != 'null' %} checked {% endif %}">
+                    </label><b>&nbsp;Basic Authentication (optional):</b></div>
                 <div class="d-flex justify-content-center">
-                {% if webhook_info[0]['webhook_username'] == 'null' %}    <div id="hiddenDiv2" style="display:none"> {% endif %}
+                    {% if webhook_info[0]['webhook_username'] == 'null' %}
+                        <div id="hiddenDiv2" style="display:none"> {% endif %}
 
-                        <input class="form-control-sm" name="username" title="Username (optional)"
-                               placeholder="Username (optional)"
-                               value="{% if webhook_info[0]['webhook_username'] != 'null' %}{{ webhook_info[0]['webhook_username'] }}{% endif %}">
-                        </b>
-                        <input name="password" class="form-control-sm" type='password' title="Password (optional)"
-                               placeholder="Password (optional)"
-                               value="{% if webhook_info[0]['webhook_password'] != 'null' %}{{ webhook_info[0]['webhook_password'] }}{% endif %}">
+                    <input class="form-control-sm" name="username" title="Username (optional)"
+                           placeholder="Username (optional)"
+                           value="
+                                   {% if webhook_info[0]['webhook_username'] != 'null' %}{{ webhook_info[0]['webhook_username'] }}{% endif %}">
+                    </b>
+                    <input name="password" class="form-control-sm" type='password' title="Password (optional)"
+                           placeholder="Password (optional)"
+                           value="
+                                   {% if webhook_info[0]['webhook_password'] != 'null' %}{{ webhook_info[0]['webhook_password'] }}{% endif %}">
                     </div>
                 </div>
+                <div class="d-flex justify-content-center"><label>
+                    <input type="radio" class="form-check-label" name="choice" value="custom"
+                           onchange="java_script_:show(this.value)"
+                           {% if webhook_info[0].get('api_key', 'null') != 'null' %}checked{% endif %}>
+                </label><b>&nbsp;Custom Authentication (optional):</b></div>
+                <div class="d-flex justify-content-center">
+                    {% if webhook_info[0].get('api_key', 'null') == 'null' %}
+                        <div id="hiddenDiv3" style="display:none">{% endif %}
+                    {% if not webhook_info[0].get('api_key', 'null') == 'null' %}
+                        <div id="hiddenDiv3" style="display:inline-block">{% endif %}
+                    <input name="api_key" class="form-control-sm" type='api_key' title="X-API-KEY (optional)"
+                           placeholder="X-API-KEY value (optional)" value="
+{% if webhook_info[0].get('api_key', 'null') != 'null' %}{{ webhook_info[0].get('api_key') }}{% endif %}"></div>
+                    </div>
 
-                <div class="d-flex justify-content-center btn-padded">
+                    <div class="d-flex justify-content-center btn-padded">
 
-                    <button style="overflow: visible !important; height: 0 !important; width: 0 !important; margin: 0 !important; border: 0 !important; padding: 0 !important; display: block !important;" type="submit" value=""/>
 
-                    <button type=submit name="button_choice" value="Delete" class="btn btn-danger"
-                            style="margin: 5px; padding: 5px; width: 150px"
-                    >
+                        <button type=submit name="button_choice" value="Delete" class="btn btn-danger"
+                                style="margin: 5px; padding: 5px; width: 150px"
+                        >
 
-                    Delete
+                            Delete
 
-                    </button>
-                    <button type=submit value="Custom_New" class="btn btn-secondary "
-                            style="margin: 5px; padding: 5px; width: 150px">
+                        </button>
+                        <button type=submit value="Custom_New" class="btn btn-secondary "
+                                style="margin: 5px; padding: 5px; width: 150px">
 
-                        Save
+                            Save
 
-                    </button>
+                        </button>
+                    </div>
+
+
+
+                    </div>
+
                 </div>
-                {% if success_msg %}
-
-                    <h3 class="alert-success">Success!</h3>
-                    <div class="form-container alert-warning">
-                    <div>{{ success_msg }} <br></div>
-                {% endif %}
-                {% if smart_group_notice %}
-                    <b>{{ smart_group_notice }}</b> <br> {{ smart_group_instructions }}
-                {% endif %}
-                <a href="{{ new_link }}" style="color:#3c6aa7;" target="_blank">{{ new_here }}</a></center>
-                </div>
-
             </div>
+        </form>
     </div>
 {% endblock %}
 {% block additional_js %}
@@ -202,8 +227,11 @@
                 hiddenDiv.style.display = 'inline-block';
                 hiddenDivTwo.style.display = 'inline-block';
             }
-            if (event == "on") {
+            if (event == "basic") {
                 hiddenDiv2.style.display = 'inline-block';
+            }
+            if (event == "custom") {
+                hiddenDiv3.style.display = 'inline-block';
             }
         }
     </script>

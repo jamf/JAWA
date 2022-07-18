@@ -58,19 +58,34 @@ def edit_webhook():
             logthis.info(f"{session.get('username')} is considering deleting a custom webhook ({name})...")
             return redirect(url_for('webhooks.delete_webhook', target_webhook=name))
         for each_webhook in webhooks_json:
-            logthis.info(f"{session.get('username')} is editing a custom webhook ({name})...")
             if each_webhook['name'] == name:
+                logthis.info(f"{session.get('username')} is editing a custom webhook ({name})...")
                 new_custom_name = request.form.get('custom_name')
                 if not new_custom_name:
                     new_custom_name = name
                 description = request.form.get('description')
-                new_webhook_user = request.form.get('username', 'null')
-                if not new_webhook_user:
-                    new_webhook_user = "null"
-                new_webhook_pass = request.form.get('password', 'null')
-                if not new_webhook_pass:
-                    new_webhook_pass = "null"
-
+                if request.form.get('basic'):
+                    new_webhook_user = request.form.get('username', 'null')
+                    new_webhook_pass = request.form.get('password', 'null')
+                else:
+                    new_webhook_user = 'null'
+                    new_webhook_pass = 'null'
+                if request.form.get('custom'):
+                    new_webhook_apikey = request.form.get('api_key', 'null')
+                else:
+                    new_webhook_apikey = 'null'
+                if new_webhook_user and new_webhook_user != "":
+                    each_webhook['webhook_username'] = new_webhook_user
+                else:
+                    each_webhook['webhook_username'] = 'null'
+                if new_webhook_pass and new_webhook_pass != "":
+                    each_webhook['webhook_password'] = new_webhook_pass
+                else:
+                    each_webhook['webhook_password'] = 'null'
+                if new_webhook_apikey and new_webhook_apikey != "":
+                    each_webhook['api_key'] = new_webhook_apikey
+                else:
+                    each_webhook['webhook_password'] = 'null'
                 if request.files.get('new_file'):
                     new_script = request.files.get('new_file')
                     owd = os.getcwd()
@@ -85,8 +100,8 @@ def edit_webhook():
                     os.chmod(new_filename, mode=0o0755)
                     os.chdir(owd)
                     each_webhook['script'] = new_filename
-                if new_custom_name:
-                    each_webhook['name'] = new_custom_name
+
+                each_webhook['name'] = new_custom_name
                 if description:
                     each_webhook['description'] = description
                 each_webhook['webhook_username'] = new_webhook_user
@@ -94,10 +109,10 @@ def edit_webhook():
 
                 with open(webhooks_file, 'w') as fout:
                     json.dump(webhooks_json, fout, indent=4)
-                webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
+                webhook_info = [each_webhook]
                 return {"webhooks": "success",
-                        "success_msg": f"Edited custom webhook {name}.",
-                        "username": session.get('username'), 'webhook_info': webhook_info, "webhook_name": name,
+                        "success_msg": f"Edited custom webhook {new_custom_name}.",
+                        "username": session.get('username'), 'webhook_info': webhook_info, "webhook_name": new_custom_name,
                         "description": each_webhook.get('description')}
     webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
     return {'username': session.get('username'), 'webhook_name': name, 'webhook_info': webhook_info}
@@ -152,7 +167,6 @@ def new_webhook():
                                   "name": new_custom_name,
                                   "webhook_username": new_webhook_user,
                                   "webhook_password": new_webhook_pass,
-                                  # "event": request.form.get('event'),
                                   "script": new_filename,
                                   "description": description,
                                   "tag": "custom"})

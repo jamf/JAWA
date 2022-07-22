@@ -220,7 +220,7 @@ def jp_new():
             webhook_password = 'null'
         if request.form.get('choice') == 'custom':
             webhook_apikey = request.form.get('api_key', 'null')
-            extra_notice = 'Copy and paste the following into the custom headers section of Jamf Pro webhooks {"api_key" : ' + f'"{webhook_apikey}"'+ '}'
+            extra_notice = 'Copy and paste the following into the custom headers section of Jamf Pro webhooks {"x-api-key" : ' + f'"{webhook_apikey}"' + '}'
         else:
             webhook_apikey = 'null'
             extra_notice = None
@@ -288,7 +288,7 @@ def edit():
                     webhook_pass = 'null'
                 if request.form.get('choice') == 'custom':
                     webhook_apikey = request.form.get('api_key', 'null')
-                    extra_notice = 'Copy and paste the following into the custom headers section of Jamf Pro webhooks {"api_key" : ' + f'"{webhook_apikey}"'+ '}'
+                    extra_notice = 'Copy and paste the following into the custom headers section of Jamf Pro webhooks {"x-api-key" : ' + f'"{webhook_apikey}"' + '}'
                 else:
                     webhook_apikey = 'null'
                     extra_notice = None

@@ -162,11 +162,16 @@ def new_webhook():
             new_webhook_pass = request.form.get('password', 'null')
             if not new_webhook_pass:
                 new_webhook_pass = "null"
+            if request.form.get('custom'):
+                api_key = request.form.get('api_key', 'null')
+            else:
+                api_key = 'null'
             webhooks_json.append({"url": str(session['url']),
                                   "jawa_admin": str(session['username']),
                                   "name": new_custom_name,
                                   "webhook_username": new_webhook_user,
                                   "webhook_password": new_webhook_pass,
+                                  "api_key": api_key,
                                   "script": new_filename,
                                   "description": description,
                                   "tag": "custom"})

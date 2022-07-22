@@ -183,8 +183,8 @@
                         <div id="hiddenDiv3" style="display:none">{% endif %}
                     {% if not webhook_info[0].get('api_key', 'null') == 'null' %}
                         <div id="hiddenDiv3" style="display:inline-block">{% endif %}
-                    <input name="api_key" class="form-control-sm" type='api_key' title="X-API-KEY (optional)"
-                           placeholder="X-API-KEY value (optional)" value="
+                    <input name="api_key" class="form-control-sm" type='api_key' title="x-api-key (optional)"
+                           placeholder="x-api-key value (optional)" value="
 {% if webhook_info[0].get('api_key', 'null') != 'null' %}{{ webhook_info[0].get('api_key') }}{% endif %}"></div>
                     </div>
 

@@ -26,7 +26,7 @@ scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scr
 @response(template_file='webhooks/okta/home.html')
 def okta_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     with open(webhooks_file, 'r') as fin:
         webhooks_json = json.load(fin)
     okta_webhooks_list = []
@@ -44,7 +44,7 @@ def okta_webhook():
 @blueprint.route('/webhooks/okta/new', methods=['GET', 'POST'])
 def okta_new():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     os.chmod(okta_verification_file, mode=0o0755)
     # okta_json = '/usr/local/jawa/okta_json.json'
 

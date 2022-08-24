@@ -1,11 +1,12 @@
 import json
-from datetime import datetime
-from flask import (Blueprint, escape, redirect, render_template,
-                   request, send_file, session, url_for)
-from bin import logger
 import os
+from datetime import datetime
+
+from flask import (Blueprint, redirect, render_template,
+                   request, send_file, session, url_for)
 from werkzeug.utils import secure_filename
 
+from bin import logger
 from bin.view_modifiers import response
 
 logthis = logger.setup_child_logger('jawa', __name__)
@@ -22,7 +23,7 @@ blueprint = Blueprint('resources_view', __name__, template_folder='templates')
 @blueprint.route('/resources/files', methods=['GET', 'POST'])
 def files():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     target_file = request.args.get('target_file')
     button_choice = request.args.get('button_choice')
     if target_file:
@@ -59,7 +60,7 @@ def files():
 @response(template_file='setup/branding.html')
 def rebrand():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if not os.path.isfile(server_file):
         with open(server_file, "w") as fout:
             json.dump({}, fout)
@@ -91,7 +92,7 @@ def rebrand():
 @response(template_file="resources/python.html")
 def python():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     return {"username": session.get('username')}
 
 
@@ -99,7 +100,7 @@ def python():
 @response(template_file="resources/bash.html")
 def bash():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     return {"username": session.get('username')}
 
 

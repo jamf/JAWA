@@ -9,7 +9,13 @@
                 <img src="{{ url_for('static', filename='img/jawa_icon.png') }}" class="img-fluid"></div>
         </div>
         <h1 class="d-flex justify-content-center">{% if app_name %}{{ app_name }}{% else %}{% endif %}</h1>
+        {% if error_message %}
+            <br>
+            <div class="alert alert-warning text-center">Authentication Failed <br>
+                {{ error_title }} - {{ error_message.replace('(',' ').replace(')', '') }}
+            </div>
 
+        {% endif %}
         {% if jsslock %}
             {% if jps_url2 %}
                 Choose your JPS instance:
@@ -24,13 +30,7 @@
         {% endif %}
         <input name="username" type="text" placeholder="Username" required class="form-control" autofocus>
         <input name="password" type="password" placeholder="Password" required class="form-control">
-       {% if error_message %}
-        <br>
-        <div class="alert alert-warning text-center">Authentication Failed <br>
-            {{ error_title }} - {{error_message.replace('(',' ').replace(')', '')}}
-        </div>
 
-        {% endif %}
         <p>
         <div class="d-flex justify-content-center">
             <input class="btn btn-primary" type=submit value=Login>
@@ -42,5 +42,3 @@
     </form>
 {% endblock %}
 </div>
-</body>
-</html>

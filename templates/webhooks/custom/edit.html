@@ -41,7 +41,8 @@
                         <input name="password" class="form-control-sm" type='password' title="Password (optional)"
                                placeholder="Password (optional)"
                                value="{% if webhook_info[0]['webhook_password'] != 'null' %}{{ webhook_info[0]['webhook_password'] }}{% endif %}">
-                    </div>
+                    {% if webhook_info[0]['webhook_username'] == 'null' %}    </div> {% endif %}
+
 
                 </div>
 <div class="d-flex justify-content-center"><label>

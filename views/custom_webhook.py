@@ -60,6 +60,7 @@ def edit_webhook():
         for each_webhook in webhooks_json:
             if each_webhook['name'] == name:
                 logthis.info(f"{session.get('username')} is editing a custom webhook ({name})...")
+                output = request.form.get('output')
                 new_custom_name = request.form.get('custom_name')
                 if not new_custom_name:
                     new_custom_name = name
@@ -106,6 +107,7 @@ def edit_webhook():
                     each_webhook['description'] = description
                 each_webhook['webhook_username'] = new_webhook_user
                 each_webhook['webhook_password'] = new_webhook_pass
+                each_webhook['output'] = output
 
                 with open(webhooks_file, 'w') as fout:
                     json.dump(webhooks_json, fout, indent=4)
@@ -126,6 +128,9 @@ def new_webhook():
     if request.method == 'POST':
         new_custom_name = request.form.get('custom_name')
         description = request.form.get('description')
+        output = request.form.get('output')
+
+
         if request.form.get('custom_name') != '':
             check = 0
             logthis.info(f"New webhook name: {request.form.get('custom_name')}")
@@ -174,7 +179,8 @@ def new_webhook():
                                   "api_key": api_key,
                                   "script": new_filename,
                                   "description": description,
-                                  "tag": "custom"})
+                                  "tag": "custom",
+                                  "output": output})
 
             with open(webhooks_file, 'w') as outfile:
                 json.dump(webhooks_json, outfile, indent=4)

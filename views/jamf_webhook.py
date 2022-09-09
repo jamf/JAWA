@@ -171,7 +171,7 @@ def jp_new():
 
         # Check for auth values
         auth_xml = "<authentication_type>NONE</authentication_type>"
-        if request.form.get('basic'):
+        if request.form.get('choice') == 'basic':
             if (
                     request.form.get('username') != '' or
                     request.form.get('password') != ''):
@@ -377,7 +377,7 @@ def edit():
                     extra_xml = ""
                     # Check for auth values
                 auth_xml = "<authentication_type>NONE</authentication_type>"
-                if request.form.get('basic'):
+                if request.form.get('choice') == 'basic':
                     if (
                             request.form.get('username') != '' or
                             request.form.get('password') != ''):

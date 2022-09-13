@@ -84,9 +84,8 @@ def delete_file():
     logthis.info(f"[{session.get('url')}] {session.get('username')} deleting file: {target_file}.")
     if os.path.exists(os.path.join(files_dir, target_file)):
         os.remove(os.path.join(files_dir, target_file))
-        success_msg = f"[{session.get('url')}] {session.get('username')} successfully deleted the Resource file: {target_file}."
-        return render_template('success.html', success_msg=success_msg,
-                               username=str(escape(session['username'])))
+        logthis.info(f"[{session.get('url')}] {session.get('username')} successfully deleted the Resource file: {target_file}.")
+        return redirect(url_for('resources_view.files'))
     else:
         error = f"Error deleting file."
         error_message = f"File does not exist {target_file}."

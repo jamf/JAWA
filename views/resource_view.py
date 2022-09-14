@@ -1,11 +1,12 @@
 import json
+import os
 from datetime import datetime
+
 from flask import (Blueprint, escape, redirect, render_template,
                    request, send_file, session, url_for)
-from bin import logger
-import os
 from werkzeug.utils import secure_filename
 
+from bin import logger
 from bin.view_modifiers import response
 
 logthis = logger.setup_child_logger('jawa', __name__)
@@ -22,17 +23,25 @@ blueprint = Blueprint('resources_view', __name__, template_folder='templates')
 @blueprint.route('/resources/files', methods=['GET', 'POST'])
 def files():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     target_file = request.args.get('target_file')
     button_choice = request.args.get('button_choice')
     if target_file:
+        target_file_dir = os.path.dirname(os.path.abspath(os.path.join(files_dir, target_file)))
+        target_file_path = os.path.abspath(os.path.join(files_dir, target_file))
         if button_choice == "Download":
             logthis.info(f"[{session.get('url')}] {session.get('username')} downloading file: {target_file}.")
-            return send_file(f'{files_dir}/{target_file}', as_attachment=True)
+            if target_file_dir != files_dir:
+                logthis.info(
+                    f"WARNING: [{session.get('url')}] {session.get('username')} attempted to download a file from a forbidden path: {target_file_path}.")
+                return "Forbidden:  you are not allowed to download files from alternative paths.", 403
+            return send_file(f'{target_file_path}', as_attachment=True)
         elif button_choice == "Delete":
-            logthis.info(f"[{session.get('url')}] {session.get('username')} deleting file: {target_file}.")
-            if os.path.exists(os.path.join(files_dir, target_file)):
-                os.remove(os.path.join(files_dir, target_file))
+            logthis.debug(
+                f"[{session.get('url')}] {session.get('username')} is considering deleting a Resource file ({target_file_path})...")
+            return redirect(url_for('resources_view.delete_file', target_file=target_file))
+
     if request.method == "POST":
         logthis.info(f"[{session.get('url')}] {session.get('username')} {request.path} {request.method}")
         upload_files_list = request.files.getlist('upload')
@@ -55,11 +64,41 @@ def files():
                            files=files_list)
 
 
+@blueprint.route('/resources/delete.html', methods=['GET', 'POST'])
+def delete_file():
+    target_file = request.args.get('target_file')
+    if 'username' not in session:
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
+    if request.method != 'POST':
+        return render_template('resources/delete.html',
+                               target_file=target_file, username=str(escape(session.get('username'))))
+    if target_file:
+        target_file_dir = os.path.dirname(os.path.abspath(os.path.join(files_dir, target_file)))
+        target_file_path = os.path.abspath(os.path.join(files_dir, target_file))
+
+    if target_file_dir != files_dir:
+        logthis.info(
+            f"WARNING: [{session.get('url')}] {session.get('username')} attempted to delete a file from a forbidden path: {target_file_path}.")
+        return "Forbidden:  you are not allowed to download files from alternative paths.", 403
+    logthis.info(f"[{session.get('url')}] {session.get('username')} deleting file: {target_file}.")
+    if os.path.exists(os.path.join(files_dir, target_file)):
+        os.remove(os.path.join(files_dir, target_file))
+        logthis.info(f"[{session.get('url')}] {session.get('username')} successfully deleted the Resource file: {target_file}.")
+        return redirect(url_for('resources_view.files'))
+    else:
+        error = f"Error deleting file."
+        error_message = f"File does not exist {target_file}."
+        return render_template('error.html', error=error, error_message=error_message,
+                               username=str(escape(session['username'])))
+
+
 @blueprint.route('/branding', methods=['GET', 'POST'])
 @response(template_file='setup/branding.html')
 def rebrand():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if not os.path.isfile(server_file):
         with open(server_file, "w") as fout:
             json.dump({}, fout)
@@ -91,7 +130,8 @@ def rebrand():
 @response(template_file="resources/python.html")
 def python():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     return {"username": session.get('username')}
 
 
@@ -99,7 +139,6 @@ def python():
 @response(template_file="resources/bash.html")
 def bash():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     return {"username": session.get('username')}
-
-

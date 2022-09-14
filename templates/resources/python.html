@@ -57,8 +57,10 @@ import sys
 # JAMF PRO VARIABLES #
 ######################
 
-jamf_pro_username = ''
-jamf_pro_password = ''
+# Note: the JPS_TOKEN system variable needs to be set first.
+# To set the token on Linux, run: export JPS_TOKEN=YourTokenStringGoesHere
+jps_token = os.environ['JPS_TOKEN']
+
 jamf_pro_url = ''
 
 # Creating a variable called $tempJson to be used to parse
@@ -79,7 +81,9 @@ full_url = jamf_pro_url + '/JSSResource/computers/serialnumber/' + serial_number
 # Updates the device record
 response = requests.put(full_url, 
 	auth=(jamf_pro_username, jamf_pro_password),
-	headers={'Content-Type': 'application/xml'}, 
+	headers={'Content-Type': 'application/xml',
+    "Authorization": f"Bearer {jps_token}",
+    'User-Agent': 'JAWA%20v3.0.3-AutomationScript'},
 	data=data)
 
 </code>

@@ -50,6 +50,18 @@ def script_results(webhook_data, each_webhook):
     return output
 
 
+def custom_output_options(webhook_name):
+    with open(jp_webhooks_file, "r") as fin:
+        webhooks_json = json.load(fin)
+    for each_webhook in webhooks_json:
+        if each_webhook['name'] == webhook_name:
+            webhook_tag = each_webhook.get('tag')
+            send_output = each_webhook.get('output')
+            return webhook_tag, send_output
+        else:
+            return None, None
+
+
 @blueprint.route('/hooks/<webhook_name>', methods=['POST', 'GET'])
 def webhook_handler(webhook_name):
     logthis.info(f"Incoming request at /hooks/{webhook_name} ...")
@@ -82,8 +94,12 @@ def webhook_handler(webhook_name):
         webhook_apikey = request.headers.get('x-api-key')
     if validate_webhook(webhook_data, webhook_name, webhook_user, webhook_pass, webhook_apikey):
         logthis.info(f"Validated authentication for /hooks/{webhook_name}, running script...")
-        output = run_script(webhook_data, webhook_name)
-        return {"webhook": f"{webhook_name}", "result": f"{output}"}, 202
+        webhook_tag, custom_output = custom_output_options(webhook_name)
+        output = run_script(webhook_data, webhook_name).decode('ascii')
+        if custom_output and webhook_tag == "custom":
+            return {"webhook": f"{webhook_name}", "result": f"{output}"}, 202
+        else:
+            return {"webhook": f"{webhook_name}", "result": f"valid webhook received"}
     else:
         logthis.info(f"401 - Incorrect authentication provided for /hooks/{webhook_name}.")
         return f"Unauthorized - incorrect authentication provided for /hooks/{webhook_name}.", 401

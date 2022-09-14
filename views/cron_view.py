@@ -22,7 +22,7 @@ blueprint = Blueprint('cron', __name__)
 @response(template_file='cron/home.html')
 def cron_home():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     logthis.debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
     with open(cron_json_file, 'r') as fin:
         cron_json = json.load(fin)
@@ -32,7 +32,7 @@ def cron_home():
 @blueprint.route('/cron/new', methods=['GET', 'POST'])
 def new_cron():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     logthis.debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
     days, frequencies, hours = time_definitions()
 
@@ -182,7 +182,7 @@ def time_definitions():
 @blueprint.route('/cron/delete', methods=['GET', 'POST'])
 def delete_cron():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     logthis.debug(f"[{session.get('url')}] {session.get('username')} viewed {request.path}")
     target_job = request.args.get('target_job')
     with open(cron_json_file) as fin:
@@ -232,7 +232,7 @@ def delete_cron():
 @blueprint.route('/cron/edit', methods=['GET', 'POST'])
 def edit_cron():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     logthis.debug(f"[{session.get('url')}] {session.get('username')} viewed {request.path}")
 
     try:

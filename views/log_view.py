@@ -1,14 +1,14 @@
-from datetime import datetime
-import flask
-from flask import (Blueprint, current_app, escape, redirect, render_template, Response,
-                   request, send_file, session, url_for)
 import os
 import re
 import subprocess
+from datetime import datetime
 from time import sleep
 
-from bin.view_modifiers import response
+from flask import (Blueprint, current_app, redirect, render_template, Response,
+                   request, send_file, session, url_for)
+
 from bin import logger
+from bin.view_modifiers import response
 
 logthis = logger.setup_child_logger('jawa', __name__)
 
@@ -21,7 +21,7 @@ blueprint = Blueprint('log_view', __name__, template_folder='templates')
 @blueprint.route('/log/home.html', methods=['GET'])
 def log_home():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     logthis.debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
     with open(log_file, 'r') as fin:
         lines = [re.sub('\n', '', line) for line in fin.readlines()]
@@ -33,7 +33,7 @@ def log_home():
 @blueprint.route('/log/view', methods=['GET'])
 def log_view():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     logthis.debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
     with open(log_file, 'r') as fin:
         lines = [re.sub('\n', '', line) for line in fin.readlines()]
@@ -46,7 +46,7 @@ def log_view():
 @response(template_file="log/live.html")
 def stream():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     logthis.debug(f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}")
 
     def generate():
@@ -60,7 +60,7 @@ def stream():
 @blueprint.route('/log/yield')
 def yield_log():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     logthis.info(f"/log/yield accessed by {session.get('username') or 'nobody'}")
 
     def inner():
@@ -80,7 +80,7 @@ def yield_log():
 @blueprint.route('/log/download')
 def download_logs():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     logthis.info(f"[{session.get('url')}] {session.get('username')} used {request.path} to download the log.")
     timestamp = datetime.now()
     logthis.info(f"Downloading log file...{timestamp}-jawa.log")

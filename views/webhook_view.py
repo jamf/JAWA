@@ -6,6 +6,7 @@ import requests
 import time
 
 from bin import logger
+from bin.tokens import validate_token, get_token
 from bin.view_modifiers import response
 
 logthis = logger.setup_child_logger('jawa', __name__)
@@ -23,7 +24,8 @@ scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scr
 @response(template_file='webhooks/delete.html')
 def delete_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     target_webhook = request.args.get('target_webhook')
     if not target_webhook:
         return redirect(url_for('custom_webhook.custom_webhook'))
@@ -39,12 +41,16 @@ def delete_webhook():
                 if os.path.exists(script_file):
                     os.rename(script_file, f"{script_file}.old")
                 if each_webhook['tag'] == 'jamfpro':
+                    if not validate_token(session['expires']):
+                        get_token()
                     data = f"<webhook><name>{each_webhook['name']}.old.{time.time()}</name>" \
                            f"<enabled>false</enabled></webhook>"
                     full_url = f"{session['url']}/JSSResource/webhooks/name/{each_webhook['name']}"
                     webhook_response = requests.put(full_url,
                                                     auth=(session['username'], session['password']),
-                                                    headers={'Content-Type': 'application/xml'},
+                                                    headers={'Content-Type': 'application/xml',
+                                                             "Authorization": f"Bearer {session['token']}",
+                                                             'User-Agent': 'JAWA%20v3.0.3'},
                                                     data=data)
                 elif each_webhook['tag'] == 'okta':
                     try:
@@ -57,7 +63,6 @@ def delete_webhook():
                     except requests.exceptions.MissingSchema as err:
                         return redirect(url_for('error', error=err, username=session.get('username')))
 
-
                 webhook_json.remove(each_webhook)
                 with open(webhooks_file, 'w') as fout:
                     json.dump(webhook_json, fout, indent=4)
@@ -69,7 +74,8 @@ def delete_webhook():
 @response(template_file='webhooks/home.html')
 def webhooks():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     with open(webhooks_file, 'r') as fin:
         webhooks_json = json.load(fin)
     jamf_pro_webhooks_list = []

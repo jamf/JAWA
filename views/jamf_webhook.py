@@ -7,6 +7,7 @@ import re
 import requests
 from werkzeug.utils import secure_filename
 
+from bin.tokens import validate_token, get_token
 from bin.view_modifiers import response
 from bin import logger
 
@@ -23,7 +24,8 @@ blueprint = Blueprint('jamf_pro_webhooks', __name__)
 @response(template_file='webhooks/jamf/home.html')
 def jamf_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     with open(webhooks_file, 'r') as fin:
         webhooks_json = json.load(fin)
     jamf_pro_list = []
@@ -40,7 +42,8 @@ def jamf_webhook():
 @blueprint.route('/webhooks/jamf/new', methods=['GET', 'POST'])
 def jp_new():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if not os.path.isfile(server_json_file):
         return render_template('setup/setup.html',
                                setup="setup",
@@ -61,13 +64,15 @@ def jp_new():
             json.dump(data, outfile, indent=4)
 
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if request.method != 'POST':
         return render_template('webhooks/jamf/new.html',
                                webhooks="webhooks",
                                url=session['url'],
                                username=str(escape(session['username'])))
-
+    if not validate_token(session['expires']):
+        get_token()
     if request.form.get('webhook_name') != '':
         check = 0
         if ' ' in request.form.get('webhook_name'):
@@ -166,7 +171,7 @@ def jp_new():
 
         # Check for auth values
         auth_xml = "<authentication_type>NONE</authentication_type>"
-        if request.form.get('basic'):
+        if request.form.get('choice') == 'basic':
             if (
                     request.form.get('username') != '' or
                     request.form.get('password') != ''):
@@ -194,7 +199,9 @@ def jp_new():
         logthis.info(f"{session.get('username')} creating a new JPS webhook {request.form.get('webhook_name')}.")
         webhook_response = requests.post(full_url,
                                          auth=(session['username'], session['password']),
-                                         headers={'Content-Type': 'application/xml'}, data=data,
+                                         headers={'Content-Type': 'application/xml',
+                                                  "Authorization": f"Bearer {session['token']}",
+                                                  'User-Agent': 'JAWA%20v3.0.3'}, data=data,
                                          verify=verify_ssl)
         logthis.info(f"[{webhook_response.status_code}]  {webhook_response.text}")
         if webhook_response.status_code == 409:
@@ -220,7 +227,7 @@ def jp_new():
             webhook_password = 'null'
         if request.form.get('choice') == 'custom':
             webhook_apikey = request.form.get('api_key', 'null')
-            extra_notice = 'Copy and paste the following into the custom headers section of Jamf Pro webhooks {"api_key" : ' + f'"{webhook_apikey}"'+ '}'
+            extra_notice = 'Copy and paste the following into the custom headers section of Jamf Pro webhooks {"x-api-key" : ' + f'"{webhook_apikey}"' + '}'
         else:
             webhook_apikey = 'null'
             extra_notice = None
@@ -258,7 +265,8 @@ def jp_new():
 @response(template_file='webhooks/jamf/edit.html')
 def edit():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     name = request.args.get('name')
     with open(webhooks_file) as fin:
         webhooks_json = json.load(fin)
@@ -273,6 +281,8 @@ def edit():
         if button_choice == 'Delete':
             return redirect(url_for('webhooks.delete_webhook', target_webhook=name))
 
+        if not validate_token(session['expires']):
+            get_token()
         for each_webhook in webhooks_json:
             if each_webhook['name'] == name:
                 new_webhook_name = request.form.get('webhook_name')
@@ -288,7 +298,7 @@ def edit():
                     webhook_pass = 'null'
                 if request.form.get('choice') == 'custom':
                     webhook_apikey = request.form.get('api_key', 'null')
-                    extra_notice = 'Copy and paste the following into the custom headers section of Jamf Pro webhooks {"api_key" : ' + f'"{webhook_apikey}"'+ '}'
+                    extra_notice = 'Copy and paste the following into the custom headers section of Jamf Pro webhooks {"x-api-key" : ' + f'"{webhook_apikey}"' + '}'
                 else:
                     webhook_apikey = 'null'
                     extra_notice = None
@@ -367,7 +377,7 @@ def edit():
                     extra_xml = ""
                     # Check for auth values
                 auth_xml = "<authentication_type>NONE</authentication_type>"
-                if request.form.get('basic'):
+                if request.form.get('choice') == 'basic':
                     if (
                             request.form.get('username') != '' or
                             request.form.get('password') != ''):
@@ -403,7 +413,9 @@ def edit():
                 try:
                     webhook_response = requests.put(full_url,
                                                     auth=(session['username'], session['password']),
-                                                    headers={'Content-Type': 'application/xml'}, data=data,
+                                                    headers={'Content-Type': 'application/xml',
+                                                             "Authorization": f"Bearer {session['token']}",
+                                                             'User-Agent': 'JAWA%20v3.0.3'}, data=data,
                                                     verify=verify_ssl)
                 except:
                     error_message = f"The request could not be sent to your Jamf Pro server," \

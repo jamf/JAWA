@@ -41,8 +41,7 @@
                         <input name="password" class="form-control-sm" type='password' title="Password (optional)"
                                placeholder="Password (optional)"
                                value="{% if webhook_info[0]['webhook_password'] != 'null' %}{{ webhook_info[0]['webhook_password'] }}{% endif %}">
-                    </div>
-
+                    {% if webhook_info[0]['webhook_username'] == 'null' %}    </div> {% endif %}
                 </div>
 <div class="d-flex justify-content-center"><label>
                     <input type="checkbox" class="form-check-label" name="custom" value="custom"
@@ -51,10 +50,15 @@
                 <div class="d-flex justify-content-center">
                  {% if webhook_info[0].get('api_key', 'null') == 'null' %}<div id="hiddenDiv3" style="display:none">{% endif %}
                     {% if not webhook_info[0].get('api_key', 'null') == 'null' %}<div id="hiddenDiv3" style="display:inline-block">{% endif %}
-                        <input name="api_key" class="form-control-sm" type='api_key' title="X-API-KEY (optional)"
-                               placeholder="X-API-KEY value (optional)" value="
+                        <input name="api_key" class="form-control-sm" type='api_key' title="x-api-key (optional)"
+                               placeholder="x-api-key value (optional)" value="
 {% if webhook_info[0].get('api_key', 'null') != 'null' %}{{ webhook_info[0].get('api_key') }}{% endif %}"></div>
                 </div>
+                <div class="d-flex justify-content-center">
+                    <label><input name="output" class="form-check-input" type="checkbox" {% if webhook_info[0].get('output') %}checked{% endif %}></label>
+                    <b>Send script output in response?</b>
+                </div>
+
                 <div class="d-flex justify-content-center btn-padded">
 
                     <button style="overflow: visible !important; height: 0 !important; width: 0 !important; margin: 0 !important; border: 0 !important; padding: 0 !important; display: block !important;" type="submit" value=""/>

@@ -24,7 +24,7 @@ scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scr
 @response(template_file='webhooks/custom/home.html')
 def custom_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     with open(webhooks_file, 'r') as fin:
         webhooks_json = json.load(fin)
     custom_webhooks_list = []
@@ -42,7 +42,7 @@ def custom_webhook():
 @response(template_file='webhooks/custom/edit.html')
 def edit_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     name = request.args.get('name')
     logthis.info(f"Checking for custom webhook '{name}'")
     with open(webhooks_file) as fin:
@@ -60,6 +60,7 @@ def edit_webhook():
         for each_webhook in webhooks_json:
             if each_webhook['name'] == name:
                 logthis.info(f"{session.get('username')} is editing a custom webhook ({name})...")
+                output = request.form.get('output')
                 new_custom_name = request.form.get('custom_name')
                 if not new_custom_name:
                     new_custom_name = name
@@ -106,6 +107,7 @@ def edit_webhook():
                     each_webhook['description'] = description
                 each_webhook['webhook_username'] = new_webhook_user
                 each_webhook['webhook_password'] = new_webhook_pass
+                each_webhook['output'] = output
 
                 with open(webhooks_file, 'w') as fout:
                     json.dump(webhooks_json, fout, indent=4)
@@ -122,10 +124,13 @@ def edit_webhook():
 @response(template_file='webhooks/custom/new.html')
 def new_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if request.method == 'POST':
         new_custom_name = request.form.get('custom_name')
         description = request.form.get('description')
+        output = request.form.get('output')
+
+
         if request.form.get('custom_name') != '':
             check = 0
             logthis.info(f"New webhook name: {request.form.get('custom_name')}")
@@ -162,14 +167,20 @@ def new_webhook():
             new_webhook_pass = request.form.get('password', 'null')
             if not new_webhook_pass:
                 new_webhook_pass = "null"
+            if request.form.get('custom'):
+                api_key = request.form.get('api_key', 'null')
+            else:
+                api_key = 'null'
             webhooks_json.append({"url": str(session['url']),
                                   "jawa_admin": str(session['username']),
                                   "name": new_custom_name,
                                   "webhook_username": new_webhook_user,
                                   "webhook_password": new_webhook_pass,
+                                  "api_key": api_key,
                                   "script": new_filename,
                                   "description": description,
-                                  "tag": "custom"})
+                                  "tag": "custom",
+                                  "output": output})
 
             with open(webhooks_file, 'w') as outfile:
                 json.dump(webhooks_json, outfile, indent=4)

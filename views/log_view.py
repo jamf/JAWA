@@ -84,4 +84,4 @@ def download_logs():
     logthis.info(f"[{session.get('url')}] {session.get('username')} used {request.path} to download the log.")
     timestamp = datetime.now()
     logthis.info(f"Downloading log file...{timestamp}-jawa.log")
-    return send_file(log_file, as_attachment=True, attachment_filename=f"{datetime.now()}-jawa.log")
+    return send_file(log_file, as_attachment=True, download_name=f"{datetime.now()}-jawa.log")

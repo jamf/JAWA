@@ -65,6 +65,9 @@ def custom_output_options(webhook_name):
 @blueprint.route('/hooks/<webhook_name>', methods=['POST', 'GET'])
 def webhook_handler(webhook_name):
     logthis.info(f"Incoming request at /hooks/{webhook_name} ...")
+    if request.headers.get('x-okta-verification-challenge'):
+        logthis.info("This is an Okta verification challenge...")
+        return okta_verification.verify_new_webhook(request.headers.get('x-okta-verification-challenge'))
     try:
         webhook_data = request.get_json()
     except Exception as err:
@@ -74,9 +77,6 @@ def webhook_handler(webhook_name):
         logthis.info(f"418.  Error processing /hooks/{webhook_name} - no data provided. I'm a teapot.")
         return "418 - I'm a teapot.", 418
     logthis.debug(f"{webhook_name} payload: {webhook_data}")
-    if request.headers.get('x-okta-verification-challenge'):
-        logthis.info("This is an Okta verification challenge...")
-        return okta_verification.verify_new_webhook(request.headers.get('x-okta-verification-challenge'))
     if request.method != 'POST':
         logthis.info(f"Invalid request, {request.method} for /hooks/{webhook_name}.")
         return "405 - Method not allowed. These aren't the droids you're looking for. You can go about your business. " \

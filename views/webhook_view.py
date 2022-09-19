@@ -47,7 +47,6 @@ def delete_webhook():
                            f"<enabled>false</enabled></webhook>"
                     full_url = f"{session['url']}/JSSResource/webhooks/name/{each_webhook['name']}"
                     webhook_response = requests.put(full_url,
-                                                    auth=(session['username'], session['password']),
                                                     headers={'Content-Type': 'application/xml',
                                                              "Authorization": f"Bearer {session['token']}",
                                                              'User-Agent': 'JAWA%20v3.0.3'},

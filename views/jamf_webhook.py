@@ -198,7 +198,6 @@ def jp_new():
         full_url = session['url'] + '/JSSResource/webhooks/id/0'
         logthis.info(f"{session.get('username')} creating a new JPS webhook {request.form.get('webhook_name')}.")
         webhook_response = requests.post(full_url,
-                                         auth=(session['username'], session['password']),
                                          headers={'Content-Type': 'application/xml',
                                                   "Authorization": f"Bearer {session['token']}",
                                                   'User-Agent': 'JAWA%20v3.0.3'}, data=data,
@@ -412,7 +411,6 @@ def edit():
                 logthis.debug(f"{session.get('username')} editing the JPS webhook {name}.")
                 try:
                     webhook_response = requests.put(full_url,
-                                                    auth=(session['username'], session['password']),
                                                     headers={'Content-Type': 'application/xml',
                                                              "Authorization": f"Bearer {session['token']}",
                                                              'User-Agent': 'JAWA%20v3.0.3'}, data=data,

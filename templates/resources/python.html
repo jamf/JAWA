@@ -79,8 +79,7 @@ data = f"&lt;computer&gt;&lt;general&gt;&lt;name&gt;{serial_number}&lt;/name&gt;
 full_url = jamf_pro_url + '/JSSResource/computers/serialnumber/' + serial_number
 
 # Updates the device record
-response = requests.put(full_url, 
-	auth=(jamf_pro_username, jamf_pro_password),
+response = requests.put(full_url,
 	headers={'Content-Type': 'application/xml',
     "Authorization": f"Bearer {jps_token}",
     'User-Agent': 'JAWA%20v3.0.3-AutomationScript'},

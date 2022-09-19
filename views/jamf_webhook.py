@@ -216,7 +216,7 @@ def jp_new():
         logthis.info(f"{session.get('username')} created a new webhook:"
                      f"Name: {request.form.get('name')}"
                      f"Jamf link: {new_link}")
-
+        custom_header = ""
         data = json.load(open(webhooks_file))
         if request.form.get('choice') == 'basic':
             webhook_username = request.form.get('username', 'null')
@@ -226,7 +226,8 @@ def jp_new():
             webhook_password = 'null'
         if request.form.get('choice') == 'custom':
             webhook_apikey = request.form.get('api_key', 'null')
-            extra_notice = 'Copy and paste the following into the custom headers section of Jamf Pro webhooks {"x-api-key" : ' + f'"{webhook_apikey}"' + '}'
+            extra_notice = 'Copy and paste the following into the Header Authentication section of Jamf Pro webhooks:'
+            custom_header = {f"x-api-key" :  f"{webhook_apikey}"}
         else:
             webhook_apikey = 'null'
             extra_notice = None
@@ -256,6 +257,7 @@ def jp_new():
                            new_link=new_link,
                            new_here=new_here,
                            success_msg=success_msg, extra_notice=extra_notice,
+                           custom_header=custom_header,
                            username=str(escape(session['username'])))
 
 
@@ -289,6 +291,7 @@ def edit():
                     new_webhook_name = name
                 description = request.form.get('description')
                 new_event = request.form.get('event')
+                custom_header = ""
                 if request.form.get('choice') == 'basic':
                     webhook_user = request.form.get('username', 'null')
                     webhook_pass = request.form.get('password', 'null')
@@ -297,7 +300,8 @@ def edit():
                     webhook_pass = 'null'
                 if request.form.get('choice') == 'custom':
                     webhook_apikey = request.form.get('api_key', 'null')
-                    extra_notice = 'Copy and paste the following into the custom headers section of Jamf Pro webhooks {"x-api-key" : ' + f'"{webhook_apikey}"' + '}'
+                    extra_notice = 'Copy and paste the following into the Header Authentication section of Jamf Pro webhooks '
+                    custom_header = {"x-api-key" : f"{webhook_apikey}"}
                 else:
                     webhook_apikey = 'null'
                     extra_notice = None
@@ -448,7 +452,7 @@ def edit():
                         "smart_group_notice": smart_group_notice,
                         "new_link": new_link,
                         "new_here": new_webhook_name,
-                        "success_msg": success_msg, "extra_notice": extra_notice,
+                        "success_msg": success_msg, "extra_notice": extra_notice, "custom_header": custom_header,
                         "username": session.get('username'), 'webhook_info': webhook_info, "webhook_name": name,
                         "description": each_webhook.get('description')}
 

@@ -15,12 +15,16 @@
                 </p>
             {% endfor %}
             {% if smart_group_notice %}
-                <b>{{ smart_group_notice }}</b> <br> {{ smart_group_instructions }}
+                <p><b>{{ smart_group_notice }}</b> <br> {{ smart_group_instructions }}</p>
             {% endif %}
-            <a href="{{ new_link }}" style="color:#3c6aa7;" target="_blank">{{ new_here }}</a></center>
+            <p><a href="{{ new_link }}" style="color:#3c6aa7;" target="_blank">{{ new_here }}</a></p>
             {% if extra_notice %}
-                {{ extra_notice }}
+                <p>{{ extra_notice }}</p>
             {% endif %}
+        {%  if custom_header %}
+
+            <pre class="alert-warning"><div class="d-flex justify-content-center">{{ custom_header }}</div></pre>
+        {% endif %}
             </br></br>
 
             <div class="d-flex justify-content-center">

@@ -31,6 +31,11 @@
                     {% endfor %}
 
                 {% endif %}
+                 {%  if custom_header %}
+
+            <pre class="alert-primary"><div class="d-flex justify-content-center">{{ custom_header }}</div></pre>
+        {% endif %}
+
             </div>
 
                 <input name="webhook_name" value="{{ webhook_name }}" type="text" pattern="[^' ']+"

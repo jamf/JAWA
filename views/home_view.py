@@ -8,7 +8,7 @@ from flask import (Blueprint, escape, redirect, render_template,
                    request, session, url_for)
 
 from bin import logger
-from bin.tokens import get_token
+from bin.tokens import get_token, invalidate_token
 
 logthis = logger.setup_child_logger('jawa', __name__)
 
@@ -90,6 +90,7 @@ def logout():
     error_title = request.args.get('error_title')
     error_message = request.args.get('error_message')
     if session.get('username'):
+        invalidate_token()
         logthis.info("Logging Out: " + str(escape(session['username'])))
         session.pop('username', None)
     return load_home(error_title, error_message)

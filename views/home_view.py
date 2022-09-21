@@ -65,7 +65,8 @@ def login():
 
         except requests.exceptions.HTTPError as err:
             logthis.info(f"Error occurred: {err}")
-            return redirect(url_for('home_view.logout', error_title="HTTP Error", error_message=err))
+            return redirect(url_for('home_view.logout', error_title="Login error",
+                                    error_message="check account credentials and privileges"))
         except requests.exceptions.ConnectTimeout as err:
             logthis.info(f"Error occurred: {err}")
             return redirect(url_for('home_view.logout', error_title="Connection Timeout", error_message=err))

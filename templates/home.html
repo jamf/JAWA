@@ -2,7 +2,7 @@
 {% block title %}JAWA Login{% endblock %}
 {% block content %}
 
-    <div class="form-container"><br><br><br>
+<div class="form-container"><br><br><br>
     <form action="/login" class="table-view" method="post">
         <div class="d-flex justify-content-center">
             <div style="max-width: 15vh">
@@ -10,10 +10,13 @@
         </div>
         <h1 class="d-flex justify-content-center">{% if app_name %}{{ app_name }}{% else %}{% endif %}</h1>
         {% if error_message %}
-            <br>
-            <div class="alert alert-warning text-center">Authentication Failed <br>
-                {{ error_title }} - {{ error_message.replace('(',' ').replace(')', '') }}
-            </div>
+        <br>
+        <div class="alert alert-warning text-center">Authentication Failed <br>
+            {% autoescape false %}
+            <div class="text-wrap" style="word-break: break-all;">{{ error_title }}
+                - {{ error_message.replace('(',' ').replace(')', '').replace('https', '<br/>https') }}</div>
+            {% endautoescape %}
+        </div>
 
         {% endif %}
         {% if jsslock %}
@@ -40,5 +43,5 @@
                               target="_blank">documentation</a> prior to using JAWA!</p>
 
     </form>
-{% endblock %}
+    {% endblock %}
 </div>

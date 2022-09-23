@@ -1,5 +1,5 @@
 
-# Jamf Automation and Webhook Assistant ("JAWA") Version 3.0.3b_logging
+# Jamf Automation and Webhook Assistant ("JAWA") Version 3.0.3
 
 <p align="center"> <img src="https://github.com/jamf/JAWA/blob/master/static/img/jawa_icon.png" width="384"/> </p>
 
@@ -14,7 +14,7 @@ Jamf Automation and Webhook Assistant, "JAWA", is a web server for hosting autom
 Pro, Okta, and more. It includes a _webhook receiver_ for if-this-then-that automation workflows in real-time, and _crontab_
 for the timed execution of scripts and automated report generation. JAWA is intended to make webhooks and automation
 more accessible to admins of Jamf Pro by providing them with a simple framework with which they can design time-saving
-workflows and encourage integrations that connect multiple services within an organization.
+workflows and to provide a conduit through which admins can connect multiple services within an organization.
 
 *Check out [JAWA on the Jamf Marketplace](https://marketplace.jamf.com/details/jawa/) for screenshots.*
 
@@ -48,6 +48,9 @@ Certificate Requirements
 - SSL/TLS certificate (publicly trusted) and private key
 - A publicly trusted _full-chain certificate_ (bundle of root CA + intermediate + server cert) is preferred
   for `jawa.crt`
+
+Jamf Pro Requirements
+- Jamf Pro Server 10.35.0+ 
 
 ## How do I use it?
 
@@ -89,18 +92,14 @@ When scripting for webhooks, verify JSON structure sent from source:
 1. [Jamf Pro Webhook Event Info](https://developer.jamf.com/developer-guide/docs/webhooks)
 2. [Okta Webhook Event Info](https://developer.okta.com/docs/reference/api/event-types/?q=event-hook-eligible)
 
-*NOTE: To ensure continuity, webhooks created via JAWA should be modified and deleted from JAWA as Jamf Pro (or source
-of webhook) will automatically be configured/adjusted appropriately.*
-
+## Releases
 
 Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
 
 
-### JAWA v3.0.2 release
+### JAWA v3.0.3 release
 - New features
-    - added events `SmartGroupUserMembershipChange` and `DeviceAddedToDEP` to Jamf Webhooks (resolving #25)
-    - added 'Custom' frequency for Timed Automations
-    - Timed Automations can now be edited
-- Installer:
-    - improved safety checks and error handling
-     
+    - Jamf Pro API actions now use token-based authentication (resolving #32)
+    - Option added for JAWA to return script results/output as part of a Custom webhook's response body (resolving #27)
+    - Enhanced JAWA logging
+    - Option added to use custom header authentication for Jamf Pro or Custom webhooks

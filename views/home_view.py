@@ -54,10 +54,12 @@ def login():
             title = "Authentication error"
             msg = "Passwords can't be blank"
             return redirect(url_for('home_view.logout', error_title=title, error_message=msg))
+        if not session.get('token'):
+            return redirect(url_for('home_view.logout', error_title="Could fetch token", error_message="try again"))
         try:
             resp = requests.get(
                 session['url'] + '/JSSResource/activationcode',
-                headers={'Accept': 'application/json', "Authorization": f"Bearer {session['token']}",
+                headers={'Accept': 'application/json', "Authorization": f"Bearer {session.get('token')}",
                          'User-Agent': 'JAWA%20v3.0.3'},
                 verify=verify_ssl)
 

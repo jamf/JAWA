@@ -1,3 +1,31 @@
+{## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
+{###}
+{## Copyright (c) 2022 Jamf.  All rights reserved.#}
+{###}
+{##       Redistribution and use in source and binary forms, with or without#}
+{##       modification, are permitted provided that the following conditions are met:#}
+{##               * Redistributions of source code must retain the above copyright#}
+{##                 notice, this list of conditions and the following disclaimer.#}
+{##               * Redistributions in binary form must reproduce the above copyright#}
+{##                 notice, this list of conditions and the following disclaimer in the#}
+{##                 documentation and/or other materials provided with the distribution.#}
+{##               * Neither the name of the Jamf nor the names of its contributors may be#}
+{##                 used to endorse or promote products derived from this software without#}
+{##                 specific prior written permission.#}
+{###}
+{##       THIS SOFTWARE IS PROVIDED BY JAMF SOFTWARE, LLC "AS IS" AND ANY#}
+{##       EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED#}
+{##       WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE#}
+{##       DISCLAIMED. IN NO EVENT SHALL JAMF SOFTWARE, LLC BE LIABLE FOR ANY#}
+{##       DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES#}
+{##       (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;#}
+{##       LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND#}
+{##       ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT#}
+{##       (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS#}
+{##       SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.#}
+{###}
+{## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
+
 {% extends "shared/_layout.html" %}
 
 {% block additional_css %}
@@ -18,7 +46,7 @@
             <h4 class="d-flex justify-content-center">Webhooks Dashboard</h4>
             <div class="d-flex justify-content-center">
                 <b>Active JPS</b>: &nbsp; <a class="alert-link" href="{{ session.get('url') }}"
-                                                         target="_blank">{{ session['url'] }}</a> <br>
+                                             target="_blank">{{ session['url'] }}</a> <br>
             </div>
             <div class="d-flex justify-content-center">
                 <b>Total webhooks installed</b>: {{ jamf_list|length + okta_list|length + custom_list|length or '0' }}
@@ -78,6 +106,10 @@
                                             href="{{ url }}/webhooks.html?id={{ row.jamf_id }}" target="_blank">View
                                         in
                                         Jamf</a>)
+{#                                        <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal"#}
+{#                                                data-target="#myModal">Modal#}
+{#                                        </button>#}
+
                                     </td>
                                     <td>
                                         <div class="overflow-auto log-frame"
@@ -96,6 +128,23 @@
                                 </tr>
                             {% endif %}
                         {% endfor %}</table>
+{#                    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">#}
+{#                        <div class="modal-dialog log-background modal-dialog-centered custom-control-inline" style="max-height: 350px" role="document" >#}
+{#                            <div class="modal-header">#}
+{#                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">#}
+{#                                    <span aria-hidden="true">&times;</span>#}
+{#                                </button>#}
+{#                                <h4 class="modal-title" id="myModalLabel">Modal title</h4>#}
+{#                            </div>#}
+{#                            <div class="modal-body">#}
+{#                                Webhook form editor...#}
+{#                            </div>#}
+{#                            <div class="modal-footer">#}
+{#                                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>#}
+{#                                <button type="button" class="btn btn-primary">Save changes</button>#}
+{#                            </div>#}
+{#                        </div>#}
+{#                    </div>#}
                 </div>
             {% endif %}
             {% if okta_list %}

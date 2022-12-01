@@ -1,7 +1,3 @@
-<link rel="shortcut icon" href="{{ url_for('static', filename='img/jawa_icon.png') }}">
-<title>JAWA Bash Example</title>
-<pre><code>#!/bin/bash
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
 # Copyright (c) 2022 Jamf.  All rights reserved.
@@ -29,55 +25,35 @@
 #       SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# PURPOSE
-# - Requires jq to be installed on the machine
-# - Template/example for building script for the JAWA.
-# - The variable: $@ is the response that JAWA receives from Jamf Pro
-# - This working script, when connected with JAWA and a webhook, will update device serial.
-#
-# INSTRUCTIONS
-# - Fill out Jamf Pro API credentials and URL
-# - Log into JAWA
-# - Select "Create/Edit a Webhook triggered by Jamf Pro"
-# - Choose a single string name like "rename_serial"
-# - Choose "Computer Added" or desired event
-# - Upload this script once filled out
-# - Test enroll a machine
-# 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-######################
-# JAMF PRO VARIABLES #
-######################
+import logging
+from logging import handlers
+import os
 
-jamfProUrl=""
-jamfProUser=""
-jamfProPass=""
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger_name = 'jawa'
+default_log_level = logging.INFO
+log_roll_size = (1048576 * 100)
+log_backupCount = 10
 
-# Creating a variable called $tempJson to be used to parse
-/bin/echo $@ > $tempJson # "$@" is the response that JAWA receives from Jamf Pro 
 
-# Serial Number is gathered from $tempJson
-serialNo=`jq '.event.serialNumber' $tempJson | tr -d \"`
+def setup_logger(log_name=logger_name, log_filename=f"{logger_name}.log", log_level=default_log_level):
+    log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+    if not os.path.isdir(log_path):
+        os.makedirs(log_path)
+    log_file = os.path.join(log_path, log_filename)
+    handler = handlers.RotatingFileHandler(log_file, maxBytes=log_roll_size, backupCount=log_backupCount)
+    handler.setFormatter(formatter)
+    logger = logging.getLogger(log_name)
+    if logger.hasHandlers():
+        logger.handlers.clear()
+    logger.addHandler(handler)
+    logger.setLevel(log_level)
+    return logger
 
-# Create a temporary xml file
-touch /tmp/name.xml
 
-# Fill temporary xml file with desired xml that will be used in the cURL
-cat << EOF > /tmp/name.xml
-&lt;computer&gt;
-	&lt;general&gt;
-		&lt;name&gt;$serialNo&lt;/name&gt;
-	&lt;/general&gt;
-&lt;/computer&gt;
+def setup_child_logger(name_of_logger, name_of_child):
+    return logging.getLogger(name_of_logger).getChild(name_of_child)
 
-EOF
 
-# cURL command that does the updating (PUT) of the device record with the temporary xml as the data
-curl -sfku "${jamfProUser}":"${jamfProPass}" "${jamfProUrl}/JSSResource/computers/serialnumber/${serialNo}" -T /tmp/name.xml -X PUT
-
-# Removes temporary xml file after record is updated
-rm /tmp/name.xml
-</code>
-</pre>
-</html>
+logthis = setup_logger(logger_name, f'{logger_name}.log')

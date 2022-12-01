@@ -1,19 +1,43 @@
-#!/usr/bin/python
-# encoding: utf-8
-import os
-import json
-import glob
-import time
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#
+# Copyright (c) 2022 Jamf.  All rights reserved.
+#
+#       Redistribution and use in source and binary forms, with or without
+#       modification, are permitted provided that the following conditions are met:
+#               * Redistributions of source code must retain the above copyright
+#                 notice, this list of conditions and the following disclaimer.
+#               * Redistributions in binary form must reproduce the above copyright
+#                 notice, this list of conditions and the following disclaimer in the
+#                 documentation and/or other materials provided with the distribution.
+#               * Neither the name of the Jamf nor the names of its contributors may be
+#                 used to endorse or promote products derived from this software without
+#                 specific prior written permission.
+#
+#       THIS SOFTWARE IS PROVIDED BY JAMF SOFTWARE, LLC "AS IS" AND ANY
+#       EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+#       WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#       DISCLAIMED. IN NO EVENT SHALL JAMF SOFTWARE, LLC BE LIABLE FOR ANY
+#       DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+#       (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#       LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#       ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#       (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#       SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 from collections import defaultdict
-from time import sleep
+import json
+from flask import (Blueprint, escape, redirect, render_template,
+                   request, session, url_for)
+import os
 import requests
-import re
 from werkzeug.utils import secure_filename
-from flask import (Flask, request, render_template,
-                   session, redirect, url_for, escape,
-                   send_from_directory, Blueprint, abort)
 
 from bin.view_modifiers import response
+from bin import logger
+
+logthis = logger.setup_child_logger('jawa', __name__)
 
 blueprint = Blueprint('okta_webhook', __name__)
 
@@ -28,7 +52,7 @@ scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scr
 @response(template_file='webhooks/okta/home.html')
 def okta_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     with open(webhooks_file, 'r') as fin:
         webhooks_json = json.load(fin)
     okta_webhooks_list = []
@@ -46,7 +70,7 @@ def okta_webhook():
 @blueprint.route('/webhooks/okta/new', methods=['GET', 'POST'])
 def okta_new():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     os.chmod(okta_verification_file, mode=0o0755)
     # okta_json = '/usr/local/jawa/okta_json.json'
 
@@ -81,7 +105,7 @@ def okta_new():
     okta_event = request.form.get('event')
     description = request.form.get('description')
     webhook_server_url = server_address + '/hooks/' + okta_name
-    print(webhook_server_url)
+    logthis.info(webhook_server_url)
     owd = os.getcwd()
     os.chdir(scripts_dir)
 
@@ -107,6 +131,7 @@ def okta_new():
     for i in data:
         if str(i['name']) == okta_name:
             error_message = "Name already exists!"
+            logthis.info("okta webhook erorr")
             return render_template('error.html',
                                    error_message=error_message,
                                    error="error",

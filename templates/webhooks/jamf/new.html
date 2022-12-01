@@ -1,3 +1,31 @@
+{## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
+{###}
+{## Copyright (c) 2022 Jamf.  All rights reserved.#}
+{###}
+{##       Redistribution and use in source and binary forms, with or without#}
+{##       modification, are permitted provided that the following conditions are met:#}
+{##               * Redistributions of source code must retain the above copyright#}
+{##                 notice, this list of conditions and the following disclaimer.#}
+{##               * Redistributions in binary form must reproduce the above copyright#}
+{##                 notice, this list of conditions and the following disclaimer in the#}
+{##                 documentation and/or other materials provided with the distribution.#}
+{##               * Neither the name of the Jamf nor the names of its contributors may be#}
+{##                 used to endorse or promote products derived from this software without#}
+{##                 specific prior written permission.#}
+{###}
+{##       THIS SOFTWARE IS PROVIDED BY JAMF SOFTWARE, LLC "AS IS" AND ANY#}
+{##       EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED#}
+{##       WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE#}
+{##       DISCLAIMED. IN NO EVENT SHALL JAMF SOFTWARE, LLC BE LIABLE FOR ANY#}
+{##       DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES#}
+{##       (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;#}
+{##       LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND#}
+{##       ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT#}
+{##       (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS#}
+{##       SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.#}
+{###}
+{## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
+
 {% extends "shared/_layout.html" %}
 {% block title %}New Jamf Pro Webhook{% endblock %}
 {% block content %}
@@ -77,26 +105,38 @@
             <div class="d-flex justify-content-center">
                 <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>, <a
                         href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>] </p></div>
-            <div class="d-flex justify-content-center">   <label>
-                        <input type="checkbox" class="form-check-input" name="basic"
-                               onchange="java_script_:show(this.value)">
-                    </label><b>Basic Authentication (optional):</b></div>
-                <div class="d-flex justify-content-center">
-                 <div id="hiddenDiv2" style="display:none">
-                <input class="form-control-sm" name="username" title="Username (optional)"
-                       placeholder="Username (optional)">
-                </b>
-                <input name="password" class="form-control-sm" type='password' title="Password (optional)"
-                       placeholder="Password (optional)"></div>
-                </div>
+            <div class="d-flex justify-content-center"><label>
+                <input type="radio" class="form-check-input" name="choice" value="basic"
+                       onchange="java_script_:show(this.value)">
+            </label><b>Basic Authentication (optional):</b></div>
             <div class="d-flex justify-content-center">
-                <p></p>
-                <button type=submit value="Custom_New" class="btn btn-secondary" style="margin: 5px; padding: 5px; width: 150px">
-
-                    Create
-
-                </button>
+                <div id="hiddenDiv2" style="display:none" class="center_box">
+                    <div class="d-flex justify-content-center">
+                    <input class="form-control-sm" name="username" title="Username (optional)"
+                           placeholder="Username (optional)">
+                    </b>
+                    <input name="password" class="form-control-sm" type='password' title="Password (optional)"
+                           placeholder="Password (optional)"></div></div>
             </div>
+                <div class="d-flex justify-content-center"><label>
+                    <input type="radio" class="form-check-input" name="choice" value="custom"
+                           onchange="java_script_:show(this.value)">
+                </label><b>Custom Authentication (optional):</b></div>
+                <div class="d-flex justify-content-center">
+                    <div id="hiddenDiv3" style="display:none">
+                        <input name="api_key" class="form-control-sm"  title="x-api-key (optional)"
+                               placeholder="x-api-key value (optional)"></div>
+                </div>
+
+                <div class="d-flex justify-content-center button-holder">
+                    <p></p>
+                    <button type=submit value="Custom_New" class="btn btn-secondary"
+                            style="margin: 5px; padding: 5px; width: 150px">
+
+                        Create
+
+                    </button>
+                </div>
 
         </form>
     </div>
@@ -112,8 +152,11 @@
                 hiddenDiv.style.display = 'inline-block';
                 hiddenDivTwo.style.display = 'inline-block';
             }
-             if (event == "on") {
+            if (event == "basic") {
                 hiddenDiv2.style.display = 'inline-block';
+            }
+            if (event == "custom") {
+                hiddenDiv3.style.display = 'inline-block';
             }
         }
     </script>

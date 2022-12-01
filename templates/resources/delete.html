@@ -25,22 +25,39 @@
 {##       SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.#}
 {###}
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
-
 {% extends "shared/_layout.html" %}
+{% block title %}Confirm Delete{% endblock %}
 {% block content %}
-<p>This is all the output:</p>
-<iframe src="{{ url_for("stream") }}"></iframe>
-{% endblock %}
-{% block additional_js %}
-    <script>
-        var output = document.getElementById('output');
+    <div class="test-links sub_links sticky-top">
+        <div class="stat"><a href="/resources/files">Files</a></div>
+        <div class="stat"><a href="/log/home.html">Log</a></div>
+    </div>
 
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', '{{ url_for('stream') }}');
-        xhr.send();
+    <div class="form-container">
+        <form action="#" method="POST" class="table-view"
+              enctype="multipart/form-data">
 
-        setInterval(function () {
-            output.textContent = xhr.responseText;
-        }, 1000);
-    </script>
+            <h1>Confirm Delete:</h1>
+            Resource file -
+            {% if target_file %}{{ target_file }}{% endif %}</h1>
+
+
+            <br>
+            <div class="d-flex justify-content-center">
+
+                <div class="log-view"><i>"Don't you call me a mindless philosopher!"</i><br/>
+                    ~ C-3PO, a Star War
+                </div>
+                <button type=submit name="button_choice" value="Delete" class="btn btn-danger" style="margin: 5px">
+
+                    Delete
+
+                </button>
+                </p>
+            </div>
+        </form>
+    </div>
+
+    </div>
 {% endblock %}
+</body>

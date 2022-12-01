@@ -1,16 +1,45 @@
-import os
-import json
-from collections import defaultdict
-import requests
-import re
-from werkzeug.utils import secure_filename
-from flask import (Flask, request, render_template,
-                   session, redirect, url_for, escape,
-                   send_from_directory, Blueprint, abort)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#
+# Copyright (c) 2022 Jamf.  All rights reserved.
+#
+#       Redistribution and use in source and binary forms, with or without
+#       modification, are permitted provided that the following conditions are met:
+#               * Redistributions of source code must retain the above copyright
+#                 notice, this list of conditions and the following disclaimer.
+#               * Redistributions in binary form must reproduce the above copyright
+#                 notice, this list of conditions and the following disclaimer in the
+#                 documentation and/or other materials provided with the distribution.
+#               * Neither the name of the Jamf nor the names of its contributors may be
+#                 used to endorse or promote products derived from this software without
+#                 specific prior written permission.
+#
+#       THIS SOFTWARE IS PROVIDED BY JAMF SOFTWARE, LLC "AS IS" AND ANY
+#       EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+#       WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#       DISCLAIMED. IN NO EVENT SHALL JAMF SOFTWARE, LLC BE LIABLE FOR ANY
+#       DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+#       (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#       LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#       ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#       (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#       SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-from bin.load_home import load_home
+from collections import defaultdict
+from flask import (Blueprint, escape, redirect, render_template,
+                   request, session, url_for)
+import json
+import os
+import re
+import requests
+from werkzeug.utils import secure_filename
+
+from bin.tokens import validate_token, get_token
 from bin.view_modifiers import response
-from app import jawa_logger
+from bin import logger
+
+logthis = logger.setup_child_logger('jawa', __name__)
 
 server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
 webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))
@@ -23,7 +52,8 @@ blueprint = Blueprint('jamf_pro_webhooks', __name__)
 @response(template_file='webhooks/jamf/home.html')
 def jamf_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     with open(webhooks_file, 'r') as fin:
         webhooks_json = json.load(fin)
     jamf_pro_list = []
@@ -32,7 +62,6 @@ def jamf_webhook():
         tag = data['tag']
         if tag == "jamfpro":
             jamf_pro_list.append(each_webhook)
-    print(jamf_pro_list)
 
     return {'username': session.get('username'),
             'jamf_list': jamf_pro_list, 'url': session.get('url')}
@@ -41,7 +70,8 @@ def jamf_webhook():
 @blueprint.route('/webhooks/jamf/new', methods=['GET', 'POST'])
 def jp_new():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if not os.path.isfile(server_json_file):
         return render_template('setup/setup.html',
                                setup="setup",
@@ -62,18 +92,17 @@ def jp_new():
             json.dump(data, outfile, indent=4)
 
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if request.method != 'POST':
         return render_template('webhooks/jamf/new.html',
                                webhooks="webhooks",
                                url=session['url'],
-                               # found_mobile_device_groups=found_mobile_device_groups,
-                               # found_computer_groups=found_computer_groups,
                                username=str(escape(session['username'])))
-
+    if not validate_token(session['expires']):
+        get_token()
     if request.form.get('webhook_name') != '':
         check = 0
-        print(check)
         if ' ' in request.form.get('webhook_name'):
             error_message = "Single-string name only."
             return render_template('error.html',
@@ -170,18 +199,19 @@ def jp_new():
 
         # Check for auth values
         auth_xml = "<authentication_type>NONE</authentication_type>"
-        if (
-                request.form.get('username') != '' or
-                request.form.get('password') != ''):
-            auth_xml = f"<authentication_type>BASIC</authentication_type>"
-            if request.form.get('username') == '':
-                auth_xml += "<username>null</username>"
-            else:
-                auth_xml += f"<username>{request.form.get('username')}</username>"
-            if request.form.get('password') == '':
-                auth_xml += "<password>null</password>"
-            else:
-                auth_xml += f"<password>{request.form.get('password')}</password>"
+        if request.form.get('choice') == 'basic':
+            if (
+                    request.form.get('username') != '' or
+                    request.form.get('password') != ''):
+                auth_xml = f"<authentication_type>BASIC</authentication_type>"
+                if request.form.get('username') == '':
+                    auth_xml += "<username>null</username>"
+                else:
+                    auth_xml += f"<username>{request.form.get('username')}</username>"
+                if request.form.get('password') == '':
+                    auth_xml += "<password>null</password>"
+                else:
+                    auth_xml += f"<password>{request.form.get('password')}</password>"
 
         data = f"<webhook>" \
                f"<name>{request.form.get('webhook_name')}</name>" \
@@ -194,12 +224,13 @@ def jp_new():
                f"</webhook>"
 
         full_url = session['url'] + '/JSSResource/webhooks/id/0'
-        jawa_logger().info(f"{session.get('username')} creating a new JPS webhook {request.form.get('webhook_name')}.")
+        logthis.info(f"{session.get('username')} creating a new JPS webhook {request.form.get('webhook_name')}.")
         webhook_response = requests.post(full_url,
-                                         auth=(session['username'], session['password']),
-                                         headers={'Content-Type': 'application/xml'}, data=data,
+                                         headers={'Content-Type': 'application/xml',
+                                                  "Authorization": f"Bearer {session['token']}",
+                                                  'User-Agent': 'JAWA%20v3.0.3'}, data=data,
                                          verify=verify_ssl)
-        jawa_logger().info(f"[{webhook_response.status_code}]  {webhook_response.text}")
+        logthis.info(f"[{webhook_response.status_code}]  {webhook_response.text}")
         if webhook_response.status_code == 409:
             error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
             return render_template('error.html',
@@ -210,23 +241,31 @@ def jp_new():
         result = re.search('<id>(.*)</id>', webhook_response.text)
         jamf_id = result.group(1)
         new_link = "{}/webhooks.html?id={}&o=r".format(session['url'], result.group(1))
-        jawa_logger().info(f"{session.get('username')} created a new webhook:"
-                           f"Name: {request.form.get('name')}"
-                           f"Jamf link: {new_link}")
-
+        logthis.info(f"{session.get('username')} created a new webhook:"
+                     f"Name: {request.form.get('name')}"
+                     f"Jamf link: {new_link}")
+        custom_header = ""
         data = json.load(open(webhooks_file))
-        webhook_username = request.form.get('username')
-        webhook_password = request.form.get('password')
-        if webhook_username == "":
-            webhook_username = "null"
-        if webhook_password == "":
-            webhook_password = "null"
+        if request.form.get('choice') == 'basic':
+            webhook_username = request.form.get('username', 'null')
+            webhook_password = request.form.get('password', 'null')
+        else:
+            webhook_username = 'null'
+            webhook_password = 'null'
+        if request.form.get('choice') == 'custom':
+            webhook_apikey = request.form.get('api_key', 'null')
+            extra_notice = 'Copy and paste the following into the Header Authentication section of Jamf Pro webhooks:'
+            custom_header = {f"x-api-key" :  f"{webhook_apikey}"}
+        else:
+            webhook_apikey = 'null'
+            extra_notice = None
 
         data.append({"url": str(session['url']),
                      "jawa_admin": str(session['username']),
                      "name": request.form.get('webhook_name'),
                      "webhook_username": webhook_username,
                      "webhook_password": webhook_password,
+                     "api_key": webhook_apikey,
                      "event": request.form.get('event'),
                      "script": new_script_file,
                      "description": request.form.get('description'),
@@ -245,7 +284,8 @@ def jp_new():
                            smart_group_notice=smart_group_notice,
                            new_link=new_link,
                            new_here=new_here,
-                           success_msg=success_msg,
+                           success_msg=success_msg, extra_notice=extra_notice,
+                           custom_header=custom_header,
                            username=str(escape(session['username'])))
 
 
@@ -254,23 +294,24 @@ def jp_new():
 @response(template_file='webhooks/jamf/edit.html')
 def edit():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     name = request.args.get('name')
     with open(webhooks_file) as fin:
         webhooks_json = json.load(fin)
     check_for_name = [True for each_webhook in webhooks_json if each_webhook['name'] == name]
     if not check_for_name:
-        jawa_logger().info(f"Webhook '{name}' not in json")
+        logthis.info(f"Webhook '{name}' not in json")
         return redirect(url_for('jamf_pro_webhooks.jamf_webhook'))
     # GET
     webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
-    print(webhook_info)
     if request.method == 'POST':
-        # print(name)
         button_choice = request.form.get('button_choice')
         if button_choice == 'Delete':
             return redirect(url_for('webhooks.delete_webhook', target_webhook=name))
 
+        if not validate_token(session['expires']):
+            get_token()
         for each_webhook in webhooks_json:
             if each_webhook['name'] == name:
                 new_webhook_name = request.form.get('webhook_name')
@@ -278,8 +319,20 @@ def edit():
                     new_webhook_name = name
                 description = request.form.get('description')
                 new_event = request.form.get('event')
-                webhook_user = request.form.get('username')
-                webhook_pass = request.form.get('password')
+                custom_header = ""
+                if request.form.get('choice') == 'basic':
+                    webhook_user = request.form.get('username', 'null')
+                    webhook_pass = request.form.get('password', 'null')
+                else:
+                    webhook_user = 'null'
+                    webhook_pass = 'null'
+                if request.form.get('choice') == 'custom':
+                    webhook_apikey = request.form.get('api_key', 'null')
+                    extra_notice = 'Copy and paste the following into the Header Authentication section of Jamf Pro webhooks '
+                    custom_header = {"x-api-key" : f"{webhook_apikey}"}
+                else:
+                    webhook_apikey = 'null'
+                    extra_notice = None
 
                 if request.files.get('new_file'):
                     new_script = request.files.get('new_file')
@@ -307,6 +360,10 @@ def edit():
                     each_webhook['webhook_username'] = 'null'
                 if webhook_pass and webhook_pass != "":
                     each_webhook['webhook_password'] = webhook_pass
+                else:
+                    each_webhook['webhook_password'] = 'null'
+                if webhook_apikey and webhook_apikey != "":
+                    each_webhook['api_key'] = webhook_apikey
                 else:
                     each_webhook['webhook_password'] = 'null'
                 each_webhook['jawa_admin'] = session.get('username')
@@ -351,22 +408,23 @@ def edit():
                     extra_xml = ""
                     # Check for auth values
                 auth_xml = "<authentication_type>NONE</authentication_type>"
-                if (
-                        request.form.get('username') != '' or
-                        request.form.get('password') != ''):
-                    auth_xml = f"<authentication_type>BASIC</authentication_type>"
-                    if (request.form.get('username') == 'null' and
-                            request.form.get('password') == 'null'):
-                        auth_xml = "<authentication_type>NONE</authentication_type>"
+                if request.form.get('choice') == 'basic':
+                    if (
+                            request.form.get('username') != '' or
+                            request.form.get('password') != ''):
+                        auth_xml = f"<authentication_type>BASIC</authentication_type>"
+                        if (request.form.get('username') == 'null' and
+                                request.form.get('password') == 'null'):
+                            auth_xml = "<authentication_type>NONE</authentication_type>"
 
-                    if request.form.get('username') == '':
-                        auth_xml += "<username>null</username>"
-                    else:
-                        auth_xml += f"<username>{request.form.get('username')}</username>"
-                    if request.form.get('password') == '':
-                        auth_xml += "<password>null</password>"
-                    else:
-                        auth_xml += f"<password>{request.form.get('password')}</password>"
+                        if request.form.get('username') == '':
+                            auth_xml += "<username>null</username>"
+                        else:
+                            auth_xml += f"<username>{request.form.get('username')}</username>"
+                        if request.form.get('password') == '':
+                            auth_xml += "<password>null</password>"
+                        else:
+                            auth_xml += f"<password>{request.form.get('password')}</password>"
                 with open(server_json_file) as fin:
                     server_json = json.load(fin)
                 server_address = server_json['jawa_address']
@@ -377,17 +435,18 @@ def edit():
                        f"<content_type>application/json</content_type>" \
                        f"<event>{each_webhook.get('event')}</event>" \
                        f"{auth_xml}" \
-                       f"{extra_xml}"\
+                       f"{extra_xml}" \
                        f"</webhook>"
 
                 full_url = f"{session['url']}/JSSResource/webhooks/id/{each_webhook.get('jamf_id')}"
 
-                jawa_logger().info(f"{session.get('username')} editing the JPS webhook {name}.")
+                logthis.debug(f"{session.get('username')} editing the JPS webhook {name}.")
                 try:
                     webhook_response = requests.put(full_url,
-                                                auth=(session['username'], session['password']),
-                                                headers={'Content-Type': 'application/xml'}, data=data,
-                                                verify=verify_ssl)
+                                                    headers={'Content-Type': 'application/xml',
+                                                             "Authorization": f"Bearer {session['token']}",
+                                                             'User-Agent': 'JAWA%20v3.0.3'}, data=data,
+                                                    verify=verify_ssl)
                 except:
                     error_message = f"The request could not be sent to your Jamf Pro server," \
                                     f"check your network connection."
@@ -395,13 +454,17 @@ def edit():
                                            error_message=error_message,
                                            error="error",
                                            username=str(escape(session['username'])))
-                jawa_logger().info(f"[{webhook_response.status_code}]  {webhook_response.text}")
+                logthis.debug(f"[{webhook_response.status_code}]  {webhook_response.text}")
                 if webhook_response.status_code == 409:
-                    error_message = f"The webhooks name \"{request.form.get('webhook_name')}\" already exists in your Jamf Pro Server."
-                    return redirect(url_for('error', error="Duplicate", error_message=error_message, username=session.get('username')))
+                    error_message = f"The webhooks name \"{name}\" already exists in your Jamf Pro Server."
+                    logthis.info(
+                        f"[{session.get('url')}] {session.get('username').title()} - error editing webhook. {error_message}")
+                    return redirect(url_for('error', error="Duplicate", error_message=error_message,
+                                            username=session.get('username')))
                 elif webhook_response.status_code == 401:
                     error_message = f"{session.get('username').title()} doesn't have privileges to update webhooks." \
                                     f"Check your account privileges in Jamf Pro Settings"
+                    logthis.info(f"[{session.get('url')}] {error_message}")
                     return redirect(url_for('error', error="Insufficient privileges", error_message=error_message,
                                             username=session.get('username')))
                 with open(webhooks_file, 'w') as fout:
@@ -410,14 +473,14 @@ def edit():
                 jamf_id = result.group(1)
                 new_link = f"{format(session.get('url'))}/webhooks.html?id={jamf_id}&o=r"
                 success_msg = "Webhook edited:"
-                jawa_logger().info(f"{session.get('username')} edited a Jamf webhook:"
-                                   f"Name: {request.form.get('name')}"
-                                   f"Jamf link: {new_link}")
+                logthis.info(f"{session.get('username')} edited a Jamf webhook:"
+                             f"Name: {name}"
+                             f"Jamf link: {new_link}")
                 return {"webhooks": "success", "smart_group_instructions": smart_group_instructions,
                         "smart_group_notice": smart_group_notice,
                         "new_link": new_link,
                         "new_here": new_webhook_name,
-                        "success_msg": success_msg,
+                        "success_msg": success_msg, "extra_notice": extra_notice, "custom_header": custom_header,
                         "username": session.get('username'), 'webhook_info': webhook_info, "webhook_name": name,
                         "description": each_webhook.get('description')}
 

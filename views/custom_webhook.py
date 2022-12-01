@@ -1,14 +1,43 @@
-import os
-import json
-from collections import defaultdict
-from werkzeug.utils import secure_filename
-from flask import (Flask, request, render_template,
-                   session, redirect, url_for, escape,
-                   send_from_directory, Blueprint, abort)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#
+# Copyright (c) 2022 Jamf.  All rights reserved.
+#
+#       Redistribution and use in source and binary forms, with or without
+#       modification, are permitted provided that the following conditions are met:
+#               * Redistributions of source code must retain the above copyright
+#                 notice, this list of conditions and the following disclaimer.
+#               * Redistributions in binary form must reproduce the above copyright
+#                 notice, this list of conditions and the following disclaimer in the
+#                 documentation and/or other materials provided with the distribution.
+#               * Neither the name of the Jamf nor the names of its contributors may be
+#                 used to endorse or promote products derived from this software without
+#                 specific prior written permission.
+#
+#       THIS SOFTWARE IS PROVIDED BY JAMF SOFTWARE, LLC "AS IS" AND ANY
+#       EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+#       WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#       DISCLAIMED. IN NO EVENT SHALL JAMF SOFTWARE, LLC BE LIABLE FOR ANY
+#       DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+#       (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#       LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+#       ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#       (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#       SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-from bin.load_home import load_home
+from collections import defaultdict
+from flask import (Blueprint, escape, redirect, render_template,
+                   request, session, url_for)
+import json
+import os
+from werkzeug.utils import secure_filename
+
+
 from bin.view_modifiers import response
-from app import jawa_logger
+from bin import logger
+
+logthis = logger.setup_child_logger('jawa', __name__)
 
 blueprint = Blueprint('custom_webhook', __name__, template_folder='templates')
 
@@ -23,7 +52,7 @@ scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scr
 @response(template_file='webhooks/custom/home.html')
 def custom_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     with open(webhooks_file, 'r') as fin:
         webhooks_json = json.load(fin)
     custom_webhooks_list = []
@@ -41,35 +70,51 @@ def custom_webhook():
 @response(template_file='webhooks/custom/edit.html')
 def edit_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     name = request.args.get('name')
-    jawa_logger().info(f"Checking for custom webhook '{name}'")
+    logthis.info(f"Checking for custom webhook '{name}'")
     with open(webhooks_file) as fin:
         webhooks_json = json.load(fin)
     check_for_name = [True for each_webhook in webhooks_json if each_webhook['name'] == name]
-    jawa_logger().info(f"Name exists? {check_for_name}")
+    logthis.info(f"Name exists? {check_for_name}")
     if not check_for_name:
-        jawa_logger().info(f"JAWA is not aware of any custom webhook named {name}")
+        logthis.info(f"JAWA is not aware of any custom webhook named {name}")
         return redirect(url_for('custom_webhook.custom_webhook'))
     if request.method == 'POST':
         button_choice = request.form.get('button_choice')
         if button_choice == 'Delete':
-            jawa_logger().info(f"{session.get('username')} is considering deleting a custom webhook ({name})...")
+            logthis.info(f"{session.get('username')} is considering deleting a custom webhook ({name})...")
             return redirect(url_for('webhooks.delete_webhook', target_webhook=name))
         for each_webhook in webhooks_json:
-            jawa_logger().info(f"{session.get('username')} is editing a custom webhook ({name})...")
             if each_webhook['name'] == name:
+                logthis.info(f"{session.get('username')} is editing a custom webhook ({name})...")
+                output = request.form.get('output')
                 new_custom_name = request.form.get('custom_name')
                 if not new_custom_name:
                     new_custom_name = name
                 description = request.form.get('description')
-                new_webhook_user = request.form.get('username', 'null')
-                if not new_webhook_user:
-                    new_webhook_user = "null"
-                new_webhook_pass = request.form.get('password', 'null')
-                if not new_webhook_pass:
-                    new_webhook_pass = "null"
-
+                if request.form.get('basic'):
+                    new_webhook_user = request.form.get('username', 'null')
+                    new_webhook_pass = request.form.get('password', 'null')
+                else:
+                    new_webhook_user = 'null'
+                    new_webhook_pass = 'null'
+                if request.form.get('custom'):
+                    new_webhook_apikey = request.form.get('api_key', 'null')
+                else:
+                    new_webhook_apikey = 'null'
+                if new_webhook_user and new_webhook_user != "":
+                    each_webhook['webhook_username'] = new_webhook_user
+                else:
+                    each_webhook['webhook_username'] = 'null'
+                if new_webhook_pass and new_webhook_pass != "":
+                    each_webhook['webhook_password'] = new_webhook_pass
+                else:
+                    each_webhook['webhook_password'] = 'null'
+                if new_webhook_apikey and new_webhook_apikey != "":
+                    each_webhook['api_key'] = new_webhook_apikey
+                else:
+                    each_webhook['webhook_password'] = 'null'
                 if request.files.get('new_file'):
                     new_script = request.files.get('new_file')
                     owd = os.getcwd()
@@ -84,19 +129,20 @@ def edit_webhook():
                     os.chmod(new_filename, mode=0o0755)
                     os.chdir(owd)
                     each_webhook['script'] = new_filename
-                if new_custom_name:
-                    each_webhook['name'] = new_custom_name
+
+                each_webhook['name'] = new_custom_name
                 if description:
                     each_webhook['description'] = description
                 each_webhook['webhook_username'] = new_webhook_user
                 each_webhook['webhook_password'] = new_webhook_pass
+                each_webhook['output'] = output
 
                 with open(webhooks_file, 'w') as fout:
                     json.dump(webhooks_json, fout, indent=4)
-                webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
+                webhook_info = [each_webhook]
                 return {"webhooks": "success",
-                        "success_msg": f"Edited custom webhook {name}.",
-                        "username": session.get('username'), 'webhook_info': webhook_info, "webhook_name": name,
+                        "success_msg": f"Edited custom webhook {new_custom_name}.",
+                        "username": session.get('username'), 'webhook_info': webhook_info, "webhook_name": new_custom_name,
                         "description": each_webhook.get('description')}
     webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
     return {'username': session.get('username'), 'webhook_name': name, 'webhook_info': webhook_info}
@@ -106,13 +152,16 @@ def edit_webhook():
 @response(template_file='webhooks/custom/new.html')
 def new_webhook():
     if 'username' not in session:
-        return redirect(url_for('logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if request.method == 'POST':
         new_custom_name = request.form.get('custom_name')
         description = request.form.get('description')
+        output = request.form.get('output')
+
+
         if request.form.get('custom_name') != '':
             check = 0
-            jawa_logger().info(f"New webhook name: {request.form.get('custom_name')}")
+            logthis.info(f"New webhook name: {request.form.get('custom_name')}")
 
             with open(webhooks_file, 'r') as json_file:
                 webhooks_json = json.load(json_file)
@@ -137,7 +186,7 @@ def new_webhook():
             os.chdir(owd)
             if check != 0:
                 error_message = "Name already exists!"
-                jawa_logger().info(f"Could not create new webhook. Message: {error_message}")
+                logthis.info(f"Could not create new webhook. Message: {error_message}")
                 return {"error": error_message, "username": session.get('username'), 'name': new_custom_name,
                         'description': description}
             new_webhook_user = request.form.get('username', 'null')
@@ -146,15 +195,20 @@ def new_webhook():
             new_webhook_pass = request.form.get('password', 'null')
             if not new_webhook_pass:
                 new_webhook_pass = "null"
+            if request.form.get('custom'):
+                api_key = request.form.get('api_key', 'null')
+            else:
+                api_key = 'null'
             webhooks_json.append({"url": str(session['url']),
                                   "jawa_admin": str(session['username']),
                                   "name": new_custom_name,
                                   "webhook_username": new_webhook_user,
                                   "webhook_password": new_webhook_pass,
-                                  # "event": request.form.get('event'),
+                                  "api_key": api_key,
                                   "script": new_filename,
                                   "description": description,
-                                  "tag": "custom"})
+                                  "tag": "custom",
+                                  "output": output})
 
             with open(webhooks_file, 'w') as outfile:
                 json.dump(webhooks_json, outfile, indent=4)

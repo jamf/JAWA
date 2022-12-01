@@ -83,7 +83,7 @@ def login():
             msg = "Passwords can't be blank"
             return redirect(url_for('home_view.logout', error_title=title, error_message=msg))
         if not session.get('token'):
-            return redirect(url_for('home_view.logout', error_title="Could fetch token", error_message="try again"))
+            return redirect(url_for('home_view.logout', error_title="Could not fetch token", error_message="try again"))
         try:
             resp = requests.get(
                 session['url'] + '/JSSResource/activationcode',

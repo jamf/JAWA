@@ -86,8 +86,7 @@ def custom_output_options(webhook_name):
             webhook_tag = each_webhook.get('tag')
             send_output = each_webhook.get('output')
             return webhook_tag, send_output
-        else:
-            return None, None
+    return None, None
 
 
 @blueprint.route('/hooks/<webhook_name>', methods=['POST', 'GET'])

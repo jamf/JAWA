@@ -146,7 +146,7 @@ footer a {
     max-width: 2000px;
     text-align: center;
     background-color: #d7a77399;
-    border: 1px solid gray;
+    border: 1px #aa845a;
     border-radius: 55px;
     padding: 10px;
 }
@@ -158,7 +158,7 @@ footer a {
     text-after-overflow: left;
     text-align-all: left;
     background-color: #d7a77399;
-    border: 1px solid gray;
+    border: 1px #aa845a;
     border-radius: 8px;
     padding: 10px;
 }
@@ -172,14 +172,14 @@ footer a {
     margin-left: auto;
     margin-right: auto;
     background-color: #d7a77399;
-    border: 1px solid gray;
+    border: 1px #aa845a;
     border-radius: 5px;
     padding: 10px;
 }
 
 .log-background {
     background-color: #d7a77399;
-    border: 1px solid gray;
+    border: 1px #aa845a;
 }
 
 .download-button {

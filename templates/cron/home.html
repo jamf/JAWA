@@ -48,7 +48,7 @@
     </div>
     {% if not cron_list %}
         <div class="form-container">
-            <div class="table-view" style="max-width: fit-content; text-align: center; min-width: 55vh">
+            <div class="table-view" style="max-width: fit-content; text-align: center;">
                 <div class="table-responsive">
                     No timed automations to display. <a href="/cron/new">Create one now.</a>
                 </div>
@@ -62,7 +62,7 @@
                          style="width: 10rem; padding: 3px; margin: 10px">
                         <h4 class="overflow-hidden card-header font-weight-bolder">Cron</h4>
                         <img src="/static/img/timed_automation.png"
-                             class="img img-circle img-fluid card-img btn-padded">
+                             class="img img-circle img-fluid card-img mx-auto btn-padded">
                         <div class="card-body webhooks-list">
                             <h6 class="overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
                             <button class="btn btn-jawa text-white overflow-hidden stretched-link align-self-end mt-auto"

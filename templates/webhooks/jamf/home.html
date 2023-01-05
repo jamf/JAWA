@@ -53,7 +53,7 @@
         </div>
         {% if not jamf_list %}
             <div class="form-container">
-                <div class="table-view" style="max-width: fit-content; text-align: center; min-width: 55vh">
+                <div class="table-view" style="max-width: fit-content; text-align: center;">
                     <div class="table-responsive">
                         No Jamf Pro webhooks to display. <a href="/webhooks/jamf/new">Create one now.</a>
                     </div>
@@ -67,7 +67,7 @@
                         <div class="card col-lg-auto webhooks-list container-bg border-info d-flex flex-column">
                             <h4 class="overflow-hidden card-header font-weight-bolder">Jamf Pro</h4>
                             <img src="/static/img/webhook.png"
-                                 class="img img-circle img-fluid card-img btn-padded">
+                                 class="img img-circle img-fluid card-img mx-auto btn-padded">
                             <div class="card-body webhooks-list">
                                 <h6 class=" overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
                                 <button class="btn btn-jawa text-white overflow-hidden stretched-link mt-auto"

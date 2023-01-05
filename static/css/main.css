@@ -296,7 +296,7 @@ n {
 }
 
 .btn-padded {
-  margin-top: 5px;
+  margin-top: 1rem;
 }
 
 .webhooks-list span {
@@ -362,7 +362,9 @@ n {
 .alert-jawa {
     color: #FFFFFF;
     background-color: #6A2F30;
-    border-color: #c3e6cb
+    border-color: #c3e6cb;
+    border-radius: 1rem;
+
 }
 
 .btn-jawa:disabled {
@@ -374,5 +376,20 @@ n {
     margin: 5px;
     padding: 5px;
     width: 150px;
+    border-radius: 1rem;
 }
 
+.btn-jawa {
+    color: #fff;
+    background-color: #6A2F30;
+    border-color: #112a26;
+    border-radius: 1rem;
+}
+
+.card-img {
+    width: 72%
+}
+
+.border-info {
+    border-color: #aa845a !important;
+}

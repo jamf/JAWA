@@ -62,7 +62,7 @@
 
     {% if not jamf_list and not okta_list and not custom_list %}
         <div class="form-container">
-            <div class="table-view" style="max-width: fit-content; text-align: center; min-width: 55vh">
+            <div class="table-view" style="max-width: fit-content; text-align: center;">
                 <div class="table-responsive">
                     No Jamf Pro webhooks to display. <a href="/webhooks/jamf/new">Create one now.</a>
                 </div>
@@ -87,7 +87,7 @@
                         {% if row.url == session['url'] %}
                             <div class="card col-lg-auto webhooks-list container-bg border-info d-flex flex-column">
                                 <h4 class="overflow-hidden card-header font-weight-bolder">Jamf Pro</h4>
-                                <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img btn-padded">
+                                <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img mx-auto btn-padded">
                                 <div class="card-body webhooks-list">
                                     <h6 class=" overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
                                     <button class="btn btn-jawa text-white overflow-hidden stretched-link mt-auto"
@@ -154,7 +154,7 @@
                         <div class="card col-lg-auto webhooks-list container-bg border-info d-flex"
                              style="width: 10rem; padding: 3px; margin: 10px">
                             <h4 class="overflow-hidden card-header font-weight-bolder">Okta</h4>
-                            <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img btn-padded">
+                            <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img mx-auto btn-padded">
                             <div class="card-body webhooks-list">
                                 <h6 class=" overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
                                 <button class="btn-jawa btn text-white overflow-hidden stretched-link align-self-end mt-auto"
@@ -217,7 +217,7 @@
                             <div class="card col-lg-auto webhooks-list container-bg border-info d-flex"
                                  style="width: 10rem; padding: 3px; margin: 10px">
                                 <h4 class="overflow-hidden card-header font-weight-bolder">Custom</h4>
-                                <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img btn-padded">
+                                <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img mx-auto btn-padded">
                                 <div class="card-body webhooks-list">
                                     <h6 class=" overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
                                     <button class="btn-jawa btn text-white overflow-hidden stretched-link align-self-end mt-auto"

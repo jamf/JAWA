@@ -35,8 +35,7 @@
         <div class="stat"><a href="/webhooks/jamf">View</a></div>
     </div>
     <div class="form-container">
-        <form method="post" action="/webhooks/jamf/new" class="table-view overflow-auto" enctype="multipart/form-data"
-              style="max-height: 66vh; max-width: 66vh">
+        <form method="post" action="/webhooks/jamf/new" class="table-view overflow-auto" enctype="multipart/form-data">
             <h1>New Jamf Pro Webhook</h1>
             <input name="webhook_name" type="text" pattern="[^' ']+" placeholder="New Webhook Name (no spaces)" required
                    title="No spaces, please." class="form-control" value="{{ name }}" autofocus>
@@ -106,37 +105,41 @@
                 <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>, <a
                         href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>] </p></div>
             <div class="d-flex justify-content-center"><label>
-                <input type="radio" class="form-check-input" name="choice" value="basic"
-                       onchange="java_script_:show(this.value)">
-            </label><b>Basic Authentication (optional):</b></div>
+                <input type="radio" name="choice" value="basic"
+                       onchange="java_script_:show(this.value)"> &nbsp;
+            </label>
+                <b>Basic Authentication (optional):</b>
+            </div>
             <div class="d-flex justify-content-center">
                 <div id="hiddenDiv2" style="display:none" class="center_box">
                     <div class="d-flex justify-content-center">
-                    <input class="form-control-sm" name="username" title="Username (optional)"
-                           placeholder="Username (optional)">
-                    </b>
-                    <input name="password" class="form-control-sm" type='password' title="Password (optional)"
-                           placeholder="Password (optional)"></div></div>
+                        <input class="form-control-sm" name="username" title="Username (optional)"
+                               placeholder="Username (optional)" style="padding: unset">
+                        </b>
+                        <input name="password" class="form-control-sm" type='password' title="Password (optional)"
+                               placeholder="Password (optional)" style="padding: unset">
+                    </div>
+                </div>
             </div>
-                <div class="d-flex justify-content-center"><label>
-                    <input type="radio" class="form-check-input" name="choice" value="custom"
-                           onchange="java_script_:show(this.value)">
-                </label><b>Custom Authentication (optional):</b></div>
-                <div class="d-flex justify-content-center">
-                    <div id="hiddenDiv3" style="display:none">
-                        <input name="api_key" class="form-control-sm"  title="x-api-key (optional)"
-                               placeholder="x-api-key value (optional)"></div>
-                </div>
+            <div class="d-flex justify-content-center"><label>
+                <input type="radio" class="form-check-label" name="choice" value="custom"
+                       onchange="java_script_:show(this.value)"> &nbsp;
+            </label><b>Custom Authentication (optional):</b></div>
+            <div class="d-flex justify-content-center">
+                <div id="hiddenDiv3" style="display:none">
+                    <input name="api_key" class="form-control-sm" title="x-api-key (optional)"
+                           placeholder="x-api-key value (optional)"></div>
+            </div>
 
-                <div class="d-flex justify-content-center button-holder">
-                    <p></p>
-                    <button type=submit value="Custom_New" class="btn btn-secondary"
-                            style="margin: 5px; padding: 5px; width: 150px">
+            <div class="d-flex justify-content-center">
+                <p></p>
+                <button type=submit value="Custom_New" class="btn btn-jawa"
+                        style="margin: 5px; padding: 5px; width: 150px">
 
-                        Create
+                    Create
 
-                    </button>
-                </div>
+                </button>
+            </div>
 
         </form>
     </div>

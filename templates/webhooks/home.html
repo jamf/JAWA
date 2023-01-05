@@ -80,158 +80,203 @@
 
         </div>
     {% else %}
-        <div class="form-container">
-        <div class="table-view overflow-auto"
-             style="max-height: 60vh; max-width: fit-content; text-align: center; min-width: 80%;">
+        <div class="form-container justify-content-center">
+            <div class="row dash-list justify-content-center">
+                {% if jamf_list %}
+                    {% for row in jamf_list %}
+                        {% if row.url == session['url'] %}
+                            <div class="card col-lg-auto webhooks-list container-bg border-info d-flex flex-column">
+                                <h4 class="overflow-hidden card-header font-weight-bolder">Jamf Pro</h4>
+                                <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img btn-padded">
+                                <div class="card-body webhooks-list">
+                                    <h6 class=" overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
+                                    <button class="btn btn-jawa text-white overflow-hidden stretched-link mt-auto"
+                                            title="{{ row.name }}" data-toggle="modal"
+                                            data-target="#automationDetails-{{ row.name }}">
+                                        View Details
+                                    </button>
+                                    <div class="modal fade" id="automationDetails-{{ row.name }}" tabindex="-1"
+                                         role="dialog"
+                                         aria-labelledby="automationDetailsCenterTitle" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title text-center w-100"
+                                                        id="automationDetailsLongTitle">{{ row.name }}</h5>
+                                                    <button type="button" class="close" data-dismiss="modal"
+                                                            aria-label="Close">
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body text-left">
+                                                    <div class="overflow-auto log-frame"
+                                                         style="max-width: 100vh; max-height: 10vh; text-overflow: ellipsis">
+                                                        <b>Automation name</b>: {{ row.name }} (<a
+                                                            href="{{ url }}/webhooks.html?id={{ row.jamf_id }}"
+                                                            target="_blank">View in Jamf</a>)
+                                                    </div>
 
+                                                    <div class="overflow-auto log-frame"
+                                                         style="max-width: 100vh; max-height: 10vh">
+                                                        <b>Event</b>: {{ row.event }}
+                                                    </div>
 
-            {% if jamf_list %}
-                <div class="table-responsive">
-                    <table id="Jamf Pro Webhooks Table" class="table"
-                           style="max-height: 66vh; max-width: fit-content; text-align: center; min-width: 100%;">
-                        <thead class="thead-dark table-bordered">
-                        <tr>
-                            <th>Jamf Pro Webhook</th>
-                            <th>Event</th>
-                            <th>Script</th>
-                            <th>Description</th>
-                        </tr>
-                        </thead>
-                        {% for row in jamf_list %}
-                            {% if row.url == session['url'] %}
-                                <tr>
+                                                    <div class="overflow-auto log-frame text-break"
+                                                         style="max-width: 100vh; max-height: 10vh">
+                                                        <b>Script path</b>: {{ row.script }}
+                                                    </div>
 
-                                    <td>{{ row.name }} (<a href="../webhooks/jamf/edit?name={{ row.name }}"
-                                                           style="color:#3c6aa7;">Edit</a>) (<a
-                                            href="{{ url }}/webhooks.html?id={{ row.jamf_id }}" target="_blank">View
-                                        in
-                                        Jamf</a>)
-{#                                        <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal"#}
-{#                                                data-target="#myModal">Modal#}
-{#                                        </button>#}
+                                                    <div class="overflow-auto log-frame"
+                                                         style="max-width: 100vh; max-height: 10vh">
+                                                        <b>Description</b>: {{ row.description }}
+                                                    </div>
 
-                                    </td>
-                                    <td>
-                                        <div class="overflow-auto log-frame"
-                                             style="max-width: 50vh; max-height: 10vh">
-                                            {{ row.event }}
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary"
+                                                            data-dismiss="modal">
+                                                        Close
+                                                    </button>
+                                                    <a type="button" class="btn btn-jawa"
+                                                       href="../webhooks/jamf/edit?name={{ row.name }}">Edit</a>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </td>
-                                    <td>
-                                        <div class="overflow-auto log-frame"
-                                             style="max-width: 50vh; max-height: 10vh"> {{ row.script }}</div>
-                                    </td>
-                                    <td>
-                                        <div class="overflow-auto log-frame"
-                                             style="max-width: 50vh; max-height: 10vh"> {{ row.description }}</div>
-                                    </td>
-                                </tr>
-                            {% endif %}
-                        {% endfor %}</table>
-{#                    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">#}
-{#                        <div class="modal-dialog log-background modal-dialog-centered custom-control-inline" style="max-height: 350px" role="document" >#}
-{#                            <div class="modal-header">#}
-{#                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">#}
-{#                                    <span aria-hidden="true">&times;</span>#}
-{#                                </button>#}
-{#                                <h4 class="modal-title" id="myModalLabel">Modal title</h4>#}
-{#                            </div>#}
-{#                            <div class="modal-body">#}
-{#                                Webhook form editor...#}
-{#                            </div>#}
-{#                            <div class="modal-footer">#}
-{#                                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>#}
-{#                                <button type="button" class="btn btn-primary">Save changes</button>#}
-{#                            </div>#}
-{#                        </div>#}
-{#                    </div>#}
-                </div>
-            {% endif %}
-            {% if okta_list %}
-                <div class="table-responsive">
-                    <table id="Okta Webhooks Table" class="table"
-                           style="max-height: 66vh; max-width: fit-content; text-align: center; min-width: 100%">
-                        <thead class="thead-dark table-bordered">
-                        <tr>
-                            <th>Okta Webhook</th>
-                            <th>Okta URL</th>
-                            <th>Event</th>
-                            <th>Script</th>
-                            <th>Description</th>
-                        </tr>
-                        </thead>
-
-                        {% for row in okta_list %}
-
-                            <tr>
-                                {#                                <td>{{ row.name }} (<a href="{{ webhook_url }}/webhooks.html?id={{ row.jamf_id }}"#}
-                                <td>
-                                    <div class="overflow-auto log-frame"
-                                         style="max-width: 50vh; max-height: 10vh">
-                                        {{ row.name }} (<a href="../webhooks/delete?target_webhook={{ row.name }}"
-                                                           style="color:#3c6aa7;">Delete</a>)
                                     </div>
-                                </td>
-                                <td>
-                                    <div class="overflow-auto log-frame" style="max-width: 50vh; max-height: 10vh">
-                                        {{ row.okta_url }}
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="overflow-auto log-frame"
-                                         style="max-width: 50vh; max-height: 10vh">
-                                        {{ row.okta_event }}
-                                    </div>
-                                </td>
-                                <td>{{ row.script }}</td>
+                                </div>
 
-                                <td>
-                                    <div class="overflow-auto log-frame"
-                                         style="max-width: 50vh; max-height: 10vh"> {{ row.description }}</div>
-                                </td>
-                            </tr>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {% if okta_list %}
+                    {% for row in okta_list %}
+                        <div class="card col-lg-auto webhooks-list container-bg border-info d-flex"
+                             style="width: 10rem; padding: 3px; margin: 10px">
+                            <h4 class="overflow-hidden card-header font-weight-bolder">Okta</h4>
+                            <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img btn-padded">
+                            <div class="card-body webhooks-list">
+                                <h6 class=" overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
+                                <button class="btn-jawa btn text-white overflow-hidden stretched-link align-self-end mt-auto"
+                                        title="{{ row.name }}" data-toggle="modal" data-target="#automationDetailsOkta">
+                                    View Details
+                                </button>
+                                <div class="modal fade" id="automationDetailsOkta" tabindex="-1" role="dialog"
+                                     aria-labelledby="automationDetailsCenterTitle" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title text-center w-100"
+                                                    id="automationDetailsLongTitle">{{ row.name }}</h5>
+                                                <button type="button" class="close" data-dismiss="modal"
+                                                        aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body text-left">
+                                                <div class="overflow-auto log-frame"
+                                                     style="max-width: 100vh; max-height: 10vh">
+                                                    <b>Automation name</b>: {{ row.name }}
+                                                </div>
 
-                        {% endfor %}
-                    </table>
-                </div>
-            {% endif %}
-            {% if custom_list %}
-                <div class="table-responsive">
-                    <table id="Custom Webhooks Table" class="table"
-                           style="max-height: 66vh; max-width: fit-content; text-align: center; min-width: 100%">
-                        <thead class="thead-dark table-bordered">
-                        <tr>
-                            <th>Custom Webhook</th>
-                            <th>Script</th>
-                            <th>Description</th>
-                        </tr>
-                        </thead>
-                        {% for row in custom_list %}
-                            {% if row.url == session['url'] %}
-                                <tr>
-                                    {#                                <td>{{ row.name }} (<a href="{{ webhook_url }}/webhooks.html?id={{ row.jamf_id }}"#}
-                                    <td>{{ row.name }} (<a href="../webhooks/custom/edit?name={{ row.name }}"
-                                                           style="color:#3c6aa7;">Edit</a>)
-                                    </td>
-                                    <td>{{ row.script }}</td>
-                                    <td>
-                                        <div class="overflow-auto log-frame"
-                                             style="max-width: 50vh; max-height: 10vh">
-                                            {{ row.description }}
+                                                <div class="overflow-auto log-frame"
+                                                     style="max-width: 100vh; max-height: 10vh">
+                                                    <b>Event</b>: {{ row.okta_event }}
+                                                </div>
+                                                <div class="overflow-auto log-frame text-break"
+                                                     style="max-width: 100vh; max-height: 10vh">
+                                                    <b>Script path</b>: {{ row.script }}
+                                                </div>
+                                                <div class="overflow-auto log-frame"
+                                                     style="max-width: 100vh; max-height: 10vh">
+                                                    <b>Okta URL</b>: {{ row.okta_url }}
+                                                </div>
+                                                <div class="overflow-auto log-frame"
+                                                     style="max-width: 100vh; max-height: 10vh">
+                                                    <b>Description</b>: {{ row.description }}
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                                                    Close
+                                                </button>
+                                                <a type="button" class="btn btn-danger"
+                                                   href="../webhooks/delete?target_webhook={{ row.name }}">Delete</a>
+                                            </div>
                                         </div>
-                                    </td>
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
 
-                    </table>
+                {% endif %}
+                {% if custom_list %}
+                    {% for row in custom_list %}
+                        {% if row.url == session['url'] %}
+                            <div class="card col-lg-auto webhooks-list container-bg border-info d-flex"
+                                 style="width: 10rem; padding: 3px; margin: 10px">
+                                <h4 class="overflow-hidden card-header font-weight-bolder">Custom</h4>
+                                <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img btn-padded">
+                                <div class="card-body webhooks-list">
+                                    <h6 class=" overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
+                                    <button class="btn-jawa btn text-white overflow-hidden stretched-link align-self-end mt-auto"
+                                            title="{{ row.name }}" data-toggle="modal"
+                                            data-target="#automationDetails-{{ row.name }}">
+                                        View Details
+                                    </button>
 
-                </div>
+                                    <div class="modal fade" id="automationDetails-{{ row.name }}" tabindex="-1"
+                                         role="dialog" aria-labelledby="automationDetailsCenterTitle"
+                                         aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered" role="document">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title text-center w-100"
+                                                        id="automationDetailsLongTitle">{{ row.name }}</h5>
+                                                    <button type="button" class="close" data-dismiss="modal"
+                                                            aria-label="Close">
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body text-left">
+                                                    <div class="overflow-auto log-frame"
+                                                         style="max-width: 100vh; max-height: 10vh; text-overflow: ellipsis">
+                                                        <b>Automation name</b>: {{ row.name }}
+                                                    </div>
+
+                                                    <div class="overflow-auto log-frame text-break"
+                                                         style="max-width: 100vh; max-height: 10vh">
+                                                        <b>Script path</b>: {{ row.script }}
+                                                    </div>
+                                                    <div class="overflow-auto log-frame"
+                                                         style="max-width: 100vh; max-height: 10vh">
+                                                        <b>Description</b>: {{ row.description }}
+                                                    </div>
+
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary"
+                                                            data-dismiss="modal">
+                                                        Close
+                                                    </button>
+                                                    <a type="button" class="btn btn-jawa"
+                                                       href="../webhooks/custom/edit?name={{ row.name }}">Edit</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+        </div>
             {% endif %}
 
 
         </div>
-    {% endif %}
+
 
 </div>
 {% endblock %}

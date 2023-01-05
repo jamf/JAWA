@@ -36,14 +36,14 @@
 
     </div>
     <div class="form-container">
-        <div class="table-view overflow-auto pre-scrollable" style="max-width: fit-content">
+        <div class="table-view overflow-auto pre-scrollable" style="max-width: fit-content; min-height: 30vh">
             <h4 class="d-flex justify-content-center alert-info">Upload a file</h4>
             <p>Files directory: <pre><code>{{ files_repo }}/</code></pre></p>
             {#            <p>Upload a file:</p>#}
             <form action="#" method="post" enctype="multipart/form-data">
                 <div class="d-flex justify-content-center">
                     <input id="upload" type="file" name="upload" formenctype="multipart/form-data"/>
-                    <input type="submit" class=" btn btn-primary" value="Upload" disabled style="margin: 5px; padding: 5px; width: 150px"/>
+                    <input type="submit" class=" btn btn-jawa" value="Upload" disabled style="margin: 5px; padding: 5px; width: 150px"/>
             </form>
         </div>
     </div>
@@ -59,7 +59,7 @@
         <form class="files-form overflow-auto" style="max-height: 66vh;;">
 
         <h4 class="d-flex justify-content-center alert-success">Uploaded files</h4>
-        <div class="alert-soft alert-dark btn-padded">
+        <div class="btn-padded">
             <table id="files_table" class="table">
                 <tr>
                     <th>Name</th>
@@ -79,7 +79,7 @@
         </div>
         <div class="d-flex justify-content-center">
             <button type=submit name="button_choice" value="Download"
-                    class="btn btn-secondary button-align alert-soft" style="margin: 5px; padding: 5px; width: 150px">
+                    class="btn btn-jawa button-align alert-soft" style="margin: 5px; padding: 5px; width: 150px">
                 Download
             </button>
             <button name="button_choice" type=submit value="Delete" class="btn btn-danger button-align alert-soft"

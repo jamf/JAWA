@@ -16,13 +16,13 @@ body {
 }
 */
 a:visited {
-  color: purple;
+  color: lightgrey;
 }
 
-a:hover { 
-  color: #26446b; 
+a:hover {
+  color: #26446b;
   text-decoration: underline;
-  font-weight: none 
+  font-weight: none
 }
 
 
@@ -131,7 +131,7 @@ h1-center {
  list-style-type: none;
  padding: 0;
 }
-   
+
 .nav ul a {
  color: #000;
  text-decoration: none;
@@ -233,7 +233,7 @@ h1-center {
 
 @keyframes sk-circleFadeDelay {
   0%, 39%, 100% { opacity: 0; }
-  40% { opacity: 1; } 
+  40% { opacity: 1; }
 }
 
 .rule-row {
@@ -298,3 +298,66 @@ n {
 .btn-padded {
   margin-top: 5px;
 }
+
+.webhooks-list span {
+    display: block;
+    font-size: 12px;
+    overflow-block: hidden;
+    /*margin-top: 10px;*/
+}
+.webhooks-list h6 {
+    display: block;
+    font-size: 12px;
+    overflow-block: hidden;
+    word-wrap: normal;
+    /*word-break: break-all;*/
+    /*margin-top: 10px;*/
+}
+
+.dash-list {
+    text-align: center;
+    margin-bottom: 10vh;
+}
+
+.jawa-bg {
+    background-image: url("../../static/img/heather-shevlin-3B_NrzTjajc-unsplash.jpg");
+    background-repeat: round;
+    background-attachment: fixed;
+    /*background-size: contain;*/
+    background-size: auto;
+    height: 100vh;
+    width: 100vw;
+}
+
+.vertical-center {
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  -ms-transform: translateY(-50%);
+  transform: translateY(-50%);
+}
+
+.container-bg {
+    background-color: #d7a77399;
+}
+
+.card {
+    width: 10rem;
+    padding: 3px;
+    margin: 10px;
+}
+
+.dash-list .btn-jawa {
+    font-size: .9rem;
+}
+
+.modal-footer .btn-jawa {
+    font-size: unset;
+}
+
+.btn-jawa:hover {
+    color:lightgrey;
+}
+/*.btn {*/
+/*    font-size: 12px;*/
+/*}*/

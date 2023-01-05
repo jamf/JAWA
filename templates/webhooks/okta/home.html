@@ -57,64 +57,68 @@
                 </div>
             </div></div>
         {% else %}
-            <div class="form-container">
-            <div class="table-view overflow-auto" style="max-height: 46vh; max-width: fit-content; text-align: center;">
+            <div class="form-container justify-content-center">
+            <div class="row dash-list justify-content-center">
+                    {% for row in okta_list %}
+                        <div class="card col-lg-auto webhooks-list container-bg border-info d-flex"
+                             style="width: 10rem; padding: 3px; margin: 10px">
+                            <h4 class="overflow-hidden card-header font-weight-bolder">Okta</h4>
+                            <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img btn-padded">
+                            <div class="card-body webhooks-list">
+                                <h6 class=" overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
+                                <button class="btn-jawa btn text-white overflow-hidden stretched-link align-self-end mt-auto"
+                                        title="{{ row.name }}" data-toggle="modal" data-target="#automationDetailsOkta">
+                                    View Details
+                                </button>
+                                <div class="modal fade" id="automationDetailsOkta" tabindex="-1" role="dialog"
+                                     aria-labelledby="automationDetailsCenterTitle" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title text-center w-100"
+                                                    id="automationDetailsLongTitle">{{ row.name }}</h5>
+                                                <button type="button" class="close" data-dismiss="modal"
+                                                        aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body text-left">
+                                                <div class="overflow-auto log-frame"
+                                                     style="max-width: 100vh; max-height: 10vh">
+                                                    <b>Automation name</b>: {{ row.name }}
+                                                </div>
 
-                {% if okta_list %}
-                    <div class="table-responsive">
-                        <table id="Okta Webhooks Table" class="table"
-                               style="max-height: 46vh; max-width: fit-content; text-align: center;">
-                            <thead class="thead-dark table-bordered">
-                            <tr>
-                                <th>Okta Webhook</th>
-                                <th>Okta URL</th>
-                                <th>Event</th>
-                                <th>Script</th>
-                                <th>Description</th>
-                            </tr>
-                            </thead>
-
-                            {% for row in okta_list %}
-
-                                <tr>
-
-                                    <td>
-                                        <div class="overflow-auto log-frame"
-                                             style="max-width: 50vh; max-height: 10vh">
-                                            {{ row.name }} (<a href="../webhooks/delete?target_webhook={{ row.name }}"
-                                                               style="color:#3c6aa7;">Delete</a>)
+                                                <div class="overflow-auto log-frame"
+                                                     style="max-width: 100vh; max-height: 10vh">
+                                                    <b>Event</b>: {{ row.okta_event }}
+                                                </div>
+                                                <div class="overflow-auto log-frame text-break"
+                                                     style="max-width: 100vh; max-height: 10vh">
+                                                    <b>Script path</b>: {{ row.script }}
+                                                </div>
+                                                <div class="overflow-auto log-frame"
+                                                     style="max-width: 100vh; max-height: 10vh">
+                                                    <b>Okta URL</b>: {{ row.okta_url }}
+                                                </div>
+                                                <div class="overflow-auto log-frame"
+                                                     style="max-width: 100vh; max-height: 10vh">
+                                                    <b>Description</b>: {{ row.description }}
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                                                    Close
+                                                </button>
+                                                <a type="button" class="btn btn-danger"
+                                                   href="../webhooks/delete?target_webhook={{ row.name }}">Delete</a>
+                                            </div>
                                         </div>
-                                    </td>
-                                    <td>
-                                        <div class="overflow-auto log-frame" style="max-width: 50vh; max-height: 10vh">
-                                            {{ row.okta_url }}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="overflow-auto log-frame"
-                                             style="max-width: 50vh; max-height: 10vh">
-                                            {{ row.okta_event }}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="overflow-auto log-frame" style="max-width: 50vh; max-height: 10vh">
-                                        {{ row.script }}
-                                        </div>
-                                    </td>
-
-                                    <td>
-                                        <div class="overflow-auto log-frame"
-                                             style="max-width: 50vh; max-height: 10vh"> {{ row.description }}
-                                        </div>
-                                    </td>
-                                </tr>
-
-                            {% endfor %}
-                        </table>
-                    </div>
-                {% endif %}
-            </div>
-        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+            {% endif %}
         </div>
 {% endblock %}
 {% block additional_js %}

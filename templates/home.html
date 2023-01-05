@@ -29,11 +29,23 @@
 {% extends "shared/_layout.html" %}
 {% block title %}JAWA Login{% endblock %}
 {% block content %}
+{#<p style="background-image: url('static/img/jawa_icon.png'); background-repeat: no-repeat; background-attachment: fixed;#}
+{#background-size: cover" >#}
 
-<div class="form-container"><br><br><br>
+{#   <style>#}
+{#body {#}
+{#  background-image: url('static/img/jawa_icon.png');#}
+{#  background-repeat: no-repeat;#}
+{#  background-attachment: fixed;#}
+{#  background-size: cover;#}
+{#}#}
+{#</style>#}
+
+<div class="jawa-bg">
+<div class="login-form-container">
     <form action="/login" class="table-view" method="post">
         <div class="d-flex justify-content-center">
-            <div style="max-width: 15vh">
+            <div style="max-width: 90%">
                 <img src="{{ url_for('static', filename='img/jawa_icon.png') }}" class="img-fluid"></div>
         </div>
         <h1 class="d-flex justify-content-center">{% if app_name %}{{ app_name }}{% else %}{% endif %}</h1>
@@ -59,17 +71,18 @@
             <input name="url" type="url" placeholder="Jamf Pro URL" pattern="https?://.+" title="Use https://" required
                    class="form-control" autofocus>
         {% endif %}
-        <input name="username" type="text" placeholder="Username" required class="form-control" autofocus>
-        <input name="password" type="password" placeholder="Password" required class="form-control">
+        <input name="username" type="text" placeholder="Username" required class="form-control text-center" autofocus>
+        <input name="password" type="password" placeholder="Password" required class="form-control text-center">
 
         <p>
         <div class="d-flex justify-content-center">
-            <input class="btn btn-primary" type=submit value=Login>
+            <input class="btn btn-jawa" type=submit value=Login>
         </div>
         </p>
-        <p>Please read the <a href="https://github.com/jamf/jawa/blob/master/README.md" style="color:#3c6aa7;"
+        <p class="text-center">Please read the <a href="https://github.com/jamf/jawa/blob/master/README.md"
                               target="_blank">documentation</a> prior to using JAWA!</p>
 
     </form>
-    {% endblock %}
 </div>
+</div>
+    {% endblock %}

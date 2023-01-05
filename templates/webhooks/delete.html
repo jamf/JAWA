@@ -40,13 +40,13 @@
 
             <h1>Confirm Delete:</h1>
             {{ tag.title() }} Webhook -
-            {% if target_webhook %}{{ target_webhook }}{% else %}Custom Webhook{% endif %}</h1>
+            {% if target_webhook %}{{ target_webhook }}{% else %}Custom Webhook{% endif %}
 
 
             <br>
             <div class="d-flex justify-content-center">
 
-                <div class="log-view">
+                <div class="confirm-delete-box">
                     <i>
                         Deleting a webhook is a permanent action.
                     </i>
@@ -55,7 +55,6 @@
                     {# 3,720 to 1."</i><br/>#}
                     {# ~ C-3PO, a Star War#}
                 </div>
-
                 <button type=submit name="button_choice" value="Delete" class="btn btn-danger" style="margin: 5px">
 
                     Delete

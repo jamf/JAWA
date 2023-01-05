@@ -12,7 +12,7 @@
 }
 
 .navbar-inverse {
-    background-color: #6b7078;
+    background-color: #6A2F30;
     border-color: #0067a3;
 }
 
@@ -24,6 +24,7 @@
 .navbar-inverse .navbar-brand,
 .navbar-inverse .navbar-nav > li > a {
     color: #fff;
+    text-align: center;
 }
 
 .navbar-inverse .navbar-brand:hover {
@@ -41,7 +42,7 @@
 
 .navbar-brand img {
     width: 65px;
-    margin-left: 60px;
+    /*margin-left: 60px;*/
 }
 
 .navbar-inverse .navbar-toggle {
@@ -53,7 +54,7 @@
 }
 
 #last_nav_link {
-    margin-right: 45px;
+    margin-right: 0px;
 }
 
 nav {
@@ -61,7 +62,7 @@ nav {
     font-size: 17px;
     color: white;
     /*height: 85px;*/
-    background-color: #6b7078;
+    background-color: #6A2F30;
 }
 
 nav > a {
@@ -76,23 +77,41 @@ nav > a {
 }
 
 #navbarSupportedContent {
-    background-color: #6b7078;
+    background-color: #6A2F30;
     padding: 10px;
 }
 
 .footer {
-  /*position: absolute;*/
-  bottom: 0;
-  width: 100%;
-  height: 80px;
-  background: transparent;
-  /*border-top: solid 1px #eee;*/
+    padding: 10px;
+    font-size: 17px;
+    text-align: center;
+    color: white;
+    /*height: 85px;*/
+    background-color: #6A2F30;
 }
 
 .footer p {
-  margin-top: 30px;
+    margin-top: 30px;
 }
 
 .article {
-  padding-top: 40px;
+    padding-top: 40px;
+}
+
+.stat {
+    display: inline-block;
+    min-width: 30vw;
+    padding: 2px;
+    font-size: 16px;
+    color: #FFFFFF;
+}
+
+.nav a {
+    color: #422f32;
+    text-decoration: underline;
+}
+
+.nav a:visited {
+    color: #FFFFFF;
+    text-decoration: underline;
 }

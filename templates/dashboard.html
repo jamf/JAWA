@@ -44,7 +44,7 @@
                 <h4>JAWA Dashboard</h4>
             </div>
             <div class="d-flex justify-content-center">
-                <b>Active JPS</b>: &nbsp; <a class="alert-link" href="{{ session.get('url') }}"
+                <b>Active JPS</b>: &nbsp; <a class="stretched-link overflow-hidden" href="{{ session.get('url') }}"
                                              target="_blank">{{ session['url'] }}</a> <br>
             </div>
             <div class="d-flex justify-content-center"><b>Setup Options</b>:
@@ -69,11 +69,13 @@
                                 <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img btn-padded">
                                 <div class="card-body webhooks-list">
                                     <h6 class=" overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
-                                    <button class="btn btn-jawa text-white overflow-hidden stretched-link mt-auto"
-                                            title="{{ row.name }}" data-toggle="modal"
-                                            data-target="#automationDetails-{{ row.name }}">
-                                        View Details
-                                    </button>
+                                    <div class="modal-footer"></div>
+                                        <button class="btn btn-jawa text-white overflow-hidden stretched-link mt-auto"
+                                                title="{{ row.name }}" data-toggle="modal"
+                                                data-target="#automationDetails-{{ row.name }}">
+                                            View Details
+                                        </button>
+
                                     <div class="modal fade" id="automationDetails-{{ row.name }}" tabindex="-1"
                                          role="dialog"
                                          aria-labelledby="automationDetailsCenterTitle" aria-hidden="true">
@@ -136,6 +138,7 @@
                             <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img btn-padded">
                             <div class="card-body webhooks-list">
                                 <h6 class=" overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
+                                <div class="modal-footer"></div>
                                 <button class="btn-jawa btn text-white overflow-hidden stretched-link align-self-end mt-auto"
                                         title="{{ row.name }}" data-toggle="modal" data-target="#automationDetailsOkta">
                                     View Details
@@ -199,6 +202,7 @@
                                 <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img btn-padded">
                                 <div class="card-body webhooks-list">
                                     <h6 class=" overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
+                                    <div class="modal-footer"></div>
                                     <button class="btn-jawa btn text-white overflow-hidden stretched-link align-self-end mt-auto"
                                             title="{{ row.name }}" data-toggle="modal"
                                             data-target="#automationDetails-{{ row.name }}">
@@ -261,6 +265,7 @@
                                  class="img img-circle img-fluid card-img btn-padded">
                             <div class="card-body webhooks-list">
                                 <h6 class="overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
+                                <div class="modal-footer"></div>
                                 <button class="btn btn-jawa text-white overflow-hidden stretched-link align-self-end mt-auto"
                                         title="{{ row.name }}" data-toggle="modal"
                                         data-target="#automationDetails-{{ row.name }}">

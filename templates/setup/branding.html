@@ -29,16 +29,13 @@
 {% extends "shared/_layout.html" %}
 {% block title %}JAWA Resource Files{% endblock %}
 {% block content %}
-
     <div class="test-links sub_links sticky-top">
         <div class="stat"><a href="/setup">Setup</a></div>
         <div class="stat"><a href="/cleanup">Cleanup</a></div>
         <div class="stat"><a href="/branding">Branding</a></div>
     </div>
     <div class="form-container">
-        {#    <div class="form-container overflow-auto d-flex justify-content-center" style="max-height: 60vh">#}
-
-        <div class="table-view log-frame overflow-auto" style="max-width: 90vh; max-height: 66vh">
+        <div class="table-view log-frame overflow-auto" style="max-width: 42rem ; max-height: 66vh">
 
             <h1 class="d-flex justify-content-center">
                 {% if app_name %}{{ app_name }}{% else %}JAWA{% endif %} Branding</h1>
@@ -47,10 +44,10 @@
                 <form action="#" method="post" enctype="multipart/form-data">
                     <p>
                     <div class="d-flex justify-content-center">
-                    <div class="img-thumbnail" style="max-width: 15vh">
-                        <img class="img-thumbnail align-items-center" src="/static/img/jawa_icon.png"><br/>
+                        <div class="img-thumbnail" style="max-width: 15vh">
+                            <img class="img-thumbnail align-items-center" src="/static/img/jawa_icon.png"><br/>
+                        </div>
                     </div>
-                </div>
                     <div class="d-flex justify-content-center">
                         <input id="upload" type="file" accept="image/*" name="upload" class="justify-content-center"
                                formenctype="multipart/form-data" style="display:block"/>
@@ -58,16 +55,15 @@
                     </div>
                     </p>
                     <p>
-<div class="d-flex justify-content-center">
+                    <div class="d-flex justify-content-center">
                         <input id="upload" type="text" placeholder="Change App Name" accept="image/*"
                                name="new_name" value="{% if app_name %}{{ app_name }}{% endif %}"
                                formenctype="multipart/form-data"/>
-                </div>
-                        <br/>
+                    </div>
+                    <br/>
                     <div class="d-flex justify-content-center">
                         <input type="submit" class="btn btn-jawa" value="Brand"></div>
                     </p>
-
                 </form>
             </div>
         </div>
@@ -87,11 +83,8 @@
                     function () {
                         if ($(this).val()) {
                             $('input:submit').attr('disabled', false);
-                            // or, as has been pointed out elsewhere:
-                            // $('input:submit').removeAttr('disabled');
                         }
                     }
                 );
             });</script>
 {% endblock %}
-</body>

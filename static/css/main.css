@@ -338,7 +338,7 @@ n {
 }
 
 .container-bg {
-    background-color: #d7a77399;
+    background-color: #d7a773cf;
 }
 
 .card {
@@ -358,6 +358,21 @@ n {
 .btn-jawa:hover {
     color:lightgrey;
 }
-/*.btn {*/
-/*    font-size: 12px;*/
-/*}*/
+
+.alert-jawa {
+    color: #FFFFFF;
+    background-color: #6A2F30;
+    border-color: #c3e6cb
+}
+
+.btn-jawa:disabled {
+    background: unset;
+    border: unset;
+    color: transparent;;
+}
+.btn-danger {
+    margin: 5px;
+    padding: 5px;
+    width: 150px;
+}
+

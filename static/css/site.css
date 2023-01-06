@@ -1,22 +1,11 @@
-aaay {
-    color: #222;
-    background: #aaa;
-    margin: 0px;
-    padding: 0px;
-    font-family: Source Sans Pro, Helvetica, Arial, sans-serif;
-    font-size: 17px;
-    background-color: #006dad;
-}
-
 .title {
     font-weight: bold;
 }
 
 .main_content {
     margin: 0px;
-    padding: 0px;
     background-color: #fff;
-    padding-bottom: 50px;
+    padding: 0px 0px 50px;
 }
 
 nav {
@@ -32,34 +21,7 @@ nav > a {
     margin-right: 10px;
 }
 
-.hero {
-    background-color: #0073b7;
-    color: white;
-    font-size: 14px;
-    padding: 50px 0px;
-    text-align: center;
-}
-
-.hero h1 {
-    font-size: 24px;
-    margin-bottom: 30px;
-}
-
-.hero a {
-    color: white;
-    text-decoration: underline;
-}
-
-.hero-inner {
-    max-width: 500px;
-    margin-right: auto;
-    margin-left: auto;
-    margin-bottom: 30px;
-}
-
 .test-links {
-    /*background-color: #d7a77399;*/
-    /*padding: 10px 10px;*/
     text-align: center;
     border-bottom: 1px solid #d3d3d3;
     border-top: 1px solid #d3d3d3;
@@ -78,6 +40,7 @@ nav > a {
 .test-links .stat a {
     color: #003d61;
 }
+
 .test-links .stat a:visited {
     color: #ffffff;
 }
@@ -117,7 +80,7 @@ nav > a {
 }
 
 footer {
-       padding: 10px;
+    padding: 10px;
     font-size: 17px;
     color: white;
     /*height: 85px;*/
@@ -195,9 +158,6 @@ footer a {
 .sub_links {
     padding-top: 66px;
     background-color: #d7a77399;
-    /*padding: 10px;*/
-
-/*}*/
 
 @media (max-width: 979px) {
     body {
@@ -219,24 +179,3 @@ footer a {
 #upload_link {
     text-decoration: none;
 }
-
-/*tr {*/
-/*width: 100%;*/
-/*display: inline-table;*/
-/*height:30px;*/
-
-/*}*/
-
-
-/*table{*/
-/* height:300px;              // <-- Select the height of the table;*/
-/*    width: 300px;*/
-/* display: -moz-groupbox;    // For firefox bad effect*/
-/*}*/
-/*tbody{*/
-/*  overflow-y: scroll;*/
-/*  height: 200px;            //  <-- Select the height of the body*/
-/*  width: 100%;*/
-
-/*  position: absolute;*/
-/*}*/

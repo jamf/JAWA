@@ -4,17 +4,7 @@ body {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   color: #444;
 }
-/*
- * Formatting the header area
- */
 
-
-/*a:link { 
-  color: #3c6aa7; 
-  text-decoration: none; 
-  font-weight: normal 
-}
-*/
 a:visited {
   color: lightgrey;
 }
@@ -310,8 +300,6 @@ n {
     font-size: 12px;
     overflow-block: hidden;
     word-wrap: normal;
-    /*word-break: break-all;*/
-    /*margin-top: 10px;*/
 }
 
 .dash-list {
@@ -323,7 +311,6 @@ n {
     background-image: url("../../static/img/heather-shevlin-3B_NrzTjajc-unsplash.jpg");
     background-repeat: round;
     background-attachment: fixed;
-    /*background-size: contain;*/
     background-size: auto;
     height: 100vh;
     width: 100vw;
@@ -392,4 +379,12 @@ n {
 
 .border-info {
     border-color: #aa845a !important;
+}
+
+.alert-warning {
+    color: #000000;
+    font-weight: bold;
+    line-height: 1.2;
+    font-size: .9rem;
+    text-align: left;
 }

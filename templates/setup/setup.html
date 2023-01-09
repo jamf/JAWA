@@ -40,44 +40,44 @@
 
                 <h1 class="d-flex justify-content-center">Server Setup</h1>
 
-                <label class=" justify-content-center">
+                <label class="text-center justify-content-center">
                     Please read the <a href="https://github.com/jamf/JAWA/blob/master/README.md" style="color:#3c6aa7;"
                                        target="_blank">documentation</a> prior to using JAWA.
 
                 </label>
                 <form method="post" action="/setup" enctype="multipart/form-data">
 
-                    <input type="text" class="form-control" name="address" pattern="https?://.+" title="Use https://"
+                    <input type="text" class="form-control text-center" name="address" pattern="https?://.+" title="Use https://"
                            value="{{ jawa_url if jawa_url }}" placeholder="JAWA Server Address FQDN" required autofocus>
 
-                    <div class="form-group form-check">
-                        <input type="checkbox" class="form-check-input" name="jss-lock" id="jss-lock"
+                    <div class="form-group form-check text-center">
+                        <input type="checkbox" class="form-check-input text-center" name="jss-lock" id="jss-lock"
                                value={{ jps_url }} checked>
-                        <label class="form-check-label" for="exampleCheck1"> Lock your JAWA to {{ jps_url }}</label>
+                        <label class="form-check-label text-center" for="exampleCheck1"> Lock your JAWA to {{ jps_url }}</label>
                     </div>
 
 
                     {% if not jps_url2 %}
-                        <div class="form-group form-check">
+                        <div class="form-group form-check text-center">
                             <input type="checkbox" class="form-check-input" name="alternate-jps" id="alternate-jps"
                                    value="enabled">
                             <label class="form-check-label" for="exampleCheck1">Add an alternate Jamf Pro Server:</label>
                         </div>
 
-                        <input type="text" class="form-control" placeholder="Alternate Jamf Pro Server URL"
+                        <input type="text" class="form-control text-center" placeholder="Alternate Jamf Pro Server URL"
                                name="alternate"
                                pattern="https?://.+"
                                title="Use https://"
                                value="{{ jps_url2 if jps_url2 }}">
                     {% else %}
-                        <div class="form-group form-check">
+                        <div class="form-group form-check text-center">
                             <input type="checkbox" class="form-check-input" name="alternate-jps" id="alternate-jps"
                                    value="enabled"
                                    checked>
                             <label class="form-check-label" for="exampleCheck1">Add an alternate Jamf Pro Server:</label>
                         </div>
 
-                        <input type="text" class="form-control" placeholder="Alternate Jamf Pro Server URL" name="alternate"
+                        <input type="text" class="form-control text-center" placeholder="Alternate Jamf Pro Server URL" name="alternate"
                                pattern="https?://.+"
                                title="Use https://"
                                value="{{ jps_url2 if jps_url2 }}">
@@ -92,7 +92,7 @@
                         </button>
                     </div>
 
-            </div>
+            </form>
         </div>
     </div>
 

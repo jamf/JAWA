@@ -31,35 +31,30 @@
 {% block content %}
     <div class="test-links sub_links sticky-top">
         <div class="stat"><a href="/dashboard">JAWA Dashboard</a></div>
-        <div class="stat">Success</a></div>
     </div>
     <div class="form-container">
     <form method="get" class="table-view success-view" action="/dashboard">
-        <h3 class="alert-jawa border">Success!</h3>
+        <h3 class="alert-jawa border text-center">Success!</h3>
         <div class="success-view success-form success-wrap overflow-auto" style="max-width: 100vh">
-            <p>
+            <p class="text-center">
                 {% for each_line in success_msg.split('\n') %}
-                {{ each_line }}<br>
+                {{ each_line }}<br/>
                 </p>
             {% endfor %}
             {% if smart_group_notice %}
-                <p><b>{{ smart_group_notice }}</b> <br> {{ smart_group_instructions }}</p>
+                <p class="text-center"><b>{{ smart_group_notice }}</b> <br/> {{ smart_group_instructions }}</p>
             {% endif %}
             <p><a href="{{ new_link }}" style="color:#3c6aa7;" target="_blank">{{ new_here }}</a></p>
             {% if extra_notice %}
                 <p class="text-center">{{ extra_notice }}</p>
             {% endif %}
         {%  if custom_header %}
-
             <pre class="alert-warning"><div class="d-flex justify-content-center">{{ custom_header }}</div></pre>
         {% endif %}
-            </br></br>
-
             <div class="d-flex justify-content-center">
                 <button type="submit" class="btn btn-jawa">
                     Dashboard<i class="fa fa-templates" aria-hidden="true"></i>
                 </button>
             </div>
-
     </form>
 {% endblock %}

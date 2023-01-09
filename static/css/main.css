@@ -366,6 +366,10 @@ n {
     border-radius: 1rem;
 }
 
+.btn-secondary {
+    border-radius: 1rem;
+}
+
 .btn-jawa {
     color: #fff;
     background-color: #6A2F30;
@@ -387,4 +391,12 @@ n {
     line-height: 1.2;
     font-size: .9rem;
     text-align: left;
+}
+
+.btn-group-sm .btn {
+    border-radius: 0.5rem;
+}
+
+.custom-file-input~.custom-file-label::after {
+  content: "Select a file to upload...";
 }

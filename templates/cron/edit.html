@@ -39,16 +39,16 @@
         <form action="/cron/edit?name={{ edit_name }}" method="POST" class="table-view"
               enctype="multipart/form-data">
             <div class="overflow-auto" style="max-height: 60vh; margin: auto">
-                <h1>Edit {% if request.args.get('name') %}{{ request.args.get('name') }}{% else %}Timed
+                <h1 class="text-center">Edit {% if request.args.get('name') %}{{ request.args.get('name') }}{% else %}Timed
                     Automation{% endif %}</h1>
-                <input type="text" class="form-control" placeholder="Edit Timed Automation Name (optional)"
+                <input type="text" class="form-control text-center" placeholder="Edit Timed Automation Name (optional)"
                        name="cron_name" pattern="[^' ']+"
                        required autofocus value="{{ request.args.get('name') }}"
-                       oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')"></br>
+                       oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')">
                 <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
-                          class="form-control">{{ description }}</textarea><br>
-
-                <label class="form-check-label">Frequency:</label>
+                          class="form-control text-center">{{ description }}
+                </textarea>
+                <label class="form-check-label text-center">Frequency:</label>
                 <select name="frequency" class="form-control"
                         onchange="java_script_:show(this.options[this.selectedIndex].value)">
                     <option value=""></option>
@@ -57,11 +57,10 @@
                     <option value="everyweek">Every Week</option>
                     <option value="everymonth">Every Month</option>
                     <option value="custom">Custom</option>
-                </select></br>
-
+                </select>
                 <div id="hiddenDiv" style="display:none">
-                    <label>At what time?</label>
-                    <select name="daytime">
+                    <label class="text-center">At what time?</label>
+                    <select name="daytime" class="text-center">
                         <option value=""></option>
                         {% for hour in hours %}
                             <option value="{{ hour.id }}">{{ hour.value }}</option>
@@ -69,16 +68,15 @@
                     </select>
                 </div>
 
-                <div id="hiddenDivTwo" style="display:none">
+                <div id="hiddenDivTwo" style="display:none" class="text-center">
                     <label>On what day?</label>
-                    <select name="weekday">
+                    <select name="weekday" class="text-center">
                         <option value=""></option>
                         {% for day in days %}
                             <option value="{{ day.cron }}">{{ day.value }}</option>
                         {% endfor %}
                     </select>
-                    </br>
-                    <label>At what time?</label>
+                    <label class="text-center">At what time?</label>
                     <select name="weektime">
                         <option value=""></option>
                         {% for hour in hours %}
@@ -88,8 +86,8 @@
                 </div>
 
                 <div id="hiddenDivThree" style="display:none">
-                    <label>On what day of the month?</label>
-                    <select name="monthday">
+                    <labe class="text-center">On what day of the month?</label>
+                    <select name="monthday" class="text-center">
                         <option value=""></option>
                         <option value="1">1</option>
                         <option value="2">2</option>
@@ -123,9 +121,8 @@
                         <option value="30">30</option>
                         <option value="31">31</option>
                     </select>
-                    </br>
-                    <label>At what time?</label>
-                    <select name="monthtime">
+                    <label class="text-center">At what time?</label>
+                    <select name="monthtime" class="text-center">
                         <option value=""></option>
                         {% for hour in hours %}
                             <option value="{{ hour.id }}">{{ hour.value }}</option>
@@ -133,24 +130,22 @@
                     </select>
                 </div>
 
-                <div id="hiddenDivFour" style="display:none">
+                <div id="hiddenDivFour" style="display:none" class="text-center">
                 </div>
             </div>
             <div id="hiddenDivFive" style="display:none">
-                <label>Cron expression (<a href="https://crontab.guru" target="_blank">example</a>):</label>
-                <input type="text" name="customfreq" pattern="^((((\d+,)+\d+|(\d+(\/|-|#)\d+)|\d+L?|\*(\/\d+)?|L(-\d+)?|\?|[A-Z]{3}(-[A-Z]{3})?) ?){5,7})$">
+                <label class="text-center">Cron expression (<a href="https://crontab.guru" target="_blank">example</a>):</label>
+                <input type="text" name="customfreq"
+                       pattern="^((((\d+,)+\d+|(\d+(\/|-|#)\d+)|\d+L?|\*(\/\d+)?|L(-\d+)?|\?|[A-Z]{3}(-[A-Z]{3})?) ?){5,7})$"
+                       oninvalid="this.setCustomValidity('A script is required. Spaces cannot be in the name of the script.')">
             </div>
-            <div class="d-flex justify-content-center">
-                <br><b>Script: &nbsp</b>
-                <input type="file" name="script" pattern="[^' ']+"
-                       accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"
-                       oninvalid="this.setCustomValidity('A script is required. Spaces cannot be in the name of the script.')"></b>
+            <div class="d-flex justify-content-center text-center custom-file">
+                <input type="file" name="new_file" pattern="[^' ']+"  class="custom-file-input text-center"
+                                         title="No Spaces in the filename!" accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"/>
+                <label class="custom-file-label text-center">Upload a script</label>
             </div>
-
             <div class="d-flex justify-content-center btn-padded">
-
-                <button style="overflow: visible !important; height: 0 !important; width: 0 !important; margin: 0 !important; border: 0 !important; padding: 0 !important; display: block !important;"
-                        type="submit" value=""/>
+                <button style="overflow: visible !important; height: 0 !important; width: 0 !important; margin: 0 !important; border: 0 !important; padding: 0 !important; display: block !important;" type="submit" value=""/>
 
                 <button type=submit name="button_choice" value="Delete" class="btn btn-danger"
                         style="margin: 5px; padding: 5px; width: 150px"
@@ -177,7 +172,6 @@
 {% endblock %}
 {% block additional_js %}
     <script text="text/javascript">
-
         function show(aval) {
             if (aval == "everyday") {
                 hiddenDiv.style.display = 'inline-block';
@@ -213,5 +207,11 @@
             }
         }
 
+    </script>
+    <script type="application/javascript">
+        $('input[type="file"]').change(function (e) {
+            var fileName = e.target.files[0].name;
+            $('.custom-file-label').html(fileName);
+        });
     </script>
 {% endblock %}

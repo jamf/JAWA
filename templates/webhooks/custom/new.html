@@ -37,18 +37,19 @@
     <div class="form-container">
 
         <form action="/webhooks/custom/new" method="POST" class="table-view" enctype="multipart/form-data">
-            <h1>New Custom Webhook</h1>
+            <h1 class="text-center">New Custom Webhook</h1>
             <input name="custom_name" type="text" pattern="[^' ']+" placeholder="New Webhook Name (no spaces)" required
-                   title="No spaces, please." class="form-control" value="{{ name }}" autofocus>
+                   title="No spaces, please." class="form-control text-center" value="{{ name }}" autofocus>
             {% if error %}
-                <div class="alert-danger">{{ error }}</div>
+                <div class="alert-danger text-center">{{ error }}</div>
             {% endif %}
             <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
-                      class="form-control">{{ description }}</textarea><br>
-            <div class="d-flex justify-content-center">
-                Script file: &nbsp<input type="file" name="new_file" pattern="[^' ']+" required
-                                         title="No Spaces in the filename!"
-                                         accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"/></b></div>
+                      class="form-control text-center">{{ description }}</textarea>
+            <div class="d-flex justify-content-center text-center custom-file">
+                <input type="file" name="new_file" pattern="[^' ']+" required class="custom-file-input text-center"
+                                         title="No Spaces in the filename!" accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"/>
+                <label class="custom-file-label text-center">Upload a script</label>
+            </div>
             <div class="d-flex justify-content-center">
                 <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>, <a
                         href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>] </p></div>
@@ -101,5 +102,11 @@
                 hiddenDiv3.style.display = 'inline-block';
             }
         }
+    </script>
+    <script type="application/javascript">
+        $('input[type="file"]').change(function (e) {
+            var fileName = e.target.files[0].name;
+            $('.custom-file-label').html(fileName);
+        });
     </script>
 {% endblock %}

@@ -33,19 +33,16 @@
         <div class="stat"><a href="{{ url_for('cron.new_cron') }}">New Timed Job</a></div>
         <div class="stat"><a href="{{ url_for('cron.edit_cron') }}">Edit Timed Job</a></div>
     </div>
-
-
     <div class="form-container">
         <form method="post" class="table-view" action="/cron/new" enctype="multipart/form-data">
             <h1>New Timed Job</h1>
             <input type="text" class="form-control" placeholder="Name of Timed Job (cron task)" name="cron_name"
                    required autofocus pattern="[^' ']+"
-                   oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')"></br>
+                   oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')">
             <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
-                      class="form-control">{{ description }}</textarea><br>
-
-            <label class="form-check-label">Frequency:</label>
-            <select name="frequency" class="form-control"
+                      class="form-control text-center">{{ description }}</textarea>
+            <label class="form-check-label text-center">Frequency:</label>
+            <select name="frequency" class="form-control text-center"
                     onchange="java_script_:show(this.options[this.selectedIndex].value)">
                 <option value=""></option>
                 <option value="everyhour">Every Hour</option>
@@ -53,7 +50,7 @@
                 <option value="everyweek">Every Week</option>
                 <option value="everymonth">Every Month</option>
                 <option value="custom">Custom</option>
-            </select></br>
+            </select>
 
             <div id="hiddenDiv" style="display:none">
                 <label>At what time?</label>
@@ -64,7 +61,6 @@
                     {% endfor %}
                 </select>
             </div>
-
             <div id="hiddenDivTwo" style="display:none">
                 <label>On what day?</label>
                 <select name="weekday">
@@ -73,7 +69,6 @@
                         <option value="{{ day.cron }}">{{ day.value }}</option>
                     {% endfor %}
                 </select>
-                </br>
                 <label>At what time?</label>
                 <select name="weektime">
                     <option value=""></option>
@@ -119,7 +114,7 @@
                     <option value="30">30</option>
                     <option value="31">31</option>
                 </select>
-                </br>
+
                 <label>At what time?</label>
                 <select name="monthtime">
                     <option value=""></option>
@@ -135,11 +130,11 @@
                      <label>Cron expression (<a href="https://crontab.guru" target="_blank">example</a>):</label>
                <input type="text" name="customfreq" pattern="^((((\d+,)+\d+|(\d+(\/|-|#)\d+)|\d+L?|\*(\/\d+)?|L(-\d+)?|\?|[A-Z]{3}(-[A-Z]{3})?) ?){5,7})$" title="Use a valid cron expression.">
             </div>
-            <div class="d-flex justify-content-center">
-                <br><b>Script: &nbsp</b>
-                <input type="file" name="script" required
-                       accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"
-                       oninvalid="this.setCustomValidity('A script is required. Spaces cannot be in the name of the script.')"></b>
+            <div class="d-flex justify-content-center text-center custom-file">
+                <input type="file" name="new_file" pattern="[^' ']+" required class="custom-file-input text-center"
+                                         title="No Spaces in the filename!" accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"
+                oninvalid="this.setCustomValidity('A script is required. Spaces cannot be in the name of the script.')">
+                <label class="custom-file-label text-center">Upload a script</label>
             </div>
 
             <div class="d-flex justify-content-center">

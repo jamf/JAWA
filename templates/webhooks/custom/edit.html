@@ -37,19 +37,20 @@
     <div class="form-container">
         <form action="/webhooks/custom/edit?name={{ webhook_name }}" method="POST" class="table-view"
               enctype="multipart/form-data">
-        <div class="overflow-auto" style="max-height: 60vh; margin: auto">
+        <div class="overflow-auto text-center" style="max-height: 60vh; margin: auto">
             <h1>Edit {% if webhook_name %}{{ webhook_name }}{% else %}Custom Webhook{% endif %}</h1>
             <input name="custom_name" type="text" pattern="[^' ']+" placeholder="Edit Webhook Name (optional)"
-                   title="No spaces, please." class="form-control" value="{{ webhook_name }}" autofocus>
+                   title="No spaces, please." class="form-control text-center" value="{{ webhook_name }}" autofocus>
             {% if error %}
-                <div class="alert-danger">{{ error }}</div>
+                <div class="alert-danger text-center">{{ error }}</div>
             {% endif %}
             <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
-                      class="form-control">{{ webhook_info[0].get('description') }}</textarea><br>
-            <div class="d-flex justify-content-center">
-                Script file: &nbsp<input type="file" name="new_file" pattern="[^' ']+"
-                                         title="No Spaces in the filename!"
-                                         accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"/></b></div>
+                      class="form-control text-center">{{ webhook_info[0].get('description') }}</textarea>
+            <div class="d-flex justify-content-center text-center custom-file">
+                <input type="file" name="new_file" pattern="[^' ']+" class="custom-file-input text-center"
+                                         title="No Spaces in the filename!" accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"/>
+                <label class="custom-file-label text-center">Upload a script</label>
+            </div>
             <div class="d-flex justify-content-center">
                 <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>, <a
                         href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>] </p></div>
@@ -130,5 +131,11 @@
                 hiddenDiv3.style.display = 'inline-block';
             }
         }
+    </script>
+    <script type="application/javascript">
+        $('input[type="file"]').change(function (e) {
+            var fileName = e.target.files[0].name;
+            $('.custom-file-label').html(fileName);
+        });
     </script>
 {% endblock %}

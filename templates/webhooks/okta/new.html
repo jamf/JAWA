@@ -39,32 +39,30 @@
     <form method="post" class="table-view" enctype="multipart/form-data">
         <h1>New Okta Webhook</h1>
         <input name="webhookname" type="text" pattern="[^' ']+" placeholder="New Webhook Name (no spaces)" required
-               title="No spaces, please." class="form-control" value="{{ name }}" autofocus>
-        </p>
-        <p>
-            <b>Okta Information</b></br>
-            <input type="text" name="okta_server" class="form-control" value="{{ okta_server }}"
-                   placeholder="Okta Server URI" required pattern="https?://.+" title="Use https://"><br/>
-            <input type="text" name="token" class="form-control" value="{{ token }}" placeholder="Okta Token"
-                   required><br/>
-            <input type="text" name="event" class="form-control" value="{{ event }}" placeholder="Okta Event"
-                   required><br/>
-
+               title="No spaces, please." class="form-control text-center" value="{{ name }}" autofocus>
+        <p class="text-center">
+            <b>Okta Information</b>
+            <input type="text" name="okta_server" class="form-control text-center" value="{{ okta_server }}"
+                   placeholder="Okta Server URI" required pattern="https?://.+" title="Use https://">
+            <input type="text" name="token" class="form-control text-center" value="{{ token }}" placeholder="Okta Token"
+                   required>
+            <input type="text" name="event" class="form-control text-center" value="{{ event }}" placeholder="Okta Event"
+                   required>
             <a href="https://developer.okta.com/docs/reference/api/event-types/" style="color:#3c6aa7;" target="_blank">Okta
                 Event Types</a>
             (example: user.lifecycle.deactivate)</p>
         <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
-                  class="form-control">{{ description }}</textarea>
-        <b>Script:</b></br>
-        <div class="d-flex justify-content-center">
-            <input type="file" name="script" required accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"
-                   oninvalid="this.setCustomValidity('A script is required. Spaces cannot be in the name of the script.')"></b>
-        </div>
+                  class="form-control text-center">{{ description }}</textarea>
+        <div class="d-flex justify-content-center text-center custom-file">
+                <input type="file" name="new_file" pattern="[^' ']+" required class="custom-file-input text-center"
+                                         title="No Spaces in the filename!" accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"/>
+                <label class="custom-file-label text-center">Upload a script</label>
+            </div>
         <div class="d-flex justify-content-center">
             <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>, <a
-                    href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>] </p></div>
-
-
+                    href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>]
+            </p>
+        </div>
         <div class="d-flex justify-content-center">
             <input type="submit" class="btn btn-jawa" value="Create" style="margin: 5px; padding: 5px; width: 150px">
     </form>
@@ -85,6 +83,12 @@
                     $(".failed").removeClass("finish");
                 }, 1000000);
             })
+        });
+    </script>
+    <script type="application/javascript">
+        $('input[type="file"]').change(function (e) {
+            var fileName = e.target.files[0].name;
+            $('.custom-file-label').html(fileName);
         });
     </script>
 {% endblock %}

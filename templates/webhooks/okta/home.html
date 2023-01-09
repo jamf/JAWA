@@ -60,10 +60,10 @@
             <div class="form-container justify-content-center">
             <div class="row dash-list justify-content-center">
                     {% for row in okta_list %}
-                        <div class="card col-lg-auto webhooks-list container-bg border-info d-flex"
+                        <div class="card col-lg-auto webhooks-list container-bg border-info d-flex flex-column"
                              style="width: 10rem; padding: 3px; margin: 10px">
                             <h4 class="overflow-hidden card-header font-weight-bolder">Okta</h4>
-                            <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img btn-padded">
+                            <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img btn-padded mx-auto">
                             <div class="card-body flex-column d-flex webhooks-list">
                                 <h6 class=" overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
                                 <button class="btn-jawa btn text-white overflow-hidden stretched-link align-self-end mt-auto"

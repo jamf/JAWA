@@ -175,7 +175,13 @@ def cleanup():
         return redirect(
             url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if request.method != 'POST':
-        return {"username": session.get('username'), "scripts_dir": scripts_directory}
+        owd = os.getcwd()
+        if not os.path.isdir(scripts_directory):
+            os.mkdir(scripts_directory)
+        os.chdir(scripts_directory)
+        old_scripts = glob.glob("*.old")
+        os.chdir(owd)
+        return {"username": session.get('username'), "scripts_dir": scripts_directory, "scripts": old_scripts}
     logthis.info(f"[{session.get('url')}] {session.get('username')} is cleaning up scripts...")
     owd = os.getcwd()
     if not os.path.isdir(scripts_directory):
@@ -184,13 +190,16 @@ def cleanup():
     del_list = []
     for file in glob.glob("*.old"):
         logthis.info(f"[{session.get('url')}] {session.get('username')} removed the script {file}...")
-        del_list.append(f"Deleted: {file}")
+        del_list.append(f"{file}")
         os.remove(file)
     os.chdir(owd)
-    if del_list:
-        success_msg = del_list
+    if not del_list:
+        success_msg = "No Script files found to clean up."
     else:
-        success_msg = "No script files found to clean up."
+        txt_list = "Deleted: \n"
+        for file in del_list:
+            txt_list += f"{file}\n"
+        success_msg = txt_list or "No script files found to clean up."
     return redirect(url_for('success', success_msg=success_msg))
 
 

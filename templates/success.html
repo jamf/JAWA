@@ -49,11 +49,13 @@
                 <p class="text-center">{{ extra_notice }}</p>
             {% endif %}
         {%  if custom_header %}
-            <pre class="alert-warning"><div class="d-flex justify-content-center">{{ custom_header }}</div></pre>
+            <pre class="success-form font-weight-bolder"><div class="d-flex justify-content-center">{{ custom_header }}</div></pre>
         {% endif %}
             <div class="d-flex justify-content-center">
+                <a type=submit onclick="history.back(-1)" value=Back
+                       class="btn btn-secondary button-align">&laquo;Back</a>
                 <button type="submit" class="btn btn-jawa">
-                    Dashboard<i class="fa fa-templates" aria-hidden="true"></i>
+                    Dashboard<i class="fa" aria-hidden="true"></i>
                 </button>
             </div>
     </form>

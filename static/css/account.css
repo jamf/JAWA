@@ -63,7 +63,6 @@ form.files-form {
 }
 
 .success-wrap {
-
     overflow: hidden;
     border-left: 1em solid transparent;
     border-right: 1em solid transparent;
@@ -132,7 +131,7 @@ form.files-form {
 }
 
 .table-view a {
-    color: #000000;
+    color: #FFFFFF;
     text-decoration: underline;
 }
 

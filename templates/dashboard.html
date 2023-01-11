@@ -258,7 +258,7 @@
 
                 {% if cron_list %}
                     {% for row in cron_list %}
-                        <div class="card col-lg-auto webhooks-list container-bg border-info"
+                        <div class="card col-lg-auto webhooks-list container-bg border-info d-flex"
                              style="width: 10rem; padding: 3px; margin: 10px">
                             <h4 class="overflow-hidden card-header font-weight-bolder">Cron</h4>
                             <img src="/static/img/timed_automation.png"
@@ -325,7 +325,6 @@
                                 </div>
                             </div>
                         </div>
-                        </div>
                     {% endfor %}
                 {% endif %}
         </div>
@@ -354,8 +353,6 @@
             </div>
         </div>
     {% endif %}
-
-
 {% endblock %}
 {% block additional_js %}
     <script>

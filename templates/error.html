@@ -27,23 +27,22 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 
 {% extends "shared/_layout.html" %}
-{% block title %}Error {{ error }}{% endblock %}
-
+{% block title %}{{ error }}{% endblock %}
 {% block content %}
- <div class="test-links sub_links sticky-top">
+    <div class="test-links sub_links sticky-top">
         <div class="stat"><a href="/dashboard">JAWA Dashboard</a></div>
-        <div class="stat">Error</a></div>
     </div>
     <div class="form-container">
         <div class="error">
-            <div class="success-form">An error occurred:<br>
-                <div class="success-wrap alert alert-danger">{{ error }} - {{ error_message }}
+            <div class="success-form">
+                <div class="alert-jawa">{{ error }}</div>
+                <div class="success-wrap alert success-form">{{ error_message }}
                     {% if link %}<a href="{{ link }}" target="_blank">{{ link }}</a> {% endif %}</div>
                 <div class="text-center">
                     <a type=submit onclick="history.back(-1)" value=Back
-                       class="btn btn-primary button-align">&laquo;Back</a>
-                    <a href="/logout" button type=submit value=Logout
-                       class="btn btn-danger button-align">Logout</a>
+                       class="btn btn-secondary button-align">&laquo;Back</a>
+                    <a href="/dashboard" type=submit value=Logout
+                       class="btn btn-jawa button-align">Dashboard</a>
                 </div>
             </div>
         </div>

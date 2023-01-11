@@ -32,37 +32,30 @@
         <div class="stat"><a href="/resources/files">Files</a></div>
         <div class="stat"><a href="/log/home.html">Log</a></div>
     </div>
-
     <div class="form-container">
         <form action="#" method="POST" class="table-view"
               enctype="multipart/form-data">
-
             <h1>Confirm Delete:</h1>
-            Resource file -
-            {% if target_file %}{{ target_file }}{% endif %}</h1>
-
-
-            <br>
+            <div class="font-weight-bold text-center">Resource file -
+            {% if target_file %}{{ target_file }}{% endif %} </div>
             <div class="d-flex justify-content-center">
-                 <div class="confirm-delete-box">
-                    <i>Deleting a file is a permanent action.
-                    </i><br/>
+                <div class="confirm-delete-box">
+                    <i>Deleting a file is a permanent action.</i>
+                    <br/>
                     Are you sure?
-
-{#                <div class="log-view"><i>"Don't you call me a mindless philosopher!"</i><br/>#}
-{#                    ~ C-3PO, a Star War#}
-{#                </div>#}
-                 </div>
-                <button type=submit name="button_choice" value="Delete" class="btn btn-danger" style="margin: 5px">
-
-                    Delete
-
-                </button>
-                </p>
+                    {#                Don't you call me a mindless philosopher!     #}
+                    {#                    ~ C-3PO, a Star War                       #}
+                    {#                                                              #}
+                </div>
+                <br/>
             </div>
-        </form>
-    </div>
+                <div class="d-flex dash-list justify-content-center">
+                    <button type=submit name="button_choice" value="Delete" class="btn btn-danger" style="margin: 5px">
 
-    </div>
+                        Delete
+
+                    </button>
+                </div>
 {% endblock %}
+</div>
 </body>

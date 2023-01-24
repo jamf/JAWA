@@ -71,17 +71,17 @@
                     {% if webhook_info[0]['webhook_username'] == 'null' %}
                         <div id="hiddenDiv2" style="display:none"> {% endif %}
 
-                    <input class="form-control-sm" name="username" title="Username (optional)"
+                    <input class="form-control-sm text-center" name="username" title="Username (optional)"
                            placeholder="Username (optional)"
-                           value=" {% if webhook_info[0]['webhook_username'] != 'null' %}{{ webhook_info[0]['webhook_username'] }}{% endif %}">
+                           value="{% if webhook_info[0]['webhook_username'] != 'null' %}{{ webhook_info[0]['webhook_username'] }}{% endif %}">
                     </b>
-                    <input name="password" class="form-control-sm" type='password' title="Password (optional)"
+                    <input name="password" class="form-control-sm text-center" type='password' title="Password (optional)"
                            placeholder="Password (optional)"
                            value="{% if webhook_info[0]['webhook_password'] != 'null' %}{{ webhook_info[0]['webhook_password'] }}{% endif %}">
                     {% if webhook_info[0]['webhook_username'] == 'null' %}    </div> {% endif %}
                 </div>
                 <div class="d-flex justify-content-center"><label>
-                    <input type="checkbox" class="form-check-label" name="custom" value="custom"
+                    <input type="checkbox" class="form-check-label text-center" name="custom" value="custom"
                            onchange="java_script_:show(this.value)"
                            {% if webhook_info[0].get('api_key', 'null') != 'null' %}checked{% endif %}>
                 </label><b>&nbsp;Custom Authentication (optional):</b></div>
@@ -90,25 +90,25 @@
                         <div id="hiddenDiv3" style="display:none">{% endif %}
                     {% if not webhook_info[0].get('api_key', 'null') == 'null' %}
                         <div id="hiddenDiv3" style="display:inline-block">{% endif %}
-                    <input name="api_key" class="form-control-sm" type='api_key' title="x-api-key (optional)"
+                    <input name="api_key" class="form-control-sm text-center" type='api_key' title="x-api-key (optional)"
                            placeholder="x-api-key value (optional)"
                            value="{% if webhook_info[0].get('api_key', 'null') != 'null' %}{{ webhook_info[0].get('api_key') }}{% endif %}">
                     </div>
                     </div>
                     <div class="d-flex justify-content-center">
-                        <label><input name="output" class="form-check-input" type="checkbox"
+                        <label><input name="output" class="form-check-label" type="checkbox"
                                       {% if webhook_info[0].get('output') %}checked{% endif %}></label>
-                        <b>Send script output in response?</b>
+                        <b>&nbsp; Send script output in response?</b>
                     </div>
 
                     <div class="d-flex justify-content-center btn-padded">
 
-                        <button style="overflow: visible !important; height: 0 !important; width: 0 !important; margin: 0 !important; border: 0 !important; padding: 0 !important; display: block !important;"
+                        <button style="overflow: visible !important; height: 0 !important; width: 0 !important;
+                         margin: 0 !important; border: 0 !important; padding: 0 !important; display: block !important;"
                                 type="submit" value=""/>
 
                         <button type=submit name="button_choice" value="Delete" class="btn btn-danger"
-                                style="margin: 5px; padding: 5px; width: 150px"
-                        >
+                                style="margin: 5px; padding: 5px; width: 150px">
 
                             Delete
 

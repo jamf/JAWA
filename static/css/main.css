@@ -351,7 +351,8 @@ n {
     background-color: #6A2F30;
     border-color: #c3e6cb;
     border-radius: 1rem;
-
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
 }
 
 .btn-jawa:disabled {

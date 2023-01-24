@@ -39,10 +39,17 @@
             <pre><code>{{ files_repo }}/</code></pre>
             </p>
             <form action="#" method="post" enctype="multipart/form-data">
-                <div class="d-flex justify-content-center">
-                    <input id="upload" type="file" name="upload" formenctype="multipart/form-data"/>
-                    <input type="submit" class=" btn btn-jawa" value="Upload" disabled
-                           style="margin: 5px; padding: 5px; width: 150px"/>
+                <div class="d-flex justify-content-center text-center custom-file">
+                    <input type="file" name="upload"  class="custom-file-input text-center"
+                           formenctype="multipart/form-data" id="upload" value="Upload"/> <br/>
+                    <div class="d-flex justify-content-center">
+                        <label class="custom-file-label text-center">Upload a file</label>
+                        <input type="submit" class=" btn btn-jawa" value="Upload" disabled
+                               style="margin: 5px; padding: 5px; width: 150px"/>
+                    </div>
+                </div>
+                <input type="submit" class=" btn btn-jawa d-flex justify-content-center mx-auto" value="Upload" disabled
+                       style="margin: 5px; padding: 5px; width: 150px"/>
             </form>
         </div>
     </div>
@@ -54,30 +61,32 @@
     {% if files %}
         <form class="files-form overflow-auto" style="max-height: 66vh;;">
 
-        <h4 class="d-flex justify-content-center alert-jawa">Uploaded files</h4>
-        <div class="btn-padded">
-            <table id="files_table" class="table">
-                <tr>
-                    <th>Name</th>
-                    <th>Date Modified</th>
-                </tr>
-                {% for file in files %}
+            <h4 class="d-flex justify-content-center alert-jawa">Uploaded files</h4>
+            <div class="btn-padded">
+                <table id="files_table" class="table">
                     <tr>
-                        <td><input type="radio" id="{{ file.name }}" name="target_file"
-                                   value="{{ file.name }}"> {{ file.name }}</td>
-                        <td>{{ file.mtime }}</td>
+                        <th>Name</th>
+                        <th>Date Modified</th>
                     </tr>
-                {% endfor %}
-            </table>
-        </div>
-        <div class="d-flex justify-content-center">
-            <button type=submit name="button_choice" value="Download"
-                    class="btn btn-jawa button-align alert-jawa" style="margin: 5px; padding: 5px; width: 150px">
-                Download
-            </button>
-            <button name="button_choice" type=submit value="Delete" class="btn btn-danger button-align alert-soft">Delete
-            </button>
-        </div></div>
+                    {% for file in files %}
+                        <tr>
+                            <td><input type="radio" id="{{ file.name }}" name="target_file"
+                                       value="{{ file.name }}"> {{ file.name }}</td>
+                            <td>{{ file.mtime }}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+            <div class="d-flex justify-content-center">
+                <button type=submit name="button_choice" value="Download"
+                        class="btn btn-jawa button-align alert-jawa" style="margin: 5px; padding: 5px; width: 150px">
+                    Download
+                </button>
+                <button name="button_choice" type=submit value="Delete" class="btn btn-danger button-align alert-soft">
+                    Delete
+                </button>
+            </div>
+        </form>
     {% endif %}
 {% endblock %}
 {% block additional_js %}
@@ -97,5 +106,12 @@
                         }
                     }
                 );
-            });</script>
+            });
+    </script>
+    <script type="application/javascript">
+        $('input[type="file"]').change(function (e) {
+            var fileName = e.target.files[0].name;
+            $('.custom-file-label').html(fileName);
+        });
+    </script>
 {% endblock %}

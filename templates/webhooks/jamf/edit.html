@@ -39,29 +39,30 @@
     <form method="post" action="/webhooks/jamf/edit?name={{ webhook_name }}" class="table-view"
           enctype="multipart/form-data">
     <div class="overflow-auto" style="max-height: 60vh; margin: auto">
-    <h1>Edit {% if webhook_name %}{{ webhook_name }}{% else %}Jamf Pro Webhook{% endif %}</h1>
-    {% if success_msg %}
-        <h3 class="alert-success">Success!</h3>
-        <div class="form-container alert-warning">
-        <div>{{ success_msg }} <br></div>
-    {% endif %}
-{% if smart_group_notice %}
-    <b>{{ smart_group_notice }}</b> <br> {{ smart_group_instructions }}
-{% endif %}
-<a href="{{ new_link }}" style="color:#3c6aa7;" target="_blank">{{ new_here }}</a>
-{% if extra_notice %} <p></p>
-    {% set re_notice = extra_notice | replace(" {", ": ~CAW~{") %}
-    {% for line in re_notice.split(" ~CAW~") %}
-        <p>{{ line }}</p>
-    {% endfor %}
+        <h1>Edit {% if webhook_name %}{{ webhook_name }}{% else %}Jamf Pro Webhook{% endif %}</h1>
+        {% if success_msg %}
+            <h3 class="alert-jawa">Success!</h3>
+            <div class="form-container text-center success-form">
+                <div class="font-weight-bold">{{ success_msg }} <br></div>
 
-{% endif %}
-{% if custom_header %}
 
-    <pre class="alert-primary"><div class="d-flex justify-content-center">{{ custom_header }}</div></pre>
-{% endif %}
-
-</div>
+            {% if smart_group_notice %}
+                <b>{{ smart_group_notice }}</b> <br> {{ smart_group_instructions }}
+            {% endif %}
+            <a href="{{ new_link }}" class="text-center" target="_blank">{{ new_here }}</a>
+            {% if extra_notice %} <p></p>
+                {% set re_notice = extra_notice | replace(" {", ": ~CAW~{") %}
+                {% for line in re_notice.split(" ~CAW~") %}
+                    <p>{{ line }}</p>
+                {% endfor %}
+            {% endif %}
+            {% if custom_header %}
+                <pre class="font-weight-bolder"><div
+                        class="d-flex justify-content-center">{{ custom_header }}</div></pre>
+            {% endif %}
+            </div>
+        {% endif %}
+    </div>
     <input name="webhook_name" value="{{ webhook_name }}" type="text" pattern="[^' ']+"
            placeholder="Edit Webhook Name (optional)"
            title="No spaces, please." class="form-control text-center" value="{{ name }}" autofocus>
@@ -183,11 +184,13 @@
         {% endif %}
         <input class="form-control-sm" name="username" title="Username (optional)"
                placeholder="Username (optional)" style="padding: unset"
-               value=" {% if webhook_info[0]['webhook_username'] != 'null' %}{{ webhook_info[0]['webhook_username'] }}{% endif %}">
+               value="
+                       {% if webhook_info[0]['webhook_username'] != 'null' %}{{ webhook_info[0]['webhook_username'] }}{% endif %}">
         </b>
         <input name="password" class="form-control-sm text-center" type='password' title="Password (optional)"
                placeholder="Password (optional)"
-               value="{% if webhook_info[0]['webhook_password'] != 'null' %}{{ webhook_info[0]['webhook_password'] }}{% endif %}">
+               value="
+                       {% if webhook_info[0]['webhook_password'] != 'null' %}{{ webhook_info[0]['webhook_password'] }}{% endif %}">
         {% if webhook_info[0]['webhook_username'] == 'null' %}    </div> {% endif %}
     </div>
     <div class="d-flex justify-content-center"><label>

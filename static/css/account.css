@@ -35,13 +35,13 @@ form.table-view select {
 form.table-view {
     min-width: 30vw;
     max-width: 425px;
-    margin-bottom: 3rem;
+    margin-bottom: 5rem;
     margin-top: 1rem;
     background-color: #d7a773cf;
     color: #112a46;
     border: 1px #aa845a;
-    border-radius: 3rem;
-    padding: 10px;
+    border-radius: 2rem;
+    padding: 1rem;
 }
 
 form.files-form {

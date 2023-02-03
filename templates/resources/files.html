@@ -1,6 +1,6 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {###}
-{## Copyright (c) 2022 Jamf.  All rights reserved.#}
+{## Copyright (c) 2023 Jamf.  All rights reserved.#}
 {###}
 {##       Redistribution and use in source and binary forms, with or without#}
 {##       modification, are permitted provided that the following conditions are met:#}
@@ -53,13 +53,13 @@
             </form>
         </div>
     </div>
-    <p>
+
         {% if not files %}
-            <p>
+
             <div class="d-flex justify-content-center font-weight-bolder"> No files uploaded</div>
         {% endif %}
     {% if files %}
-        <form class="files-form overflow-auto" style="max-height: 66vh;;">
+        <form class="files-form overflow-auto">
 
             <h4 class="d-flex justify-content-center alert-jawa">Uploaded files</h4>
             <div class="btn-padded">

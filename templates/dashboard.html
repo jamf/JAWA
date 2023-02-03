@@ -59,7 +59,31 @@
                 <b>Total timed automations</b>: &nbsp;<a href="/cron">{{ total_cron or '0' }}</a><br>
             </div>
         </div>
-        <div class="form-container justify-content-center">
+    {% if not jamfpro_list and not okta_list and not custom_list and not cron_list %}
+        <div class="form-container">
+            <div class="table-view" style="max-width: fit-content; text-align: center">
+                <div class="table-responsive">
+                    No Jamf Pro webhooks to display. <a href="/webhooks/jamf/new">Create one now.</a>
+                </div>
+            </div>
+            <div class="table-view" style="max-width: fit-content; text-align: center;">
+                <div class="table-responsive">
+                   &nbsp; &nbsp; No Okta webhooks to display. <a href="/webhooks/okta/new">Create one now. &nbsp;</a>
+                </div>
+            </div>
+            <div class="table-view" style="max-width: fit-content; text-align: center;">
+                <div class="table-responsive">
+                    No Custom webhooks to display. <a href="/webhooks/custom/new">Create one now.</a>
+                </div>
+            </div>
+            <div class="table-view" style="max-width: fit-content; text-align: center;">
+                <div class="table-responsive">
+                    No Timed Automations to display. <a href="/cron/new">Create one now.</a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{#        <div class="form-container justify-content-center">#}
             <div class="row dash-list justify-content-center">
                 {% if jamfpro_list %}
                     {% for row in jamfpro_list %}
@@ -329,30 +353,7 @@
                 {% endif %}
         </div>
     </div>
-    {% if not jamfpro_list and not okta_list and not custom_list and not cron_list %}
-        <div class="form-container">
-            <div class="table-view" style="max-width: fit-content; text-align: center">
-                <div class="table-responsive">
-                    No Jamf Pro webhooks to display. <a href="/webhooks/jamf/new">Create one now.</a>
-                </div>
-            </div>
-            <div class="table-view" style="max-width: fit-content; text-align: center;">
-                <div class="table-responsive">
-                    No Okta webhooks to display. <a href="/webhooks/okta/new">Create one now.</a>
-                </div>
-            </div>
-            <div class="table-view" style="max-width: fit-content; text-align: center;">
-                <div class="table-responsive">
-                    No Custom webhooks to display. <a href="/webhooks/custom/new">Create one now.</a>
-                </div>
-            </div>
-            <div class="table-view" style="max-width: fit-content; text-align: center;">
-                <div class="table-responsive">
-                    No Timed Automations to display. <a href="/cron/new">Create one now.</a>
-                </div>
-            </div>
-        </div>
-    {% endif %}
+
 {% endblock %}
 {% block additional_js %}
     <script>

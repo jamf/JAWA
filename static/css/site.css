@@ -93,7 +93,7 @@ footer a {
 }
 
 .test-links-bottom {
-    background-color: #d7a77399;
+    background-color: #d7a773f6;
     padding: 10px 0px;
     text-align: center;
     border-bottom: 1px solid #d3d3d3;
@@ -108,7 +108,7 @@ footer a {
     margin-right: auto;
     max-width: 2000px;
     text-align: center;
-    background-color: #d7a77399;
+    background-color: #d7a773f6;
     border: 1px #aa845a;
     border-radius: 55px;
     padding: 10px;
@@ -120,7 +120,7 @@ footer a {
     margin-right: 1vh;
     text-after-overflow: left;
     text-align-all: left;
-    background-color: #d7a77399;
+    background-color: #d7a773f6;
     border: 1px #aa845a;
     border-radius: 8px;
     padding: 10px;
@@ -134,14 +134,14 @@ footer a {
     margin-top: 0;
     margin-left: auto;
     margin-right: auto;
-    background-color: #d7a77399;
+    background-color: #d7a773f6;
     border: 1px #aa845a;
     border-radius: 5px;
     padding: 10px;
 }
 
 .log-background {
-    background-color: #d7a77399;
+    background-color: #d7a773f6;
     border: 1px #aa845a;
 }
 
@@ -150,14 +150,14 @@ footer a {
     margin-left: auto;
     margin-right: auto;
     text-align: center;
-    background-color: #d7a77399;
+    background-color: #d7a773f6;
     padding-top: 15px;
     padding-bottom: 15px;
 }
 
 .sub_links {
     padding-top: 66px;
-    background-color: #d7a77399;
+    background-color: #d7a773f6;
 
 @media (max-width: 979px) {
     body {

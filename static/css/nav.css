@@ -3,6 +3,7 @@
     z-index: 9999;
     border-radius: 0px;
     padding-bottom: 10px;
+    max-width: 100vw;
 }
 
 .navbar-inverse .navbar-collapse, .navbar-inverse .navbar-form {

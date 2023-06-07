@@ -115,6 +115,7 @@ footer a {
 }
 
 .log-view {
+    max-width: 100vw;
     margin-top: 0;
     margin-left: 1vh;
     margin-right: 1vh;

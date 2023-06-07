@@ -33,29 +33,33 @@
 {% endblock %}
 {% block title %}Timed Automations Dashboard{% endblock %}
 {% block content %}
-<div class="test-links sub_links sticky-top">
-    <div class="stat"><a href="/cron/new">New Timed Job</a></div>
-    <div class="stat"><a href="/cron">All Timed Automations</a></div>
-</div>
-<div class="form-container" style="min-height: 82vh">
-    <div class="table-view overflow-auto" style="max-width: 55vh">
-        <div class="d-flex justify-content-center">
-            <h4 class="text-center">Timed Automations Dashboard</h4>
-        </div>
-        <div class="d-flex justify-content-center">
-            <b>Total timed automations installed</b>: {{ cron_list|length or '0' }}<br>
+    <div>
+    <div class="test-links sub_links sticky-top" style="min-width: 100vw">
+        <div class="row">
+            <div class="stat p-2 col-sm"><a href="/home.html">Dashboard</a></div>
+            <div class="stat p-2 col-sm"><a href="/cron/new">New Timed Job</a></div>
+            <div class="stat p-2 col-sm"><a href="/cron">View</a></div>
         </div>
     </div>
-    {% if not cron_list %}
-        <div class="form-container">
-            <div class="table-view" style="max-width: fit-content; text-align: center;">
-                <div class="table-responsive">
-                    No timed automations to display. <a href="/cron/new">Create one now.</a>
-                </div>
+    <div class="form-container" style="min-height: 82vh">
+        <div class="table-view overflow-auto" style="max-width: 55vh">
+            <div class="d-flex justify-content-center">
+                <h4 class="text-center">Timed Automations Dashboard</h4>
             </div>
-        </div></div>
-    {% else %}
-        <div class="form-container justify-content-center">
+            <div class="d-flex justify-content-center">
+                <b>Total timed automations installed</b>: {{ cron_list|length or '0' }}<br>
+            </div>
+        </div>
+        {% if not cron_list %}
+            <div class="form-container">
+                <div class="table-view" style="max-width: fit-content; text-align: center;">
+                    <div class="table-responsive">
+                        No timed automations to display. <a href="/cron/new">Create one now.</a>
+                    </div>
+                </div>
+            </div></div>
+        {% else %}
+            <div class="form-container justify-content-center">
             <div class="row dash-list justify-content-center">
                 {% for row in cron_list %}
                     <div class="card col-lg-auto webhooks-list container-bg border-info"
@@ -125,6 +129,6 @@
                         </div>
                     </div>
                 {% endfor %}
-        </div>
-    {% endif %}
+            </div>
+        {% endif %}
 {% endblock %}

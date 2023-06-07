@@ -29,10 +29,13 @@
 {% extends "shared/_layout.html" %}
 {% block title %}New Jamf Pro Webhook{% endblock %}
 {% block content %}
-    <div class="test-links sub_links sticky-top">
-        <div class="stat"><a href="/webhooks">All Webhooks</a></div>
-        <div class="stat"><a href="/webhooks/jamf/new">Create</a></div>
-        <div class="stat"><a href="/webhooks/jamf">View</a></div>
+<div>
+    <div class="test-links sub_links sticky-top" style="min-width: 100vw">
+        <div class="row">
+            <div class="stat p-2 col-sm"><a href="/webhooks">All Webhooks</a></div>
+            <div class="stat p-2 col-sm"><a href="/webhooks/jamf/new">Create</a></div>
+            <div class="stat p-2 col-sm"><a href="/webhooks/jamf">View</a></div>
+        </div>
     </div>
     <div class="form-container">
         <form method="post" action="/webhooks/jamf/new" class="table-view overflow-auto" enctype="multipart/form-data">

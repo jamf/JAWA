@@ -1,6 +1,6 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {###}
-{## Copyright (c) 2022 Jamf.  All rights reserved.#}
+{## Copyright (c) 2023 Jamf.  All rights reserved.#}
 {###}
 {##       Redistribution and use in source and binary forms, with or without#}
 {##       modification, are permitted provided that the following conditions are met:#}
@@ -36,8 +36,6 @@
     <link rel="stylesheet" href="/static/css/main.css"/>
     <link rel="stylesheet" href="/static/css/nav.css"/>
     <link rel="stylesheet" href="/static/css/site.css"/>
-
-
     {% block additional_css %}
     {% endblock %}
     <link rel="apple-touch-icon" href="./static/img/jawa_icon.png">
@@ -48,48 +46,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 </head>
 
-<body class="jawa-bg">
-<div>
-    {% if username %}
-        <nav class="navbar fixed-top navbar-toggleable-md navbar-inverse bg-inverse navbar-expand-md">
-            {% if username %}
-                <a class="navbar-brand" href="/dashboard">
-                    <img src="/static/img/jawa_icon.png" style="max-width:42px;max-height:42px;"/></a>
-                <div class="" style="font-size: 112%"> Welcome, {{ username.title() }}.</div>
-            {% else %}
-                <a class="navbar-brand" href="/dashboard"></a>
-            {% endif %}
-            <button class="navbar-toggler navbar-toggle overflow-auto" type="button" data-toggle="collapse"
-                    data-target="#navbarSupportedContent"
-                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <div class="navbar-toggler-icon ">
-                    <div class="nav-expand-line"></div>
-                    <div class="nav-expand-line"></div>
-                    <div class="nav-expand-line"></div>
+<body class="jawa-bg d-flex justify-content-center">
+{#<div class="">#}
+
+<div class="d-flex justify-content-center">
+    <div class="d-flex justify-content-center">
+        {% if username %}
+            <nav class="navbar fixed-top navbar-toggleable-md navbar-inverse bg-inverse navbar-expand-md">
+                {% if username %}
+                    <a class="navbar-brand" href="/dashboard">
+                        <img src="/static/img/jawa_icon.png" style="max-width:42px;max-height:42px;"/></a>
+                    <div class="" style="font-size: 112%"> Welcome, {{ username.title() }}.</div>
+                {% else %}
+                    <a class="navbar-brand" href="/dashboard"></a>
+                {% endif %}
+                <button class="navbar-toggler navbar-toggle overflow-auto" type="button" data-toggle="collapse"
+                        data-target="#navbarSupportedContent"
+                        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <div class="navbar-toggler-icon ">
+                        <div class="nav-expand-line"></div>
+                        <div class="nav-expand-line"></div>
+                        <div class="nav-expand-line"></div>
+                    </div>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav ml-auto">
+                        {% if username %}
+                            <li class="nav-item"><a class="nav-link" href="/webhooks">Webhooks</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/cron">Cron</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/log/home.html">Extras</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/setup">Setup</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/logout" id="last_nav_link">Logout</a></li>
+                        {% endif %}
+                    </ul>
                 </div>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav ml-auto">
-                    {% if username %}
-                        <li class="nav-item"><a class="nav-link" href="/webhooks">Webhooks</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/cron">Cron</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/log/home.html">Extras</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/setup">Setup</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/logout" id="last_nav_link">Logout</a></li>
-                    {% else %}
-                        <div class="form-control-sm text-center">Photo by
-                        <a href="https://unsplash.com/@thehmstravels?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Heather
-                            Shevlin</a> on
-                        <a href="https://unsplash.com/photos/3B_NrzTjajc?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>
-                    {% endif %}
-                </ul>
-            </div>
-        </nav>
-    {% endif %}
+            </nav>
+        {% endif %}
 
-    {% block content %}
-    {% endblock %}
-
+        {% block content %}
+        {% endblock %}
+    </div>
 </div>
 <footer class="footer fixed-bottom">
     <div class="stat">
@@ -98,15 +94,11 @@
         </div>
     </div>
     <div class="stat">
-        Jamf Automation + Webhook Assistant v4.0.0a <br/>
+        Jamf Automation + Webhook Assistant<br/>
     </div>
     <div class="stat">
         <div style="justify-content: right;">
-            <div class="text-sm-right " style="font-size: 60%;">Background by <a
-                    href="https://unsplash.com/@thehmstravels?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
-                    target="_blank">Heather Shevlin</a> on <a
-                    href="https://unsplash.com/photos/3B_NrzTjajc?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText"
-                    target="_blank">Unsplash</a>
+            <div class="text-sm-right ">v3.1.0b
             </div>
         </div>
     </div>

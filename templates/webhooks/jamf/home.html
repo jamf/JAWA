@@ -33,10 +33,13 @@
 {% endblock %}
 {% block title %}Jamf Webhooks Dashboard{% endblock %}
 {% block content %}
-    <div class="test-links sub_links sticky-top">
-        <div class="stat"><a href="/webhooks">All Webhooks</a></div>
-        <div class="stat"><a href="/webhooks/jamf/new">Create</a></div>
-        <div class="stat"><a href="/webhooks/jamf">View</a></div>
+    <div>
+    <div class="test-links sub_links sticky-top" style="min-width: 100vw">
+        <div class="row">
+            <div class="stat p-2 col-sm"><a href="/webhooks">All Webhooks</a></div>
+            <div class="stat p-2 col-sm"><a href="/webhooks/jamf/new">Create</a></div>
+            <div class="stat p-2 col-sm"><a href="/webhooks/jamf">View</a></div>
+        </div>
     </div>
     <div class="form-container" style="min-height: 82vh">
         <div class="table-view overflow-auto" style="max-width: 55vh">

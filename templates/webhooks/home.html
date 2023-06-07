@@ -34,60 +34,67 @@
 {% block title %}Webhooks Dashboard{% endblock %}
 
 {% block content %}
-    <div class="test-links sub_links sticky-top">
-        <div class="stat"><a href="/webhooks/jamf">Jamf Pro</a></div>
-        <div class="stat"><a href="/webhooks/okta">Okta</a></div>
-        <div class="stat"><a href="/webhooks/custom">Custom</a></div>
-    </div>
-
-    <div class="form-container">
-        <div class="table-view overflow-auto" style="max-width: 55vh">
-
-            <h4 class="d-flex justify-content-center">Webhooks Dashboard</h4>
-            <div class="d-flex justify-content-center">
-                <b>Active JPS</b>: &nbsp; <a class="alert-link" href="{{ session.get('url') }}"
-                                             target="_blank">{{ session['url'] }}</a> <br>
+    <div>
+        <div class="test-links sub_links sticky-top" style="min-width: 100vw">
+            <div class="row">
+                <div class="stat p-2 col-sm"><a href="/webhooks/jamf">Jamf Pro</a></div>
+                <div class="stat p-2 col-sm"><a href="/webhooks/okta">Okta</a></div>
+                <div class="stat p-2 col-sm"><a href="/webhooks/custom">Custom</a></div>
             </div>
-            <div class="d-flex justify-content-center">
-                <b>Total webhooks installed</b>: {{ jamf_list|length + okta_list|length + custom_list|length or '0' }}
-            </div>
-            <div class="d-flex justify-content-center">
-                <a href="/webhooks/jamf"><b>Jamf Pro</b></a>: {{ jamf_list|length or '0' }} &nbsp;&nbsp;&nbsp; &nbsp; <a
-                    href="/webhooks/okta"><b>Okta</a></b>:
-                {{ okta_list|length or '0' }} &nbsp;&nbsp;&nbsp;&nbsp; <a
-                    href="/webhooks/custom"><b>Custom</b></a>: {{ custom_list|length or '0' }}</div>
         </div>
-    </div>
-
-
-    {% if not jamf_list and not okta_list and not custom_list %}
-        <div class="form-container ">
-            <div class="table-view" style="max-width: fit-content; text-align: center;">
-                <div class="table-responsive">
-                    No Jamf Pro webhooks to display. <a href="/webhooks/jamf/new">Create one now.</a>
+        <div class="form-container table-view overflow-auto" style="max-width: 800px">
+            <div class="table-view overflow-auto">
+                <div class="d-flex justify-content-center">
+                    <h4>Webhooks Dashboard</h4>
                 </div>
-            </div>
-            <div class="table-view" style="max-width: fit-content; text-align: center; ">
-                <div class="table-responsive">
-                    &nbsp; &nbsp; No Okta webhooks to display. <a href="/webhooks/okta/new">Create one now. &nbsp;</a>
+                <div class="d-flex justify-content-center">
+                    <b>Active JPS</b>: &nbsp; <a class="alert-link" href="{{ session.get('url') }}"
+                                                 target="_blank">{{ session['url'] }}</a> <br>
                 </div>
-            </div>
-            <div class="table-view" style="max-width: fit-content; text-align: center; ">
-                <div class="table-responsive">
-                    No Custom webhooks to display. <a href="/webhooks/custom/new">Create one now.</a>
+                <div class="d-flex justify-content-center">
+                    <b>Total webhooks
+                        installed</b>: {{ jamf_list|length + okta_list|length + custom_list|length or '0' }}
                 </div>
+                <div class="d-flex justify-content-center">
+                    <a href="/webhooks/jamf"><b>Jamf Pro</b></a>: {{ jamf_list|length or '0' }} &nbsp;&nbsp;&nbsp;
+                    &nbsp; <a
+                        href="/webhooks/okta"><b>Okta</a></b>:
+                    {{ okta_list|length or '0' }} &nbsp;&nbsp;&nbsp;&nbsp; <a
+                        href="/webhooks/custom"><b>Custom</b></a>: {{ custom_list|length or '0' }}</div>
             </div>
-
         </div>
-    {% else %}
-        <div class="form-container justify-content-center">
+        {#        </div>#}
+
+        {% if not jamf_list and not okta_list and not custom_list %}
+            <div class="form-container ">
+                <div class="table-view" style="max-width: fit-content; text-align: center;">
+                    <div class="table-responsive">
+                        No Jamf Pro webhooks to display. <a href="/webhooks/jamf/new">Create one now.</a>
+                    </div>
+                </div>
+                <div class="table-view" style="max-width: fit-content; text-align: center; ">
+                    <div class="table-responsive">
+                        &nbsp; &nbsp; No Okta webhooks to display. <a href="/webhooks/okta/new">Create one now.
+                        &nbsp;</a>
+                    </div>
+                </div>
+                <div class="table-view" style="max-width: fit-content; text-align: center; ">
+                    <div class="table-responsive">
+                        No Custom webhooks to display. <a href="/webhooks/custom/new">Create one now.</a>
+                    </div>
+                </div>
+
+            </div>
+        {% else %}
+            <div class="form-container justify-content-center">
             <div class="row dash-list justify-content-center">
                 {% if jamf_list %}
                     {% for row in jamf_list %}
                         {% if row.url == session['url'] %}
                             <div class="card col-lg-auto webhooks-list container-bg border-info d-flex flex-column">
                                 <h4 class="overflow-hidden card-header font-weight-bolder">Jamf Pro</h4>
-                                <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img mx-auto btn-padded">
+                                <img src="/static/img/webhook.png"
+                                     class="img img-circle img-fluid card-img mx-auto btn-padded">
                                 <div class="card-body flex-column d-flex webhooks-list">
                                     <h6 class=" overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
                                     <button class="btn btn-jawa text-white overflow-hidden stretched-link mt-auto"
@@ -154,7 +161,8 @@
                         <div class="card col-lg-auto webhooks-list container-bg border-info d-flex"
                              style="width: 10rem; padding: 3px; margin: 10px">
                             <h4 class="overflow-hidden card-header font-weight-bolder">Okta</h4>
-                            <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img mx-auto btn-padded">
+                            <img src="/static/img/webhook.png"
+                                 class="img img-circle img-fluid card-img mx-auto btn-padded">
                             <div class="card-body flex-column d-flex webhooks-list">
                                 <h6 class=" overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
                                 <button class="btn-jawa btn text-white overflow-hidden stretched-link align-self-end mt-auto"
@@ -217,7 +225,8 @@
                             <div class="card col-lg-auto webhooks-list container-bg border-info d-flex"
                                  style="width: 10rem; padding: 3px; margin: 10px">
                                 <h4 class="overflow-hidden card-header font-weight-bolder">Custom</h4>
-                                <img src="/static/img/webhook.png" class="img img-circle img-fluid card-img mx-auto btn-padded">
+                                <img src="/static/img/webhook.png"
+                                     class="img img-circle img-fluid card-img mx-auto btn-padded">
                                 <div class="card-body flex-column d-flex webhooks-list">
                                     <h6 class=" overflow-hidden card-title font-weight-bolder">{{ row.name }}</h6>
                                     <button class="btn-jawa btn text-white overflow-hidden stretched-link align-self-end mt-auto"
@@ -271,14 +280,14 @@
                         {% endif %}
                     {% endfor %}
                 {% endif %}
-        </div>
-            {% endif %}
+            </div>
+        {% endif %}
 
 
         </div>
 
 
-</div>
+    </div>
 {% endblock %}
 {% block additional_js %}
     <script>

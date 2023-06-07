@@ -34,8 +34,9 @@
         <div class="stat"><a href="{{ url_for('log_view.log_home') }}">Log</a></div>
     </div>
     <div class="form-container">
-        <div class="table-view overflow-auto pre-scrollable" style="max-width: fit-content">
-            <h4 class="d-flex justify-content-center alert-jawa">Upload a file</h4>
+        <div class="table-view" style="max-width: fit-content">
+            <div class="overflow-auto pre-scrollable" style="max-width: 100vw">
+            <h4 class="d-flex justify-content-center alert-jawa" style="max-width: 100vw">Upload a file</h4>
             <p>Files directory:
             <pre><code>{{ files_repo }}/</code></pre>
             </p>
@@ -54,7 +55,7 @@
             </form>
         </div>
     </div>
-
+</div>
         {% if not files %}
 
             <div class="d-flex justify-content-center font-weight-bolder"> No files uploaded</div>
@@ -64,7 +65,7 @@
 
             <h4 class="d-flex justify-content-center alert-jawa">Uploaded files</h4>
             <div class="btn-padded">
-                <table id="files_table" class="table">
+                <table id="files_table" class="table" style="max-width: 100vw">
                     <tr>
                         <th>Name</th>
                         <th>Date Modified</th>

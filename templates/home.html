@@ -42,7 +42,7 @@
         <br>
         <div class="alert alert-warning text-center">Authentication Failed <br>
             {% autoescape false %}
-            <div class="text-wrap" style="word-break: break-all;">{{ error_title }}
+            <div class="text-wrap" style="word-break: break-word;">{{ error_title }}
                 - {{ error_message.replace('(',' ').replace(')', '').replace('https', '<br/>https') }}</div>
             {% endautoescape %}
         </div>

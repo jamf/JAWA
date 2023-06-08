@@ -28,11 +28,14 @@
 {% extends "shared/_layout.html" %}
 {% block title %}New Timed Automation{% endblock %}
 {% block content %}
-    <div class="test-links sub_links sticky-top">
-        <div class="stat"><a href="/cron">All Timed Automations</a></div>
-        <div class="stat"><a href="{{ url_for('cron.new_cron') }}">New Timed Job</a></div>
-        <div class="stat"><a href="{{ url_for('cron.edit_cron') }}">Edit Timed Job</a></div>
-    </div>
+    <div>
+        <div class="test-links sub_links sticky-top" style="min-width: 100vw">
+            <div class="row">
+                <div class="stat p-2 col-sm"><a href="/home.html">Dashboard</a></div>
+                <div class="stat p-2 col-sm"><a href="/cron/new">New Timed Job</a></div>
+                <div class="stat p-2 col-sm"><a href="/cron">View</a></div>
+            </div>
+        </div>
     <div class="form-container">
         <form method="post" class="table-view" action="/cron/new" enctype="multipart/form-data">
             <h1>New Timed Job</h1>

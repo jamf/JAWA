@@ -241,8 +241,8 @@ def jamf_pro_new():
         result = re.search('<id>(.*)</id>', webhook_response.text)
         jamf_id = result.group(1)
         new_link = "{}/webhooks.html?id={}&o=r".format(session['url'], result.group(1))
-        logthis.info(f"{session.get('username')} created a new webhook:"
-                     f"Name: {request.form.get('name')}"
+        logthis.info(f"{session.get('username')} created a new webhook. "
+                     f"Name: {request.form.get('webhook_name')} "
                      f"Jamf link: {new_link}")
         custom_header = ""
         data = json.load(open(webhooks_file))
@@ -472,8 +472,8 @@ def jamf_pro_edit():
                 jamf_id = result.group(1)
                 new_link = f"{format(session.get('url'))}/webhooks.html?id={jamf_id}&o=r"
                 success_msg = "Webhook edited:"
-                logthis.info(f"{session.get('username')} edited a Jamf webhook:"
-                             f"Name: {name}"
+                logthis.info(f"{session.get('username')} edited a Jamf webhook. "
+                             f"Name: {name} "
                              f"Jamf link: {new_link}")
                 return {"webhooks": "success", "smart_group_instructions": smart_group_instructions,
                         "smart_group_notice": smart_group_notice,

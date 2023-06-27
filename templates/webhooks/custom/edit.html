@@ -1,6 +1,6 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {###}
-{## Copyright (c) 2022 Jamf.  All rights reserved.#}
+{## Copyright (c) 2023 Jamf.  All rights reserved.#}
 {###}
 {##       Redistribution and use in source and binary forms, with or without#}
 {##       modification, are permitted provided that the following conditions are met:#}
@@ -48,7 +48,14 @@
                         <div>{{ success_msg }} <br></div>
                         <a href="{{ new_link }}" style="color:#3c6aa7;" target="_blank">{{ new_here }}</a>
                     </div>
+                             {% if extra_notice %}
+                <p class="text-center">{{ extra_notice }}</p>
+            {% endif %}
+        {%  if custom_header %}
+            <pre class="success-form font-weight-bolder alert-jawa" style="text-wrap: balance"><div class="d-flex justify-content-center">{{ custom_header }}</div></pre>
+        {% endif %}
                 {% endif %}
+
                 <input name="custom_name" type="text" pattern="[^' ']+" placeholder="Edit Webhook Name (optional)"
                        title="No spaces, please." class="form-control text-center" value="{{ webhook_name }}" autofocus>
                 {% if error %}

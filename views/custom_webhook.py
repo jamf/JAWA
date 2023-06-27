@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
-# Copyright (c) 2022 Jamf.  All rights reserved.
+# Copyright (c) 2023 Jamf.  All rights reserved.
 #
 #       Redistribution and use in source and binary forms, with or without
 #       modification, are permitted provided that the following conditions are met:
@@ -33,7 +33,6 @@ import json
 import os
 from werkzeug.utils import secure_filename
 
-
 from bin.view_modifiers import response
 from bin import logger
 
@@ -52,7 +51,8 @@ scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scr
 @response(template_file='webhooks/custom/home.html')
 def custom_webhook():
     if 'username' not in session:
-        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     with open(webhooks_file, 'r') as fin:
         webhooks_json = json.load(fin)
     custom_webhooks_list = []
@@ -70,7 +70,8 @@ def custom_webhook():
 @response(template_file='webhooks/custom/edit.html')
 def edit_webhook():
     if 'username' not in session:
-        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     name = request.args.get('name')
     logthis.info(f"Checking for custom webhook '{name}'")
     with open(webhooks_file) as fin:
@@ -101,6 +102,8 @@ def edit_webhook():
                     new_webhook_pass = 'null'
                 if request.form.get('custom'):
                     new_webhook_apikey = request.form.get('api_key', 'null')
+                    extra_notice = 'Copy and paste the following into the Header Authentication section of Jamf Pro webhooks:'
+                    custom_header = {f"x-api-key": f"{new_webhook_apikey}"}
                 else:
                     new_webhook_apikey = 'null'
                 if new_webhook_user and new_webhook_user != "":
@@ -142,22 +145,23 @@ def edit_webhook():
                 webhook_info = [each_webhook]
                 return {"webhooks": "success",
                         "success_msg": f"Edited custom webhook {new_custom_name}.",
-                        "username": session.get('username'), 'webhook_info': webhook_info, "webhook_name": new_custom_name,
-                        "description": each_webhook.get('description')}
+                        "username": session.get('username'), 'webhook_info': webhook_info,
+                        "webhook_name": new_custom_name,
+                        "description": each_webhook.get('description'), "extra_notice": extra_notice,
+                        "custom_header": custom_header}
     webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
     return {'username': session.get('username'), 'webhook_name': name, 'webhook_info': webhook_info}
 
 
 @blueprint.route('/webhooks/custom/new', methods=['GET', 'POST'])
-@response(template_file='webhooks/custom/new.html')
 def new_webhook():
     if 'username' not in session:
-        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if request.method == 'POST':
         new_custom_name = request.form.get('custom_name')
         description = request.form.get('description')
         output = request.form.get('output')
-
 
         if request.form.get('custom_name') != '':
             check = 0
@@ -197,7 +201,11 @@ def new_webhook():
                 new_webhook_pass = "null"
             if request.form.get('custom'):
                 api_key = request.form.get('api_key', 'null')
+                extra_notice = 'Copy and paste the following into the Header Authentication section of Jamf Pro webhooks:'
+                custom_header = {f"x-api-key": f"{api_key}"}
             else:
+                extra_notice = None
+                custom_header = None
                 api_key = 'null'
             webhooks_json.append({"url": str(session['url']),
                                   "jawa_admin": str(session['username']),
@@ -212,6 +220,10 @@ def new_webhook():
 
             with open(webhooks_file, 'w') as outfile:
                 json.dump(webhooks_json, outfile, indent=4)
-
-            return redirect(url_for('custom_webhook.custom_webhook'))
-    return {'username': session.get('username')}
+            success_msg = "New webhook created:"
+            return render_template('success.html',
+                                   webhooks="success",
+                                   success_msg=success_msg, extra_notice=extra_notice,
+                                   custom_header=custom_header,
+                                   username=str(escape(session['username'])))
+    return render_template('webhooks/custom/new.html', username=session.get('username'))

@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
-# Copyright (c) 2022 Jamf.  All rights reserved.
+# Copyright (c) 2023 Jamf.  All rights reserved.
 #
 #       Redistribution and use in source and binary forms, with or without
 #       modification, are permitted provided that the following conditions are met:
@@ -162,7 +162,7 @@ def new_cron():
                 'error.html',
                 error="Custom Crontab Frequency Error",
                 error_message=f"The custom job frequency that was presented is invalid:  '{err}'.  Please check your syntax and try again.\nCheck your syntax:  ",
-                link=f"https://crontab.guru/#{custom_frequency}",
+                link=f"https://crontab.guru/#{custom_frequency}", username=str(escape(session['username']))
             )
 
         frequency = f"Custom [ {custom_frequency} ]"
@@ -334,20 +334,23 @@ def edit_cron():
                 each_cron['frequency'] = f"Custom [ {custom_frequency} ]"
             else:
                 each_cron['frequency'] = frequency
-            script = request.files.get('script')
-            if ' ' in script.filename:
-                script.filename = script.filename.replace(" ", "-")
-            if script.filename:
-                if not os.path.isdir(scripts_dir):
-                    os.mkdir(scripts_dir)
-                owd = os.getcwd()
-                os.chdir(scripts_dir)
-                new_script_name = f"cron_{new_cron_name}_{script.filename}"
-                script.save(secure_filename(new_script_name))
-                script_file = os.path.join(scripts_dir, new_script_name)
-                os.chmod(script_file, mode=0o0755)
-                os.chdir(owd)
-                each_cron['script'] = script_file
+            if request.files.get('script'):
+                script = request.files.get('script')
+                if ' ' in script.filename:
+                    script.filename = script.filename.replace(" ", "-")
+                if script.filename:
+                    if not os.path.isdir(scripts_dir):
+                        os.mkdir(scripts_dir)
+                    owd = os.getcwd()
+                    os.chdir(scripts_dir)
+                    new_script_name = f"cron_{new_cron_name}_{script.filename}"
+                    script.save(secure_filename(new_script_name))
+                    script_file = os.path.join(scripts_dir, new_script_name)
+                    os.chmod(script_file, mode=0o0755)
+                    os.chdir(owd)
+                    each_cron['script'] = script_file
+                else:
+                    script_file = each_cron.get('script')
             else:
                 script_file = each_cron.get('script')
 
@@ -383,14 +386,13 @@ def edit_cron():
                     custom_frequency = request.form.get('customfreq')
                     try:
                         each_job.setall(f'{custom_frequency}')
-                    except KeyError or ValueError as err:
+                    except (KeyError, ValueError) as err:
                         custom_frequency = custom_frequency.replace(" ", "_")
                         return render_template('error.html', error="Custom Crontab Frequency Error",
                                                error_message=f"The custom job frequency that was presented is invalid:  '{err}'.  "
                                                              f"Please check your syntax and try again.\n"
                                                              f"Check your syntax:  ",
-                                               link=f"https://crontab.guru/#{custom_frequency}")
-
+                                               link=f"https://crontab.guru/#{custom_frequency}", username=str(escape(session['username'])))
             cron.write()
 
     with open(cron_json_file, 'w') as outfile:

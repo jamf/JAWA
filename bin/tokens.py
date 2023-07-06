@@ -44,7 +44,7 @@ def get_token():
         session['token'] = data.get('token')
         session['expires'] = data.get('expires')
     except Exception as err:
-        logthis.info("[{session.get('url')}] Could not get a token using session credentials.  Logging out.")
+        logthis.info(f"[{session.get('url')}] Could not get a token using session credentials.  Logging out.")
         return redirect(
             url_for('home_view.logout', error_title="Error Fetching API Token", error_message="Please sign in again"))
 

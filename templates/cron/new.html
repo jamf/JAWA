@@ -28,24 +28,24 @@
 {% extends "shared/_layout.html" %}
 {% block title %}New Timed Automation{% endblock %}
 {% block content %}
-    <div class="test-links sub_links sticky-top">
-        <div class="stat"><a href="/cron">All Timed Automations</a></div>
-        <div class="stat"><a href="{{ url_for('cron.new_cron') }}">New Timed Job</a></div>
-        <div class="stat"><a href="{{ url_for('cron.edit_cron') }}">Edit Timed Job</a></div>
-    </div>
-
-
+    <div>
+        <div class="test-links sub_links sticky-top" style="min-width: 100vw">
+            <div class="row">
+                <div class="stat p-2 col-sm"><a href="/home.html">Dashboard</a></div>
+                <div class="stat p-2 col-sm"><a href="/cron/new">New Timed Job</a></div>
+                <div class="stat p-2 col-sm"><a href="/cron">View</a></div>
+            </div>
+        </div>
     <div class="form-container">
         <form method="post" class="table-view" action="/cron/new" enctype="multipart/form-data">
             <h1>New Timed Job</h1>
-            <input type="text" class="form-control" placeholder="Name of Timed Job (cron task)" name="cron_name"
+            <input type="text" class="form-control text-center" placeholder="Name of Timed Job (cron task)" name="cron_name"
                    required autofocus pattern="[^' ']+"
-                   oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')"></br>
+                   oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')">
             <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
-                      class="form-control">{{ description }}</textarea><br>
-
-            <label class="form-check-label">Frequency:</label>
-            <select name="frequency" class="form-control"
+                      class="form-control text-center">{{ description }}</textarea>
+            <label class="form-check-label text-center">Frequency:</label>
+            <select name="frequency" class="form-control text-center"
                     onchange="java_script_:show(this.options[this.selectedIndex].value)">
                 <option value=""></option>
                 <option value="everyhour">Every Hour</option>
@@ -53,7 +53,7 @@
                 <option value="everyweek">Every Week</option>
                 <option value="everymonth">Every Month</option>
                 <option value="custom">Custom</option>
-            </select></br>
+            </select>
 
             <div id="hiddenDiv" style="display:none">
                 <label>At what time?</label>
@@ -64,7 +64,6 @@
                     {% endfor %}
                 </select>
             </div>
-
             <div id="hiddenDivTwo" style="display:none">
                 <label>On what day?</label>
                 <select name="weekday">
@@ -73,7 +72,6 @@
                         <option value="{{ day.cron }}">{{ day.value }}</option>
                     {% endfor %}
                 </select>
-                </br>
                 <label>At what time?</label>
                 <select name="weektime">
                     <option value=""></option>
@@ -119,7 +117,7 @@
                     <option value="30">30</option>
                     <option value="31">31</option>
                 </select>
-                </br>
+
                 <label>At what time?</label>
                 <select name="monthtime">
                     <option value=""></option>
@@ -128,29 +126,26 @@
                     {% endfor %}
                 </select>
             </div>
-
             <div id="hiddenDivFour" style="display:none">
             </div>
                  <div id="hiddenDivFive" style="display:none">
                      <label>Cron expression (<a href="https://crontab.guru" target="_blank">example</a>):</label>
                <input type="text" name="customfreq" pattern="^((((\d+,)+\d+|(\d+(\/|-|#)\d+)|\d+L?|\*(\/\d+)?|L(-\d+)?|\?|[A-Z]{3}(-[A-Z]{3})?) ?){5,7})$" title="Use a valid cron expression.">
             </div>
-            <div class="d-flex justify-content-center">
-                <br><b>Script: &nbsp</b>
-                <input type="file" name="script" required
-                       accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"
-                       oninvalid="this.setCustomValidity('A script is required. Spaces cannot be in the name of the script.')"></b>
+            <div class="d-flex justify-content-center text-center custom-file">
+                <input type="file" name="script" pattern="[^' ']+" required class="custom-file-input text-center"
+                                         title="No Spaces in the filename!" accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"
+                oninvalid="this.setCustomValidity('A script is required. Spaces cannot be in the name of the script.')">
+                <label class="custom-file-label text-center">Upload a script</label>
             </div>
-
             <div class="d-flex justify-content-center">
-                <input class="btn btn-secondary" type="submit" value="Create" style="margin: 5px; padding: 5px; width: 150px"/>
+                <input class="btn btn-jawa" type="submit" value="Create" style="margin: 5px; padding: 5px; width: 150px"/>
             </div>
         </form>
     </div>
 {% endblock %}
 {% block additional_js %}
     <script text="text/javascript">
-
         function show(aval) {
             if (aval == "everyday") {
                 hiddenDiv.style.display = 'inline-block';
@@ -190,6 +185,11 @@
                 hiddenDivFive.style.display = 'none';
             }
         }
-
+    </script>
+    <script type="application/javascript">
+        $('input[type="file"]').change(function (e) {
+            var fileName = e.target.files[0].name;
+            $('.custom-file-label').html(fileName);
+        });
     </script>
 {% endblock %}

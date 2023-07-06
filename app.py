@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
-# Copyright (c) 2022 Jamf.  All rights reserved.
+# Copyright (c) 2023 Jamf.  All rights reserved.
 #
 #       Redistribution and use in source and binary forms, with or without
 #       modification, are permitted provided that the following conditions are met:
@@ -30,8 +30,8 @@ import glob
 import json
 import os
 import uuid
-from datetime import timedelta
 
+from datetime import timedelta
 from flask import (Flask, request, render_template,
                    session, redirect, url_for, escape)
 from waitress import serve
@@ -43,7 +43,6 @@ from views.home_view import load_home
 # Flask logging
 logthis = logger.setup_child_logger('jawa', 'app')
 error_message = ""
-
 
 # Initiate Flask
 app = Flask(__name__)
@@ -109,12 +108,11 @@ def register_blueprints():
 
 
 # Server setup including making .json file necessary for webhooks
-
-
 @app.route('/setup', methods=['GET', 'POST'])
 def setup():
     if 'username' not in session:
-        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if request.method == 'POST':
         logthis.debug(f"[{session.get('url')}] {session.get('username')} /setup - POST")
         server_url = request.form.get('address')
@@ -174,19 +172,35 @@ def setup():
 @response(template_file="setup/cleanup.html")
 def cleanup():
     if 'username' not in session:
-        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     if request.method != 'POST':
-        return {"username": session.get('username'), "scripts_dir": scripts_directory}
+        owd = os.getcwd()
+        if not os.path.isdir(scripts_directory):
+            os.mkdir(scripts_directory)
+        os.chdir(scripts_directory)
+        old_scripts = glob.glob("*.old")
+        os.chdir(owd)
+        return {"username": session.get('username'), "scripts_dir": scripts_directory, "scripts": old_scripts}
     logthis.info(f"[{session.get('url')}] {session.get('username')} is cleaning up scripts...")
     owd = os.getcwd()
     if not os.path.isdir(scripts_directory):
         os.mkdir(scripts_directory)
     os.chdir(scripts_directory)
+    del_list = []
     for file in glob.glob("*.old"):
         logthis.info(f"[{session.get('url')}] {session.get('username')} removed the script {file}...")
+        del_list.append(f"{file}")
         os.remove(file)
     os.chdir(owd)
-    return redirect(url_for('success'))
+    if not del_list:
+        success_msg = "No Script files found to clean up."
+    else:
+        txt_list = "Deleted: \n"
+        for file in del_list:
+            txt_list += f"{file}\n"
+        success_msg = txt_list or "No script files found to clean up."
+    return redirect(url_for('success', success_msg=success_msg))
 
 
 @app.route("/")
@@ -195,15 +209,13 @@ def home():
 
 
 @app.route('/success', methods=['GET', 'POST'])
-def success():
+def success(success_msg=""):
     if 'username' not in session:
         logthis.info("No user logged in - returning to login page.")
-        return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
-    return render_template(
-        'success.html',
-        success_msg="",
-        login="true",
-        username=str(escape(session['username'])))
+        return redirect(
+            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
+    success_msg = request.args.get('success_msg')
+    return render_template('success.html', success_msg=success_msg, login="true", username=str(escape(session['username'])))
 
 
 @app.route('/error', methods=['GET', 'POST'])

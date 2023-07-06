@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
-# Copyright (c) 2022 Jamf.  All rights reserved.
+# Copyright (c) 2023 Jamf.  All rights reserved.
 #
 #       Redistribution and use in source and binary forms, with or without
 #       modification, are permitted provided that the following conditions are met:
@@ -48,7 +48,7 @@ verify_ssl = True
 blueprint = Blueprint('jamf_pro_webhooks', __name__)
 
 
-@blueprint.route('/webhooks/jamf', methods=['GET', 'POST'])
+@blueprint.route('/webhooks/jamf', methods=['GET'])
 @response(template_file='webhooks/jamf/home.html')
 def jamf_webhook():
     if 'username' not in session:
@@ -68,7 +68,7 @@ def jamf_webhook():
 
 
 @blueprint.route('/webhooks/jamf/new', methods=['GET', 'POST'])
-def jp_new():
+def jamf_pro_new():
     if 'username' not in session:
         return redirect(
             url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
@@ -241,8 +241,8 @@ def jp_new():
         result = re.search('<id>(.*)</id>', webhook_response.text)
         jamf_id = result.group(1)
         new_link = "{}/webhooks.html?id={}&o=r".format(session['url'], result.group(1))
-        logthis.info(f"{session.get('username')} created a new webhook:"
-                     f"Name: {request.form.get('name')}"
+        logthis.info(f"{session.get('username')} created a new webhook. "
+                     f"Name: {request.form.get('webhook_name')} "
                      f"Jamf link: {new_link}")
         custom_header = ""
         data = json.load(open(webhooks_file))
@@ -292,7 +292,7 @@ def jp_new():
 # Edit Existing Webhook
 @blueprint.route('/webhooks/jamf/edit', methods=['GET', 'POST'])
 @response(template_file='webhooks/jamf/edit.html')
-def edit():
+def jamf_pro_edit():
     if 'username' not in session:
         return redirect(
             url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
@@ -303,7 +303,6 @@ def edit():
     if not check_for_name:
         logthis.info(f"Webhook '{name}' not in json")
         return redirect(url_for('jamf_pro_webhooks.jamf_webhook'))
-    # GET
     webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
     if request.method == 'POST':
         button_choice = request.form.get('button_choice')
@@ -473,8 +472,8 @@ def edit():
                 jamf_id = result.group(1)
                 new_link = f"{format(session.get('url'))}/webhooks.html?id={jamf_id}&o=r"
                 success_msg = "Webhook edited:"
-                logthis.info(f"{session.get('username')} edited a Jamf webhook:"
-                             f"Name: {name}"
+                logthis.info(f"{session.get('username')} edited a Jamf webhook. "
+                             f"Name: {name} "
                              f"Jamf link: {new_link}")
                 return {"webhooks": "success", "smart_group_instructions": smart_group_instructions,
                         "smart_group_notice": smart_group_notice,

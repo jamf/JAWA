@@ -1,7 +1,8 @@
 #!/bin/bash
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
-# Copyright (c) 2022 Jamf.  All rights reserved.
+# Copyright (c) 2023 Jamf.  All rights reserved.
 #
 #       Redistribution and use in source and binary forms, with or without
 #       modification, are permitted provided that the following conditions are met:
@@ -44,19 +45,177 @@
 # - use root's crontab
 # - mv your certs (it uses cp instead)
 # - make the Kessel Run in 12 parsecs
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-/bin/echo "Initializing..."
-# Environment Check
-# Getting our bearings
-currentDir=$(pwd)
-installDir=$currentDir
-timenow=$(date +%m-%d-%y_%T)
+installPackagesUbuntu() {
+  /usr/bin/clear
+  echo -ne "[#####                  ](28%) Configuring and updating apt... "
+  echo -ne "[#####                  ](28%) Configuring and updating apt..." >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/apt-add-repository universe >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /usr/bin/apt-get update >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /usr/bin/clear
+  echo -ne '[######                  ](30%) Installing build tools from apt... '
+  echo '[######                  ](30%) Installing build tools from apt...' >>/var/log/jawaInstall.log 2>&1
+    /usr/bin/apt-get install -y -q build-essential git unzip zip nload tree >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
 
-# Checking for sudo
-if [ "$EUID" -ne 0 ]; then
-  echo "Please run as root"
-  exit 1
-fi
+  /usr/bin/clear
+  /bin/echo -ne '[#######                ](35%) Installing nginx from apt... '
+  /bin/echo '[#######                ](35%) Installing nginx... ' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/apt-get install -y -q nginx >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /usr/bin/clear
+  echo -ne '[########                ](40%) Installing python3-pip, python3-dev, and python3-venv from apt... '
+  echo '[########                ](40%) Installing python3-pip, python3-dev, and python3-venv from apt...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/apt-get install -y -q python3-pip python3-dev python3-venv >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+
+   # Stop the hackers
+  /usr/bin/clear
+  /bin/echo -ne '[#########               ](45%) Installing fail2ban from apt... '
+  /bin/echo '[#########               ](45%) Installing fail2ban from apt... ' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/apt install fail2ban -y -q >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+# For the bash inclined
+  /usr/bin/clear
+  /bin/echo -ne '[##########              ](50%) Installing jq from apt... '
+  /bin/echo '[##########              ](50%) Installing jq from apt... ' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/apt-get install -y -q jq >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /usr/bin/clear
+
+
+}
+
+installPackagesRedHat() {
+  /usr/bin/clear
+  echo -ne '[######                  ](30%) Installing git from yum... '
+  echo '[######                  ](30%) Installing git from yum...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/yum install -y git >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+/usr/bin/clear
+  echo -ne '[######                  ](31%) Installing unzip from yum... '
+  echo '[######                  ](31%) Installing unzip from yum...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/yum install -y unzip >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+/usr/bin/clear
+  echo -ne '[######                  ](32%) Installing zip from yum... '
+  echo '[######                  ](32%) Installing zip from yum...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/yum install -y zip >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+/usr/bin/clear
+  echo -ne '[######                  ](33%) Installing tree from yum... '
+  echo '[######                  ](33%) Installing tree from yum...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/yum install -y tree >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+/usr/bin/clear
+  echo -ne '[######                  ](34%) Installing epel-release from dnf... '
+  echo '[######                  ](34%) Installing epel-release from dnf...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/dnf install -y epel-release >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+
+  /usr/bin/clear
+  /bin/echo -ne '[#######                ](35%) Installing nginx from yum... '
+  /bin/echo '[#######                ](35%) Installing nginx... ' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/yum install -y nginx >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /usr/bin/clear
+  echo -ne '[########                ](40%) Installing python from yum... '
+  echo '[########                ](40%) Installing python from yum...' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/yum install -y python3 >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+
+ # Stop the hackers
+  /usr/bin/clear
+  /bin/echo -ne '[#########               ](45%) Installing fail2ban from yum... '
+  /bin/echo '[#########               ](45%)) Installing fail2ban from yum... ' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/dnf install fail2ban -y >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+# For the bash inclined
+  /usr/bin/clear
+  /bin/echo -ne '[##########              ](50%) Installing jq from yum... '
+  /bin/echo '[##########              ](50%) Installing jq from yum... ' >>/var/log/jawaInstall.log 2>&1
+  /usr/bin/yum install -y jq >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+}
+
+installPackages() {
+   local os=$(detect_os)
+
+    case $os in
+        "rocky" | "redhat")
+            installPackagesRedHat
+            ;;
+        "ubuntu")
+           installPackagesUbuntu
+            ;;
+        *)
+            echo "Unsupported operating system"
+            exit 1
+            ;;
+    esac
+}
+
+configure_nginx() {
+   local os=$(detect_os)
+    echo "Configuring nginx for $os">>/var/log/jawaInstall.log 2>&1
+    case $os in
+        "rocky" | "redhat")
+            configure_nginx_redhat
+            ;;
+        "ubuntu")
+           configure_nginx_ubuntu
+            ;;
+        *)
+            echo "Unsupported operating system"
+            exit 1
+            ;;
+    esac
+}
+
+# Function to detect the operating system
+detect_os() {
+    if [ -f /etc/redhat-release ]; then
+        release_info=$(cat /etc/redhat-release)
+        if [[ $release_info == *"Rocky"* ]]; then
+            echo "rocky"
+        else
+            echo "redhat"
+        fi
+    elif [ -f /etc/lsb-release ]; then
+        echo "ubuntu"
+    else
+        echo "unsupported"
+    fi
+}
+
+
+# Function to install Nginx based on the detected operating system
+configure_firewall() {
+    local os=$(detect_os)
+
+    case $os in
+        "rocky" | "redhat")
+            # RedHat | Rocky Firewall
+            /usr/bin/firewall-cmd --zone=public --add-port=443/tcp --permanent
+            /usr/bin/firewall-cmd --zone=public --add-port=22/tcp --permanent
+            ;;
+        "ubuntu")
+            # Ubuntu Firewall
+            ufw allow 22 >>/var/log/jawaInstall.log 2>&1
+            ufw allow 443 >>/var/log/jawaInstall.log 2>&1
+            ufwStatus=$(ufw status | grep -i status)
+            if [ "$ufwStatus" != "Status: active" ]; then
+              /bin/echo ""
+              /bin/echo ""
+              /bin/echo ""
+              /bin/echo "NOTE: the OS firewall is being enabled, and ports 22 (SSH) and 443 (JAWA) are being opened inbound.
+              If you use another port for SSH you should enable ufw manually and allow your custom port before proceeding with the installation."
+              ufw enable
+            fi
+            ;;
+        *)
+            echo "Unsupported operating system"
+            exit 1
+            ;;
+    esac
+}
+
+addToLog(){
+    ## Usage
+    ## addToLog <Text> <Log File>
+    logFile="${$1}"
+    fillerText="${$2}"
+
+    echo "$(date -j)" "$2" >> "$1"
+
+}
 
 timestamp() {
   /bin/echo ""
@@ -71,7 +230,19 @@ readme() {
   printf '\e[8;90;191t'
   /usr/bin/clear
 
-  /bin/echo "Hi! Welcome to the JAWA, we hope these are the droids you are looking for.
+  /bin/echo "A long time ago, in a GitHub repo far, far away...
+
+       __       ___   ____    __    ____  ___ 
+      |  |     /   \  \   \  /  \  /   / /   \  
+      |  |    /  ^  \  \   \/    \/   / /  ^  \ 
+.--.  |  |   /  /_\  \  \            / /  /_\  \  
+|  \`--'  |  /  _____  \  \    /\    / /  _____  \  
+ \______/  /__/     \__\  \__/  \__/ /__/     \__\  
+
+                        v3.1.0
+
+
+Welcome to the Jamf Automation and Webhook Assistant, we hope it provides the solution you are looking for.
 
 Please make sure you:
 
@@ -90,8 +261,7 @@ cancel() {
 install() {
   /usr/bin/clear
   # Variables
-  nginx_path="/etc/nginx/sites-available"
-  nginx_enabled="/etc/nginx/sites-enabled"
+
 
   x=0
 
@@ -112,33 +282,59 @@ install() {
     certsMenu
   fi
   /bin/cp ./{jawa.crt,jawa.key} /etc/ssl/certs/
-  # prompting for install dir
-
-  read -r -p "Where would you like to install JAWA? [Press RETURN for $installDir]:  " new_dir
-  while true; do
-    if [ "$new_dir" != "" ]; then
-
-      if [[ ${new_dir:0:1} == "/" ]]; then
-        installDir="$new_dir"
-      else
-        installDir="$currentDir/$new_dir"
-      fi
+  # checking for service
+  if [ -e /etc/systemd/system/jawa.service ]; then
+    status=$(/bin/systemctl is-active --quiet jawa && echo Service is running)
+    echo "$status"
+    if [ "$status" != "Service is running" ]; then
+      projectDir=$(systemctl status jawa.service | grep -i /jawa/app.py | awk '{ print $3 }' | rev | cut -c 17- | rev | sed 's/ExecStart=//g')
+    else
+      projectDir=$(systemctl status jawa.service | grep -i /jawa/app.py | awk '{ print $3 }' | rev | cut -c 7- | rev)
     fi
-    read -p "The jawa project directory will be created in $installDir
-       Please confirm [y|n]: " yn
+    installDir=$(dirname "$projectDir")
+    if [[ $installDir != "" ]]; then
+      installDir="/usr/local/"
+    fi
+    echo "JAWA directory detected at $installDir" >> /var/log/jawaInstall.log 2>&1
+    read -r -p "Existing JAWA detected - would you like to upgrade? [y/n]:  " yn
     case $yn in
     [Yy]*)
-
-      break
+      upgradeOption="yes"
       ;;
-    [Nn]*) read -r -p "Where would you like to install JAWA? [Press RETURN for $installDir]:  " new_dir ;;
+    [Nn]*) upgradeOption="no"
+      ;;
     *) echo "Please answer yes or no." ;;
     esac
-  done
+  fi
+  if [ "$upgradeOption" == "yes" ]; then
+    continue
+  else
+    # prompting for install directory
+    read -r -p "Where would you like to install JAWA? [Press RETURN for $installDir]:  " new_dir
+    while true; do
+      if [ "$new_dir" != "" ]; then
 
+        if [[ ${new_dir:0:1} == "/" ]]; then
+          installDir="$new_dir"
+        else
+          installDir="/usr/local/$new_dir"
+        fi
+      fi
+      read -p "The jawa project directory will be created in $installDir
+         Please confirm [y|n]: " yn
+      case $yn in
+      [Yy]*)
+
+        break
+        ;;
+      [Nn]*) read -r -p "Where would you like to install JAWA? [Press RETURN for $installDir]:  " new_dir ;;
+      *) echo "Please answer yes or no." ;;
+      esac
+    done
+  fi
   /usr/bin/clear
   echo -ne '[##                     ](10%) Reticulating splines... '
-  echo '[##                     ](10%) Reticulating splines' >>/var/log/jawaInstall.log 2>&1
+  echo '[##                     ](10%) Reticulating splines...' >>/var/log/jawaInstall.log 2>&1
   sleep 1 & spinner $! ""
   /usr/bin/clear
   echo -ne '[###                    ](15%) Creating jawa user... '
@@ -174,30 +370,19 @@ install() {
     /bin/mkdir -p "$installDir/jawa"
     /bin/chown -R jawa "$installDir/jawa"
   fi
+  # Install Packages
+  installPackages # 26-50%
 
-  # Install some OS dependencies:
+  # Firewall
   /usr/bin/clear
-  echo -ne "[#####                  ](28%) Configuring and updating apt... "
-  echo -ne "[#####                  ](28%) Configuring and updating apt..." >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/apt-add-repository universe >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
-  /usr/bin/apt-get update >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
-  /usr/bin/clear
-  echo -ne '[######                  ](30%) Installing build tools from apt... '
-  echo '[######                  ](30%) Installing build tools from apt...' >>/var/log/jawaInstall.log 2>&1
-    /usr/bin/apt-get install -y -q build-essential git unzip zip nload tree >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /bin/echo -ne '[###########             ](55%) Enabling firewall and opening ports 22 & 443... '
+  /bin/echo '[###########             ](55%) Enabling firewall and opening ports 22 & 443 ' >>/var/log/jawaInstall.log 2>&1
+  configure_firewall
 
-  /usr/bin/clear
-  /bin/echo -ne '[#######                ](35%) Installing nginx from apt... '
-  /bin/echo '[#######                ](35%) Installing nginx... ' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/apt-get install -y -q nginx >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
-  /usr/bin/clear
-  echo -ne '[########                ](40%) Installing python3-pip, python3-dev, and python3-venv from apt... '
-  echo '[########                ](40%) Installing python3-pip, python3-dev, and python3-venv from apt...' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/apt-get install -y -q python3-pip python3-dev python3-venv >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   #Python check
   /usr/bin/clear
-  /bin/echo -ne '[########                ](42%) Safety check... '
-  /bin/echo '[########                ](42%) Safety check ' >>/var/log/jawaInstall.log 2>&1
+  /bin/echo -ne '[###########             ](56%) Safety check... '
+  /bin/echo '[###########             ](56%) Safety check ' >>/var/log/jawaInstall.log 2>&1
   /bin/sleep 1  & spinner $! ""
   if [ -e /usr/bin/python3 ]; then
     /bin/echo "Python 3 installed." >>/var/log/jawaInstall.log 2>&1
@@ -218,96 +403,70 @@ install() {
 
 # change places!
   cd "$installDir"
+  # getting available branches
+#  branches=$(curl https://api.github.com/repos/jamf/jawa/branches | grep -i '"name":' | awk '{ print $2 }' | rev | cut -c 3- | rev | cut -c 2-)
+
+
   # cloning, like in that movie The Fly
   /usr/bin/clear
-  /bin/echo -ne '[#########               ](45%) Cloning the JAWA project from GitHub... '
-  /bin/echo '[#########               ](45%) Cloning the JAWA project from GitHub... ' >>/var/log/jawaInstall.log 2>&1
-  git clone https://github.com/jamf/JAWA.git jawa >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /bin/echo -ne '[############            ](60%) Cloning the JAWA project from GitHub... '
+  /bin/echo '[############            ](60%) Cloning the JAWA project from GitHub... ' >>/var/log/jawaInstall.log 2>&1
+
+  git clone --branch "$branch" https://github.com/jamf/JAWA.git jawa >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   # Restore backup?
   /usr/bin/clear
-  /bin/echo -ne '[##########              ](50%) Checking for backups... '
-  /bin/echo '[##########              ](50%) Checking for backups... ' >>/var/log/jawaInstall.log 2>&1
+  /bin/echo -ne '[#############           ](64%) Checking for backups... '
+  /bin/echo '[#############           ](64%) Checking for backups... ' >>/var/log/jawaInstall.log 2>&1
   /bin/sleep 1  & spinner $! ""
 if [ -d "$currentDir/jawabackup-$timenow" ]; then
     while true; do
       /bin/echo ""
-      read -p "Do you wish to restore your backup ($backupJAWA)  [y|n]: " yn
-      case $yn in
-      [Yy]*)
-        if [ -d "$currentDir/jawabackup-$timenow/v2/" ]; then
-          if [ -e "$currentDir/jawabackup-$timenow/v2/cron.json" ]; then
-            /bin/echo "Migrating cron..."
-            /bin/cp "$currentDir/jawabackup-$timenow/v2/cron.json" "$currentDir/jawabackup-$timenow/data/"
-          fi
-          if [ -e "$currentDir/jawabackup-$timenow/v2/webhook.conf" -o "$currentDir/jawabackup-$timenow/v2/jp_webhooks.json" ]; then
-            /bin/echo "Migrating webhooks..."
-            /usr/bin/python3 "$installDir/jawa/bin/v2_upgrade.py" "$currentDir/jawabackup-$timenow" >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
-          fi
-        fi
-        /bin/cp -R "$currentDir/jawabackup-$timenow/data/" $installDir/jawa/
-        /bin/cp -R "$currentDir/jawabackup-$timenow/resources/" $installDir/jawa/
-        /bin/cp -R "$currentDir/jawabackup-$timenow/scripts/" $installDir/jawa/
-        /bin/cp -R "$currentDir/jawabackup-$timenow/jawa_icon.png" $installDir/jawa/static/img/jawa_icon.png
+      if [ "$upgradeOption" == "yes" ]; then
+        restoreBackup $currentDir $installDir
+        break
+      else
+        read -p "Do you wish to restore your backup ($backupJAWA)  [y|n]: " yn
+        case $yn in
+        [Yy]*)
+        restoreBackup $currentDir $installDir
         break
         ;;
       [Nn]*) break ;;
       *) echo "Please answer yes or no." ;;
-      esac
+        esac
+      fi
     done
   fi
   # for gzip support in uwsgi
   #/usr/bin/apt-get install --no-install-recommends -y -q libpcre3-dev libz-dev
 
-  # Stop the hackers
-  /usr/bin/clear
-  /bin/echo -ne '[###########             ](55%) Installing fail2ban from apt... '
-  /bin/echo '[###########             ](55%) Installing fail2ban from apt... ' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/apt install fail2ban -y -q >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
-# For the bash inclined
-  /usr/bin/clear
-  /bin/echo -ne '[############            ](60%) Installing jq from apt... '
-  /bin/echo '[############            ](60%) Installing jq from apt... ' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/apt-get install -y -q jq >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
-  /usr/bin/clear
   /bin/echo -ne '[#############           ](65%) Setting permissions for $installDir/jawa... '
   /bin/echo '[#############           ](65%) Setting permissions for $installDir/jawa ' >>/var/log/jawaInstall.log 2>&1
   chown -R jawa "$installDir/jawa" & spinner $! ""
-  /usr/bin/clear
-  /bin/echo -ne '[##############          ](70%) Enabling firewall and opening ports 22 & 443... '
-  /bin/echo '[##############          ](70%) Enabling firewall and opening ports 22 & 443 ' >>/var/log/jawaInstall.log 2>&1
-  ufw allow 22 >>/var/log/jawaInstall.log 2>&1
-  ufw allow 443 >>/var/log/jawaInstall.log 2>&1
-  ufwStatus=$(ufw status | grep -i status)
-  if [ "$ufwStatus" != "Status: active" ]; then
-    /bin/echo ""
-    /bin/echo ""
-    /bin/echo ""
-    /bin/echo "NOTE: the OS firewall is being enabled, and ports 22 (SSH) and 443 (JAWA) are being opened inbound.
-    If you use another port for SSH you should enable ufw manually and allow your custom port before proceeding with the installation."
-    ufw enable
-  fi
-  /usr/bin/clear
+
+
+   /usr/bin/clear
   # Create a venv for the app
   cd "$installDir/jawa"
   /usr/bin/clear
-  /bin/echo -ne '[###############         ](75%) Creating venv... '
-  /bin/echo '[###############         ](75%) Creating venv... ' >>/var/log/jawaInstall.log 2>&1
+  /bin/echo -ne '[##############          ](70%) Creating venv... '
+  /bin/echo '[##############          ](70%) Creating venv... ' >>/var/log/jawaInstall.log 2>&1
   python3 -m venv venv & spinner $! ""
   chown -R jawa "$installDir/jawa/venv"
   source "$installDir/jawa/venv/bin/activate"
   /usr/bin/clear
   /bin/echo -ne '[###############         ](75%) Upgrading pip and setuptools in venv... '
   /bin/echo '[###############         ](75%) Upgrading pip and setuptools in venv... ' >>/var/log/jawaInstall.log 2>&1
-  python -m pip install --upgrade pip setuptools >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  "$installDir/jawa/venv/bin/python" -m pip install --upgrade pip setuptools >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   /usr/bin/clear
   /bin/echo -ne '[################        ](80%) pip installing support modules (httpie and glances) in venv... '
   /bin/echo '[################        ](80%) pip installing support modules (httpie and glances) in venv... ' >>/var/log/jawaInstall.log 2>&1
-  python -m pip install --upgrade httpie glances >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  "$installDir/jawa/venv/bin/python" -m pip install --upgrade httpie glances >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   # flask requirements
   /usr/bin/clear
   /bin/echo -ne '[#################       ](85%) pip installing jawa requirements.txt file in venv... '
   /bin/echo '[#################       ](85%) pip installing jawa requirements.txt file in venv... ' >>/var/log/jawaInstall.log 2>&1
-  python -m pip install -r "$installDir/jawa/requirements.txt" >>/var/log/jawaInstall.log 2>&1 & spinner $! "" #
+  "$installDir/jawa/venv/bin/python" -m pip install -r "$installDir/jawa/requirements.txt" >>/var/log/jawaInstall.log 2>&1 & spinner $! "" #
   #pip install --upgrade uwsgi
   /usr/bin/clear
   /bin/echo -ne '[##################      ](90%) Creating jawa service in systemd... '
@@ -338,56 +497,7 @@ EOF
   /usr/bin/clear
   /bin/echo -ne '[###################     ](95%) Creating nginx configuration file... '
   /bin/echo '[###################     ](95%) Creating nginx configuration file ' >>/var/log/jawaInstall.log 2>&1
-  # Creating the nginx site
-  if [ -e ${nginx_path}/jawa ]; then
-    rm -f ${nginx_enabled}/jawa
-    rm -f ${nginx_path}/jawa
-  fi
-  cat <<EOF >>${nginx_path}/jawa
-    server {
-        #listen 80 default_server;
-        #listen [::]:80 default_server;
-
-        # SSL configuration
-        #
-         listen 443 ssl default_server;
-         listen [::]:443 ssl default_server;
-        #
-        ssl_certificate /etc/ssl/certs/jawa.crt;
-        ssl_certificate_key /etc/ssl/certs/jawa.key;
-
-        server_name localhost;
-        server_name_in_redirect off;
-        location / {
-                # First attempt to serve request as file, then
-                proxy_pass http://localhost:8000;
-                proxy_redirect     off;
-                proxy_set_header   Host                 \$host;
-                proxy_set_header   X-Real-IP            \$remote_addr;
-                proxy_set_header   X-Forwarded-For      \$proxy_add_x_forwarded_for;
-                proxy_set_header   X-Forwarded-Proto    \$scheme;
-        }
-}
-EOF
-
-  # Enabling nginx
-  /bin/ln -s ${nginx_path}/jawa ${nginx_enabled}
-
-  if [ -e ${nginx_path}/default ]; then
-    while true; do
-      /bin/echo ""
-      read -p "Do you wish to remove the default nginx configuration file (recommended) [y|n]: " yn
-      case $yn in
-      [Yy]*)
-        rm -rf /etc/nginx/sites-available/default
-        rm -rf /etc/nginx/sites-enabled/default
-        break
-        ;;
-      [Nn]*) break ;;
-      *) echo "Please answer yes or no." ;;
-      esac
-    done
-  fi
+  configure_nginx
   /usr/bin/clear
   # Enabling and starting all services
   /bin/echo -ne '[####################    ](96%) Restarting services... \r'
@@ -479,7 +589,7 @@ uninstall() {
     /bin/echo "Removing JAWA directory..." >>/var/log/jawaInstall.log 2>&1
     rm -rf "$installDir/jawa"
     /bin/echo "JAWA directory removed." >>/var/log/jawaInstall.log 2>&1
-    /bin/echo "These aren't the droids you're looking for." >>/var/log/jawaInstall.log 2>&1
+    /bin/echo "These aren't the automatons you're looking for." >>/var/log/jawaInstall.log 2>&1
     /bin/echo "You can go about your business." >>/var/log/jawaInstall.log 2>&1
     /bin/echo "Move along." >>/var/log/jawaInstall.log 2>&1
     #    /bin/sleep 3
@@ -687,5 +797,167 @@ upgradeFromV2() {
 
 }
 
+restoreBackup() {
+          local currentDir=$1
+          local installDir=$2
+          if [ -d "$currentDir/jawabackup-$timenow/v2/" ]; then
+            if [ -e "$currentDir/jawabackup-$timenow/v2/cron.json" ]; then
+              /bin/echo "Migrating cron..."
+              /bin/cp "$currentDir/jawabackup-$timenow/v2/cron.json" "$currentDir/jawabackup-$timenow/data/"
+            fi
+            if [ -e "$currentDir/jawabackup-$timenow/v2/webhook.conf" -o "$currentDir/jawabackup-$timenow/v2/jp_webhooks.json" ]; then
+              /bin/echo "Migrating webhooks..."
+              /usr/bin/python3 "$installDir/jawa/bin/v2_upgrade.py" "$currentDir/jawabackup-$timenow" >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+            fi
+          fi
+        /bin/cp -R "$currentDir/jawabackup-$timenow/data/" $installDir/jawa/
+        /bin/cp -R "$currentDir/jawabackup-$timenow/resources/" $installDir/jawa/
+        /bin/cp -R "$currentDir/jawabackup-$timenow/scripts/" $installDir/jawa/
+        /bin/cp -R "$currentDir/jawabackup-$timenow/jawa_icon.png" $installDir/jawa/static/img/jawa_icon.png
+}
+
+
+# Function to install Nginx on Red Hat-based distributions
+configure_nginx_redhat() {
+  cat << EOF > /etc/nginx/conf.d/jawa.conf
+
+upstream jawa {
+    server 0.0.0.0:8000       weight=5;
+}
+server {
+        #listen 80 default_server;
+        #listen [::]:80 default_server;
+
+        # SSL configuration
+        #
+         listen 443 ssl default_server;
+         listen [::]:443 ssl default_server;
+        #
+        ssl_certificate /etc/ssl/certs/jawa.crt;
+        ssl_certificate_key /etc/ssl/certs/jawa.key;
+
+        server_name localhost;
+        server_name_in_redirect off;
+        location / {
+                # First attempt to serve request as file, then
+                proxy_pass http://jawa;
+                proxy_redirect     off;
+                proxy_set_header   Host                 \$host;
+                proxy_set_header   X-Real-IP            \$remote_addr;
+                proxy_set_header   X-Forwarded-For      \$proxy_add_x_forwarded_for;
+                proxy_set_header   X-Forwarded-Proto    \$scheme;
+        }
+ location /static {
+       alias "$installDir/jawa/static";
+   }
+}
+EOF
+}
+
+
+# Function to install Nginx on Ubuntu-based distributions
+configure_nginx_ubuntu() {
+    nginx_path="/etc/nginx/sites-available"
+    nginx_enabled="/etc/nginx/sites-enabled"
+    # Creating the nginx site
+    if [ -e ${nginx_path}/jawa ]; then
+      rm -f ${nginx_enabled}/jawa
+      rm -f ${nginx_path}/jawa
+    fi
+    cat << EOF > ${nginx_path}/jawa
+      server {
+          #listen 80 default_server;
+          #listen [::]:80 default_server;
+
+          # SSL configuration
+          #
+           listen 443 ssl default_server;
+           listen [::]:443 ssl default_server;
+          #
+          ssl_certificate /etc/ssl/certs/jawa.crt;
+          ssl_certificate_key /etc/ssl/certs/jawa.key;
+
+          server_name localhost;
+          server_name_in_redirect off;
+          location / {
+                  # First attempt to serve request as file, then
+                  proxy_pass http://localhost:8000;
+                  proxy_redirect     off;
+                  proxy_set_header   Host                 \$host;
+                  proxy_set_header   X-Real-IP            \$remote_addr;
+                  proxy_set_header   X-Forwarded-For      \$proxy_add_x_forwarded_for;
+                  proxy_set_header   X-Forwarded-Proto    \$scheme;
+          }
+      }
+
+EOF
+
+    # Enabling nginx
+    /bin/ln -s ${nginx_path}/jawa ${nginx_enabled}
+
+    if [ -e ${nginx_path}/default ]; then
+      while true; do
+        /bin/echo ""
+        read -p "Do you wish to remove the default nginx configuration file (recommended) [y|n]: " yn
+        case $yn in
+        [Yy]*)
+          rm -rf /etc/nginx/sites-available/default
+          rm -rf /etc/nginx/sites-enabled/default
+          break
+          ;;
+        [Nn]*) break ;;
+        *) echo "Please answer yes or no." ;;
+        esac
+      done
+    fi
+}
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#
+#                                            Application
+#
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+/bin/echo "Initializing..."
+# Environment Check
+# Getting our bearings
+currentDir=$(pwd)
+installDir=/usr/local
+timenow=$(date +%m-%d-%y_%T)
+
+#branch="master"  # Default branch name if no arguments are provided
+​
+while [[ $# -gt 0 ]]; do
+  key="$1"
+​
+  case $key in
+    b|branch)
+      branch="$2"
+      shift 2  # Shift to the next argument
+      ;;
+    *)
+      # Handle unknown options or arguments
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
+​
+# If no branch argument was provided, default to "develop"
+if [ -z "$branch" ]; then
+  branch="master"
+fi
+​
+
+
+# Checking for sudo
+if [ "$EUID" -ne 0 ]; then
+  echo "Please run as root"
+  exit 1
+fi
+
 readme
 displayMenu
+
+
+

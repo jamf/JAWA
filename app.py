@@ -33,7 +33,8 @@ import uuid
 
 from datetime import timedelta
 from flask import (Flask, request, render_template,
-                   session, redirect, url_for, escape)
+                   session, redirect, url_for)
+from markupsafe import escape
 from waitress import serve
 
 from bin import logger

@@ -122,6 +122,9 @@
                     <option value="MobileDeviceEnrolled" {% if webhook_info[0]['event'] == "MobileDeviceEnrolled" %}
                             selected {% endif %}>MobileDeviceEnrolled
                     </option>
+                    <option value="MobileDeviceInventoryComplete" {% if webhook_info[0]['event'] == "MobileDeviceInventoryComplete" %}
+                            selected {% endif %}>MobileDeviceInventoryComplete
+                    </option>
                     <option value="MobileDevicePushSent" {% if webhook_info[0]['event'] == "MobileDevicePushSent" %}
                             selected {% endif %}>MobileDevicePushSent
                     </option>

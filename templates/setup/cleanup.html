@@ -1,6 +1,6 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {###}
-{## Copyright (c) 2022 Jamf.  All rights reserved.#}
+{## Copyright (c) 2023 Jamf.  All rights reserved.#}
 {###}
 {##       Redistribution and use in source and binary forms, with or without#}
 {##       modification, are permitted provided that the following conditions are met:#}
@@ -29,7 +29,8 @@
 {% extends "shared/_layout.html" %}
 {% block title %}Cleanup Scripts{% endblock %}
 {% block content %}
-    <div class="test-links sub_links sticky-top">
+    <div>
+        <div class="test-links sub_links sticky-top" style="min-width: 100vw">
         <div class="stat"><a href="/setup">Setup</a></div>
         <div class="stat"><a href="/cleanup">Cleanup</a></div>
         <div class="stat"><a href="/branding">Branding</a></div>
@@ -38,18 +39,29 @@
 
     <form method="post" action="/cleanup" class="table-view overflow-auto" enctype="multipart/form-data"
           style="max-height: 66vh; max-width: 66vh">
-        <h1>Cleanup</h1>
+        <h1 class="text-center">Cleanup</h1>
+{#        <p class="text-center">- Click "Clean Up!" to remove all old scripts.#}
+{#        - Old scripts are scripts kept as an archive file with the extension ".old".</br>#}
+{#            - All scripts are housed in </p> #}
+        <pre class="pre-scrollable alert-link alert-secondary text-center">{{ scripts_dir }}</pre>
+        <br/>
+        <h6 class="text-center">
+            {% if scripts %}
+                The following old scripts will be deleted:
+            {% else %}
+                The scripts directory has no scripts to be cleaned up.
+            {% endif %}
+        </h6>
+        {% for script in scripts %}
+            <p class="text-center">
 
+            {{ script }}
 
-        Notes:</br>
-        <p>- Click "Clean Up!" to remove all old scripts. </br>
-        - Old scripts are scripts kept as an archive file with the extension ".old".</br>
-            - All scripts are housed in </p> <pre class="pre-scrollable alert-link alert-secondary">{{ scripts_dir }}</pre>
-
-
+            </p>
+        {% endfor %}
         <div class="col-xs-12 button-holder">
                         <div class="ajax-button">
-                            <input class="btn btn-primary" type="submit" value="Clean Up!"/>
+                            <input class="btn btn-jawa" type="submit" value="Clean Up!"/>
                         </div>
                     </div>
 

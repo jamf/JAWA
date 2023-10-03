@@ -29,11 +29,12 @@
 {% extends "shared/_layout.html" %}
 {% block title %}JAWA Login{% endblock %}
 {% block content %}
+<div class="d-flex justify-content-center">
+<div class="alert login-form-container overflow-auto mx-auto my-auto">
 
-<div class="form-container"><br><br><br>
     <form action="/login" class="table-view" method="post">
         <div class="d-flex justify-content-center">
-            <div style="max-width: 15vh">
+            <div style="max-width: 90%">
                 <img src="{{ url_for('static', filename='img/jawa_icon.png') }}" class="img-fluid"></div>
         </div>
         <h1 class="d-flex justify-content-center">{% if app_name %}{{ app_name }}{% else %}{% endif %}</h1>
@@ -41,7 +42,7 @@
         <br>
         <div class="alert alert-warning text-center">Authentication Failed <br>
             {% autoescape false %}
-            <div class="text-wrap" style="word-break: break-all;">{{ error_title }}
+            <div class="text-wrap" style="word-break: break-word;">{{ error_title }}
                 - {{ error_message.replace('(',' ').replace(')', '').replace('https', '<br/>https') }}</div>
             {% endautoescape %}
         </div>
@@ -49,27 +50,27 @@
         {% endif %}
         {% if jsslock %}
             {% if jps_url2 %}
-                Choose your JPS instance:
-                <select class="form-control" name="active_url" id="active_url">
+                <select class="form-control text-center" name="active_url" id="active_url">
                     <option value="{{ jps_url }}">{{ jps_url }}</option>
                     <option value="{{ jps_url2 }}">{{ jps_url2 }}</option>
                 </select>
             {% endif %}
         {% else %}
             <input name="url" type="url" placeholder="Jamf Pro URL" pattern="https?://.+" title="Use https://" required
-                   class="form-control" autofocus>
+                   class="form-control text-center" autofocus>
         {% endif %}
-        <input name="username" type="text" placeholder="Username" required class="form-control" autofocus>
-        <input name="password" type="password" placeholder="Password" required class="form-control">
+        <input name="username" type="text" placeholder="Username" required class="form-control text-center" autofocus>
+        <input name="password" type="password" placeholder="Password" required class="form-control text-center">
 
         <p>
         <div class="d-flex justify-content-center">
-            <input class="btn btn-primary" type=submit value=Login>
+            <input class="btn btn-jawa" type=submit value=Login>
         </div>
         </p>
-        <p>Please read the <a href="https://github.com/jamf/jawa/blob/master/README.md" style="color:#3c6aa7;"
+        <p class="text-center">Please read the <a href="https://github.com/jamf/jawa/blob/master/README.md"
                               target="_blank">documentation</a> prior to using JAWA!</p>
 
     </form>
-    {% endblock %}
 </div>
+
+    {% endblock %}

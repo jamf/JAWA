@@ -29,37 +29,36 @@
 {% extends "shared/_layout.html" %}
 {% block title %}Success!{% endblock %}
 {% block content %}
-    <div class="test-links sub_links sticky-top">
+    <div>
+        <div class="test-links sub_links sticky-top" style="min-width: 100vw">
         <div class="stat"><a href="/dashboard">JAWA Dashboard</a></div>
-        <div class="stat">Success</a></div>
     </div>
     <div class="form-container">
-    <form method="get" class="table-view" action="/dashboard">
-        <h3 class="alert-success">Success!</h3>
-        <div class="  overflow-auto" style="max-width: 100vh">
-            <p>
+    <form method="get" class="table-view success-view" action="/dashboard">
+        <h3 class="alert-jawa border text-center">Success!</h3>
+        <div class="success-view success-form success-wrap overflow-auto" style="max-width: 100vh">
+            <p class="text-center">
                 {% for each_line in success_msg.split('\n') %}
-                {{ each_line }}<br>
+                {{ each_line }}<br/>
                 </p>
             {% endfor %}
             {% if smart_group_notice %}
-                <p><b>{{ smart_group_notice }}</b> <br> {{ smart_group_instructions }}</p>
+                <p class="text-center"><b>{{ smart_group_notice }}</b> <br/> {{ smart_group_instructions }}</p>
             {% endif %}
             <p><a href="{{ new_link }}" style="color:#3c6aa7;" target="_blank">{{ new_here }}</a></p>
             {% if extra_notice %}
-                <p>{{ extra_notice }}</p>
+                <p class="text-center">{{ extra_notice }}</p>
             {% endif %}
         {%  if custom_header %}
-
-            <pre class="alert-warning"><div class="d-flex justify-content-center">{{ custom_header }}</div></pre>
+            <pre class="success-form font-weight-bolder" style="text-wrap: balance"><div class="d-flex justify-content-center">{{ custom_header }}</div></pre>
         {% endif %}
-            </br></br>
-
+        </div>
             <div class="d-flex justify-content-center">
-                <button type="submit" class="btn btn-secondary">
-                    Dashboard<i class="fa fa-templates" aria-hidden="true"></i>
+                <a type=submit onclick="history.back(-1)" value=Back
+                       class="btn btn-secondary button-align">&laquo;Back</a>
+                <button type="submit" class="btn btn-jawa">
+                    Dashboard<i class="fa" aria-hidden="true"></i>
                 </button>
             </div>
-
     </form>
 {% endblock %}

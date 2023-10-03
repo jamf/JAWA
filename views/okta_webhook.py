@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
-# Copyright (c) 2022 Jamf.  All rights reserved.
+# Copyright (c) 2023 Jamf.  All rights reserved.
 #
 #       Redistribution and use in source and binary forms, with or without
 #       modification, are permitted provided that the following conditions are met:
@@ -28,8 +28,9 @@
 
 from collections import defaultdict
 import json
-from flask import (Blueprint, escape, redirect, render_template,
+from flask import (Blueprint, redirect, render_template,
                    request, session, url_for)
+from markupsafe import escape
 import os
 import requests
 from werkzeug.utils import secure_filename
@@ -61,8 +62,6 @@ def okta_webhook():
         tag = data['tag']
         if tag == "okta":
             okta_webhooks_list.append(each_webhook)
-    print(okta_webhooks_list)
-
     return {'key': "Have a good weekend my dude.", 'username': session.get('username'),
             'okta_list': okta_webhooks_list}
 
@@ -72,8 +71,6 @@ def okta_new():
     if 'username' not in session:
         return redirect(url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     os.chmod(okta_verification_file, mode=0o0755)
-    # okta_json = '/usr/local/jawa/okta_json.json'
-
     if not os.path.isfile(webhooks_file):
         data = []
         with open(webhooks_file, 'w') as outfile:
@@ -92,10 +89,6 @@ def okta_new():
                                error_message=error_message,
                                error="error",
                                username=str(escape(session['username'])))
-
-    # if not os.path.isdir('/usr/local/jawa/'):
-    #     os.mkdir('/usr/local/jawa/')
-
     if not os.path.isdir(scripts_dir):
         os.mkdir(scripts_dir)
 
@@ -116,16 +109,11 @@ def okta_new():
     f.save(secure_filename(f.filename))
 
     old_script_file = os.path.join(scripts_dir, f.filename)
-
-    # hooks_file = '/etc/webhooks.conf'
     data = json.load(open(webhooks_file))
-
     new_id = okta_name
     script_file = os.path.join(scripts_dir, okta_name + "_" + f.filename)
-
     os.rename(old_script_file, script_file)
     new_file = script_file
-
     okta_info = json.load(open(webhooks_file))
     os.chdir(owd)
     for i in data:
@@ -166,15 +154,16 @@ def okta_new():
     data = json.dumps(data, indent=4)
 
     # Makes hook in Okta, gets id
-    response = requests.post(okta_server + '/api/v1/eventHooks',
-                             headers={
-                                 'Accept': 'application/json',
-                                 "Authorization": "SSWS {}".format(okta_token),
-                                 'Content-Type': 'application/json'},
-                             data=data)
-    print(response.status_code, response.text)
-    response_json = response.json()
-    print(response_json)
+    resp = requests.post(
+        f'{okta_server}/api/v1/eventHooks',
+        headers={
+            'Accept': 'application/json',
+            "Authorization": f"SSWS {okta_token}",
+            'Content-Type': 'application/json',
+        },
+        data=data,
+    )
+    response_json = resp.json()
     okta_id = response_json.get('id')
 
     okta_info.append({"name": okta_name,
@@ -192,15 +181,15 @@ def okta_new():
             json.dump(okta_info, outfile, indent=4)
 
     # Verify/activate
-    response = requests.post(okta_server + '/api/v1/eventHooks/{}/lifecycle/verify'.format(okta_id),
-                             headers={"Authorization": "SSWS {}".format(okta_token)})
-
-    verification = response.json()
+    resp = requests.post(
+        f'{okta_server}/api/v1/eventHooks/{okta_id}/lifecycle/verify',
+        headers={"Authorization": f"SSWS {okta_token}"})
+    verification = resp.json()
     if 'errorCode' in verification:
-        error_message = "Verification failed...try again!"
+        error_message = "Okta was unable to verify the webhook.  Check network settings."
         return render_template('error.html',
                                error_message=error_message,
-                               error="error",
+                               error="Event Verification Error",
                                username=str(escape(session['username'])))
 
     return render_template('success.html', username=session.get('username'), login="true",

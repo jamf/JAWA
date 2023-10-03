@@ -1,6 +1,6 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {###}
-{## Copyright (c) 2022 Jamf.  All rights reserved.#}
+{## Copyright (c) 2023 Jamf.  All rights reserved.#}
 {###}
 {##       Redistribution and use in source and binary forms, with or without#}
 {##       modification, are permitted provided that the following conditions are met:#}
@@ -29,24 +29,26 @@
 {% extends "shared/_layout.html" %}
 {% block title %}New Jamf Pro Webhook{% endblock %}
 {% block content %}
-    <div class="test-links sub_links sticky-top">
-        <div class="stat"><a href="/webhooks">All Webhooks</a></div>
-        <div class="stat"><a href="/webhooks/jamf/new">Create</a></div>
-        <div class="stat"><a href="/webhooks/jamf">View</a></div>
+<div>
+    <div class="test-links sub_links sticky-top" style="min-width: 100vw">
+        <div class="row">
+            <div class="stat p-2 col-sm"><a href="/webhooks">All Webhooks</a></div>
+            <div class="stat p-2 col-sm"><a href="/webhooks/jamf/new">Create</a></div>
+            <div class="stat p-2 col-sm"><a href="/webhooks/jamf">View</a></div>
+        </div>
     </div>
     <div class="form-container">
-        <form method="post" action="/webhooks/jamf/new" class="table-view overflow-auto" enctype="multipart/form-data"
-              style="max-height: 66vh; max-width: 66vh">
+        <form method="post" action="/webhooks/jamf/new" class="table-view overflow-auto" enctype="multipart/form-data">
             <h1>New Jamf Pro Webhook</h1>
             <input name="webhook_name" type="text" pattern="[^' ']+" placeholder="New Webhook Name (no spaces)" required
-                   title="No spaces, please." class="form-control" value="{{ name }}" autofocus>
+                   title="No spaces, please." class="form-control text-center" value="{{ name }}" autofocus>
             {% if error %}
-                <div class="alert-danger">{{ error }}</div>
+                <div class="alert-danger text-center">{{ error }}</div>
             {% endif %}
-            <div class="d-flex justify-content-center">
+            <div class="d-flex justify-content-center text-center">
                 <b>Jamf Event:</b>
             </div>
-            <select class="form-control" name="event"
+            <select class="form-control text-center" name="event"
                     onchange="java_script_:show(this.options[this.selectedIndex].value)"
                     required>
                 <option value=""></option>
@@ -75,69 +77,55 @@
                 <option value="SmartGroupUserMembershipChange">SmartGroupUserMembershipChange</option>
             </select>
 
-            <div id="hiddenDiv" style="display:none">
+            <div id="hiddenDiv" class="text-center" style="display:none">
                 * Note: If utilizing the event for Smart Group Membership Change, after submitting, navigate to the <a
                     href="{{ url }}/webhooks.html" style="color:#3c6aa7;" target="_blank">Webhooks</a> setting in Jamf
                 Pro
                 and adjust the proper Smart Group for this Webhook.
             </div>
-            </br>
-            <!--       Smart Mobile Device Group:</br>
-      <select name="mobile_device_group">
-        {% for group in found_mobile_device_groups %}
-        <option value="{{group.id}}">{{group.name}}</option>
-        {% endfor %}
-      </select></br></br>
-
-      Smart Computer Group:</br>
-      <select name="computer_group">
-        {% for group in found_computer_groups %}
-        <option value="{{group.id}}">{{group.name}}</option>
-        {% endfor %}
-      </select></br></br>
-       -->
             <textarea name="description" rows=3 type="text" placeholder="Description (optional)"
-                      class="form-control">{{ description }}</textarea>
+                      class="form-control text-center">{{ description }}</textarea>
 
-            <div class="d-flex justify-content-center">
-                Script file: &nbsp<input type="file" name="new_file" pattern="[^' ']+" required
-                                         title="No Spaces in the filename!"
-                                         accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"/></b></div>
+            <div class="d-flex justify-content-center text-center custom-file">
+                <input type="file" name="new_file" pattern="[^' ']+" required class="custom-file-input text-center"
+                                         title="No Spaces in the filename!" accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"/>
+                <label class="custom-file-label text-center">Upload a script</label>
+            </div>
             <div class="d-flex justify-content-center">
                 <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>, <a
                         href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>] </p></div>
             <div class="d-flex justify-content-center"><label>
-                <input type="radio" class="form-check-input" name="choice" value="basic"
-                       onchange="java_script_:show(this.value)">
-            </label><b>Basic Authentication (optional):</b></div>
+                <input type="radio" name="choice" value="basic"
+                       onchange="java_script_:show(this.value)"> &nbsp;
+            </label>
+                <b>Basic Authentication (optional):</b>
+            </div>
             <div class="d-flex justify-content-center">
                 <div id="hiddenDiv2" style="display:none" class="center_box">
                     <div class="d-flex justify-content-center">
-                    <input class="form-control-sm" name="username" title="Username (optional)"
-                           placeholder="Username (optional)">
-                    </b>
-                    <input name="password" class="form-control-sm" type='password' title="Password (optional)"
-                           placeholder="Password (optional)"></div></div>
+                        <input class="form-control-sm" name="username" title="Username (optional)"
+                               placeholder="Username (optional)" style="padding: unset">
+                        </b>
+                        <input name="password" class="form-control-sm" type='password' title="Password (optional)"
+                               placeholder="Password (optional)" style="padding: unset">
+                    </div>
+                </div>
             </div>
-                <div class="d-flex justify-content-center"><label>
-                    <input type="radio" class="form-check-input" name="choice" value="custom"
-                           onchange="java_script_:show(this.value)">
-                </label><b>Custom Authentication (optional):</b></div>
-                <div class="d-flex justify-content-center">
-                    <div id="hiddenDiv3" style="display:none">
-                        <input name="api_key" class="form-control-sm"  title="x-api-key (optional)"
-                               placeholder="x-api-key value (optional)"></div>
-                </div>
-
-                <div class="d-flex justify-content-center button-holder">
-                    <p></p>
-                    <button type=submit value="Custom_New" class="btn btn-secondary"
-                            style="margin: 5px; padding: 5px; width: 150px">
-
-                        Create
-
-                    </button>
-                </div>
+            <div class="d-flex justify-content-center"><label>
+                <input type="radio" class="form-check-label" name="choice" value="custom"
+                       onchange="java_script_:show(this.value)"> &nbsp;
+            </label><b>Custom Authentication (optional):</b></div>
+            <div class="d-flex justify-content-center">
+                <div id="hiddenDiv3" style="display:none">
+                    <input name="api_key" class="form-control-sm" title="x-api-key (optional)"
+                           placeholder="x-api-key value (optional)"></div>
+            </div>
+            <div class="d-flex justify-content-center">
+                <p></p>
+                <button type=submit value="Custom_New" class="btn btn-jawa"
+                        style="margin: 5px; padding: 5px; width: 150px">Create
+                </button>
+            </div>
 
         </form>
     </div>
@@ -160,6 +148,12 @@
                 hiddenDiv3.style.display = 'inline-block';
             }
         }
+    </script>
+    <script type="application/javascript">
+        $('input[type="file"]').change(function (e) {
+            var fileName = e.target.files[0].name;
+            $('.custom-file-label').html(fileName);
+        });
     </script>
 {% endblock %}
 

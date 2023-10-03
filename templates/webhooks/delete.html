@@ -28,44 +28,37 @@
 {% extends "shared/_layout.html" %}
 {% block title %}Confirm Delete{% endblock %}
 {% block content %}
-    <div class="test-links sub_links sticky-top">
+<div>
+        <div class="test-links sub_links sticky-top" style="min-width: 100vw">
         <div class="stat"><a href="/webhooks/jamf">Jamf Pro</a></div>
         <div class="stat"><a href="/webhooks/okta">Okta</a></div>
         <div class="stat"><a href="/webhooks/custom">Custom</a></div>
     </div>
-
-    <div class="form-container">
+<div class="form-container">
         <form action="#" method="POST" class="table-view"
               enctype="multipart/form-data">
-
             <h1>Confirm Delete:</h1>
-            {{ tag.title() }} Webhook -
-            {% if target_webhook %}{{ target_webhook }}{% else %}Custom Webhook{% endif %}</h1>
-
-
-            <br>
-            <div class="d-flex justify-content-center">
-
-                <div class="log-view">
-                    <i>
-                        Deleting a webhook is a permanent action.
-                    </i>
-                    Are you sure?
-                    {# "The possibility of successfully navigating an asteroid field is approximately#}
-                    {# 3,720 to 1."</i><br/>#}
-                    {# ~ C-3PO, a Star War#}
-                </div>
-
-                <button type=submit name="button_choice" value="Delete" class="btn btn-danger" style="margin: 5px">
-
-                    Delete
-
-                </button>
-                </p>
+            <div class="font-weight-bold text-center">{{ tag.title() }} Webhook -
+            {% if target_webhook %}{{ target_webhook }}{% endif %}
             </div>
-        </form>
-    </div>
+            <div class="d-flex justify-content-center">
+                <div class="confirm-delete-box">
+                    <i>Deleting a webhook is a permanent action.</i>
+                    <br/>
+                    Are you sure?
+                    {#                The possibility of successfully navigating an asteroid field is approximately   #}
+                    {#                3,720 to 1                                                                      #}
+                    {#                    ~ C-3PO, a Star War                                                         #}
+                    {#                                                                                                #}
+                </div>
+                <br/>
+            </div>
+                <div class="d-flex dash-list justify-content-center">
+                    <button type=submit name="button_choice" value="Delete" class="btn btn-danger" style="margin: 5px">
 
+                        Delete
+
+                    </button>
+                </div>
     </div>
 {% endblock %}
-</body>

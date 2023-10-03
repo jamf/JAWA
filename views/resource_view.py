@@ -30,8 +30,9 @@ import json
 import os
 from datetime import datetime
 
-from flask import (Blueprint, escape, redirect, render_template,
+from flask import (Blueprint, redirect, render_template,
                    request, send_file, session, url_for)
+from markupsafe import escape
 from werkzeug.utils import secure_filename
 
 from bin import logger

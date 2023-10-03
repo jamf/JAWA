@@ -77,7 +77,7 @@ def delete_webhook():
                     webhook_response = requests.put(full_url,
                                                     headers={'Content-Type': 'application/xml',
                                                              "Authorization": f"Bearer {session['token']}",
-                                                             'User-Agent': 'JAWA%20v3.0.3'},
+                                                             'User-Agent': 'JAWA%20v3.1.0b'},
                                                     data=data)
                 elif each_webhook['tag'] == 'okta':
                     try:

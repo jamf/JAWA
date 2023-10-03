@@ -27,8 +27,9 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 from collections import defaultdict
-from flask import (Blueprint, escape, redirect, render_template,
+from flask import (Blueprint, redirect, render_template,
                    request, session, url_for)
+from markupsafe import escape
 import json
 import os
 import re
@@ -228,7 +229,7 @@ def jamf_pro_new():
         webhook_response = requests.post(full_url,
                                          headers={'Content-Type': 'application/xml',
                                                   "Authorization": f"Bearer {session['token']}",
-                                                  'User-Agent': 'JAWA%20v3.0.3'}, data=data,
+                                                  'User-Agent': 'JAWA%20v3.1.0b'}, data=data,
                                          verify=verify_ssl)
         logthis.info(f"[{webhook_response.status_code}]  {webhook_response.text}")
         if webhook_response.status_code == 409:
@@ -328,7 +329,7 @@ def jamf_pro_edit():
                 if request.form.get('choice') == 'custom':
                     webhook_apikey = request.form.get('api_key', 'null')
                     extra_notice = 'Copy and paste the following into the Header Authentication section of Jamf Pro webhooks '
-                    custom_header = {"x-api-key" : f"{webhook_apikey}"}
+                    custom_header = {"x-api-key": f"{webhook_apikey}"}
                 else:
                     webhook_apikey = 'null'
                     extra_notice = None
@@ -347,6 +348,8 @@ def jamf_pro_edit():
                     os.chmod(new_filename, mode=0o0755)
                     os.chdir(owd)
                     each_webhook['script'] = new_filename
+                else:
+                    new_filename = each_webhook['script']
                 if new_webhook_name:
                     each_webhook['name'] = new_webhook_name
                 if description:
@@ -444,7 +447,7 @@ def jamf_pro_edit():
                     webhook_response = requests.put(full_url,
                                                     headers={'Content-Type': 'application/xml',
                                                              "Authorization": f"Bearer {session['token']}",
-                                                             'User-Agent': 'JAWA%20v3.0.3'}, data=data,
+                                                             'User-Agent': 'JAWA%20v3.1.0b'}, data=data,
                                                     verify=verify_ssl)
                 except:
                     error_message = f"The request could not be sent to your Jamf Pro server," \

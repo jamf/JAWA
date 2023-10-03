@@ -27,8 +27,9 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 from crontab import CronTab
-from flask import (Blueprint, escape, redirect, render_template,
+from flask import (Blueprint, redirect, render_template,
                    request, session, url_for)
+from markupsafe import escape
 import getpass
 import json
 import os

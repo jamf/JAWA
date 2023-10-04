@@ -188,11 +188,11 @@
         {% if webhook_info[0]['webhook_username'] == 'null' %}
             <div id="hiddenDiv2" style="display:none">
         {% endif %}
-        <input class="form-control-sm text-center" name="username" title="Username (optional)"
+        <input class="form-control-sm text-center" name="basic_username" title="Username (optional)" autocomplete="off"
                placeholder="Username (optional)" style="padding: unset"
                value="{% if webhook_info[0]['webhook_username'] != 'null' %}{{ webhook_info[0]['webhook_username'] }}{% endif %}">
         </b>
-        <input name="password" class="form-control-sm text-center" type='password' title="Password (optional)"
+        <input name="basic_password" autocomplete="off" class="form-control-sm text-center" type='password' title="Password (optional)"
                placeholder="Password (optional)"
                value="{% if webhook_info[0]['webhook_password'] != 'null' %}{{ webhook_info[0]['webhook_password'] }}{% endif %}">
         {% if webhook_info[0]['webhook_username'] == 'null' %}    </div> {% endif %}
@@ -209,7 +209,7 @@
         {% if not webhook_info[0].get('api_key', 'null') == 'null' %}
             <div id="hiddenDiv3" style="display:inline-block">{% endif %}
         <input name="api_key" class="form-control-sm text-center" type='api_key' title="x-api-key (optional)"
-               placeholder="x-api-key value (optional)"
+               placeholder="x-api-key value (optional)" autocomplete="off"
                value="{% if webhook_info[0].get('api_key', 'null') != 'null' %}{{ webhook_info[0].get('api_key') }}{% endif %}"></div>
         </div>
 

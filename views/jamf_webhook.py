@@ -202,17 +202,17 @@ def jamf_pro_new():
         auth_xml = "<authentication_type>NONE</authentication_type>"
         if request.form.get('choice') == 'basic':
             if (
-                    request.form.get('username') != '' or
-                    request.form.get('password') != ''):
+                    request.form.get('basic_username') != '' or
+                    request.form.get('basic_password') != ''):
                 auth_xml = f"<authentication_type>BASIC</authentication_type>"
-                if request.form.get('username') == '':
+                if request.form.get('basic_username') == '':
                     auth_xml += "<username>null</username>"
                 else:
-                    auth_xml += f"<username>{request.form.get('username')}</username>"
-                if request.form.get('password') == '':
+                    auth_xml += f"<username>{request.form.get('basic_username')}</username>"
+                if request.form.get('basic_password') == '':
                     auth_xml += "<password>null</password>"
                 else:
-                    auth_xml += f"<password>{request.form.get('password')}</password>"
+                    auth_xml += f"<password>{request.form.get('basic_password')}</password>"
 
         data = f"<webhook>" \
                f"<name>{request.form.get('webhook_name')}</name>" \
@@ -248,15 +248,15 @@ def jamf_pro_new():
         custom_header = ""
         data = json.load(open(webhooks_file))
         if request.form.get('choice') == 'basic':
-            webhook_username = request.form.get('username', 'null')
-            webhook_password = request.form.get('password', 'null')
+            webhook_username = request.form.get('basic_username', 'null')
+            webhook_password = request.form.get('basic_password', 'null')
         else:
             webhook_username = 'null'
             webhook_password = 'null'
         if request.form.get('choice') == 'custom':
             webhook_apikey = request.form.get('api_key', 'null')
             extra_notice = 'Copy and paste the following into the Header Authentication section of Jamf Pro webhooks:'
-            custom_header = {f"x-api-key" :  f"{webhook_apikey}"}
+            custom_header = {f"x-api-key": f"{webhook_apikey}"}
         else:
             webhook_apikey = 'null'
             extra_notice = None
@@ -321,8 +321,8 @@ def jamf_pro_edit():
                 new_event = request.form.get('event')
                 custom_header = ""
                 if request.form.get('choice') == 'basic':
-                    webhook_user = request.form.get('username', 'null')
-                    webhook_pass = request.form.get('password', 'null')
+                    webhook_user = request.form.get('basic_username', 'null')
+                    webhook_pass = request.form.get('basic_password', 'null')
                 else:
                     webhook_user = 'null'
                     webhook_pass = 'null'
@@ -412,21 +412,21 @@ def jamf_pro_edit():
                 auth_xml = "<authentication_type>NONE</authentication_type>"
                 if request.form.get('choice') == 'basic':
                     if (
-                            request.form.get('username') != '' or
-                            request.form.get('password') != ''):
+                            request.form.get('basic_username') != '' or
+                            request.form.get('basic_password') != ''):
                         auth_xml = f"<authentication_type>BASIC</authentication_type>"
-                        if (request.form.get('username') == 'null' and
-                                request.form.get('password') == 'null'):
+                        if (request.form.get('basic_username') == 'null' and
+                                request.form.get('basic_password') == 'null'):
                             auth_xml = "<authentication_type>NONE</authentication_type>"
 
-                        if request.form.get('username') == '':
+                        if request.form.get('basic_username') == '':
                             auth_xml += "<username>null</username>"
                         else:
-                            auth_xml += f"<username>{request.form.get('username')}</username>"
-                        if request.form.get('password') == '':
+                            auth_xml += f"<username>{request.form.get('basic_username')}</username>"
+                        if request.form.get('basic_password') == '':
                             auth_xml += "<password>null</password>"
                         else:
-                            auth_xml += f"<password>{request.form.get('password')}</password>"
+                            auth_xml += f"<password>{request.form.get('basic_password')}</password>"
                 with open(server_json_file) as fin:
                     server_json = json.load(fin)
                 server_address = server_json['jawa_address']

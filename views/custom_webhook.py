@@ -96,8 +96,8 @@ def edit_webhook():
                     new_custom_name = name
                 description = request.form.get('description')
                 if request.form.get('basic'):
-                    new_webhook_user = request.form.get('username', 'null')
-                    new_webhook_pass = request.form.get('password', 'null')
+                    new_webhook_user = request.form.get('basic_username', 'null')
+                    new_webhook_pass = request.form.get('new-password', 'null')
                 else:
                     new_webhook_user = 'null'
                     new_webhook_pass = 'null'
@@ -194,10 +194,10 @@ def new_webhook():
                 logthis.info(f"Could not create new webhook. Message: {error_message}")
                 return {"error": error_message, "username": session.get('username'), 'name': new_custom_name,
                         'description': description}
-            new_webhook_user = request.form.get('username', 'null')
+            new_webhook_user = request.form.get('basic_username', 'null')
             if not new_webhook_user:
                 new_webhook_user = "null"
-            new_webhook_pass = request.form.get('password', 'null')
+            new_webhook_pass = request.form.get('new-password', 'null')
             if not new_webhook_pass:
                 new_webhook_pass = "null"
             if request.form.get('custom'):

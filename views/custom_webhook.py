@@ -30,6 +30,7 @@ from collections import defaultdict
 from flask import (Blueprint, redirect, render_template,
                    request, session, url_for)
 import json
+from markupsafe import escape
 import os
 from werkzeug.utils import secure_filename
 

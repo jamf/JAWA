@@ -65,7 +65,7 @@ Installation Steps:
    1. Ubuntu installer: 
 
       ```bash 
-      curl -O https://raw.githubusercontent.com/jamf/JAWA/master/bin/ubuntu_installer.sh && sudo bash ./ubuntu_installer.sh
+      curl -O https://raw.githubusercontent.com/ropelletier/JAWA/master/bin/ubuntu_installer.sh && sudo bash ./ubuntu_installer.sh
       ``` 
    2. RHEL installer:
        ```bash 

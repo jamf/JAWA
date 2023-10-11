@@ -242,9 +242,9 @@ install() {
   fi
   /bin/echo -ne '[#########               ](45%) Cloning the '${michelle} ${branch}' JAWA project from GitHub... '
   /bin/echo '[#########               ](45%) Cloning the '${michelle} ${branch}' JAWA project from GitHub... ' >>/var/log/jawaInstall.log 2>&1
-  git clone ${michelle} ${branch} https://github.com/jamf/JAWA.git jawa >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  git clone ${michelle} ${branch} https://github.com/ropelletier/JAWA.git jawa >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
 
-#   git clone https://github.com/jamf/JAWA.git jawa >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+#   git clone https://github.com/ropelletier/JAWA.git jawa >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   # Restore backup?
   /usr/bin/clear
   /bin/echo -ne '[##########              ](50%) Checking for backups... '
@@ -343,7 +343,7 @@ if [ -d "$currentDir/jawabackup-$timenow" ]; then
   cat <<EOF >>/etc/systemd/system/jawa.service
 [Unit]
 Description=Jamf Automation & Webhooks Assistant
-Documentation=https://github.com/jamf/JAWA
+Documentation=https://github.com/ropelletier/JAWA
 After=network.target
 
 [Service]

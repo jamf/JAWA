@@ -120,7 +120,11 @@ def login():
 @blueprint.route('/logout')
 def logout():
     error_title = request.args.get('error_title')
+    if error_title:
+        error_title = escape(error_title)
     error_message = request.args.get('error_message')
+    if error_message:
+        error_message = escape(error_message)
     if session.get('username'):
         invalidate_token()
         logthis.info("Logging Out: " + str(escape(session['username'])))

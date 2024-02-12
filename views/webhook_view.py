@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
-# Copyright (c) 2022 Jamf.  All rights reserved.
+# Copyright (c) 2024 Jamf.  All rights reserved.
 #
 #       Redistribution and use in source and binary forms, with or without
 #       modification, are permitted provided that the following conditions are met:
@@ -29,6 +29,7 @@
 from collections import defaultdict
 from flask import (Blueprint, redirect, request, session, url_for)
 import json
+from markupsafe import escape
 import os
 import requests
 import time
@@ -57,6 +58,7 @@ def delete_webhook():
     target_webhook = request.args.get('target_webhook')
     if not target_webhook:
         return redirect(url_for('custom_webhook.custom_webhook'))
+    target_webhook = escape(target_webhook)
     with open(webhooks_file) as fin:
         webhook_json = json.load(fin)
     tag = [each_webhook['tag'] for each_webhook in webhook_json if each_webhook['name'] == target_webhook]

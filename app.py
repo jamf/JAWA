@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
-# Copyright (c) 2023 Jamf.  All rights reserved.
+# Copyright (c) 2024 Jamf.  All rights reserved.
 #
 #       Redistribution and use in source and binary forms, with or without
 #       modification, are permitted provided that the following conditions are met:
@@ -216,6 +216,8 @@ def success(success_msg=""):
         return redirect(
             url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     success_msg = request.args.get('success_msg')
+    if success_msg:
+        success_msg = escape(success_msg)
     return render_template('success.html', success_msg=success_msg, login="true", username=str(escape(session['username'])))
 
 
@@ -223,6 +225,10 @@ def success(success_msg=""):
 def error():
     error_title = request.args.get('error')
     error_message = request.args.get('error_message')
+    if error_title:
+        error_title = escape(error_title)
+    if error_message:
+        error_message = escape(error_message)
     if 'username' not in session:
         return redirect(url_for('home_view.logout'))
     logthis.info(

@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
-# Copyright (c) 2023 Jamf.  All rights reserved.
+# Copyright (c) 2024 Jamf.  All rights reserved.
 #
 #       Redistribution and use in source and binary forms, with or without
 #       modification, are permitted provided that the following conditions are met:
@@ -298,6 +298,8 @@ def jamf_pro_edit():
         return redirect(
             url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     name = request.args.get('name')
+    if name:
+        name = escape(name)
     with open(webhooks_file) as fin:
         webhooks_json = json.load(fin)
     check_for_name = [True for each_webhook in webhooks_json if each_webhook['name'] == name]

@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
-# Copyright (c) 2022 Jamf.  All rights reserved.
+# Copyright (c) 2024 Jamf.  All rights reserved.
 #
 #       Redistribution and use in source and binary forms, with or without
 #       modification, are permitted provided that the following conditions are met:
@@ -30,8 +30,9 @@ import json
 import os
 from datetime import datetime
 
-from flask import (Blueprint, escape, redirect, render_template,
+from flask import (Blueprint, redirect, render_template,
                    request, send_file, session, url_for)
+from markupsafe import escape
 from werkzeug.utils import secure_filename
 
 from bin import logger
@@ -54,7 +55,11 @@ def files():
         return redirect(
             url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
     target_file = request.args.get('target_file')
+    if target_file:
+        target_file = secure_filename(target_file)
     button_choice = request.args.get('button_choice')
+    if button_choice:
+        button_choice = escape(button_choice)
     if target_file:
         target_file_dir = os.path.dirname(os.path.abspath(os.path.join(files_dir, target_file)))
         target_file_path = os.path.abspath(os.path.join(files_dir, target_file))
@@ -95,6 +100,8 @@ def files():
 @blueprint.route('/resources/delete.html', methods=['GET', 'POST'])
 def delete_file():
     target_file = request.args.get('target_file')
+    if target_file:
+        target_file = secure_filename(target_file)
     if 'username' not in session:
         return redirect(
             url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))

@@ -32,8 +32,9 @@ import os
 from collections import defaultdict
 
 import requests
-from flask import (Blueprint, escape, redirect, render_template,
+from flask import (Blueprint, redirect, render_template,
                    request, session, url_for)
+from markupsafe import escape
 
 from bin import logger
 from bin.tokens import get_token, invalidate_token
@@ -88,7 +89,7 @@ def login():
             resp = requests.get(
                 session['url'] + '/JSSResource/activationcode',
                 headers={'Accept': 'application/json', "Authorization": f"Bearer {session.get('token')}",
-                         'User-Agent': 'JAWA%20v3.0.3'},
+                         'User-Agent': 'JAWA%20v3.1.0b'},
                 verify=verify_ssl)
 
             resp.raise_for_status()
@@ -119,7 +120,11 @@ def login():
 @blueprint.route('/logout')
 def logout():
     error_title = request.args.get('error_title')
+    if error_title:
+        error_title = escape(error_title)
     error_message = request.args.get('error_message')
+    if error_message:
+        error_message = escape(error_message)
     if session.get('username'):
         invalidate_token()
         logthis.info("Logging Out: " + str(escape(session['username'])))

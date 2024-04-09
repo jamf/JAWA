@@ -1,4 +1,4 @@
-# Jamf Automation and Webhook Assistant ("JAWA") Version 3.0.3
+# Jamf Automation and Webhook Assistant ("JAWA") Version 3.1.0
 
 <p align="center"> <img src="https://github.com/jamf/JAWA/blob/master/static/img/jawa_icon.png" width="384"/> </p>
 
@@ -9,82 +9,79 @@ JAWA allows an IT Administrator to focus on providing the best end user experien
 
 ## What is it?
 
-Jamf Automation and Webhook Assistant, "JAWA", is a web server for hosting automation tools that interacts with Jamf
-Pro, Okta, and more. It includes a _webhook receiver_ for if-this-then-that automation workflows in real-time, and _crontab_
-for the timed execution of scripts and automated report generation. JAWA is intended to make webhooks and automation
-more accessible to admins of Jamf Pro by providing them with a simple framework with which they can design time-saving
-workflows and to provide a conduit through which admins can connect multiple services within an organization.
+JAWA, the Jamf Automation and Webhook Assistant, is a web server designed to streamline automation workflows with Jamf Pro and other services. It features a webhook receiver for real-time automation and a crontab for scheduled script execution and report generation. JAWA simplifies the creation of time-saving workflows for Jamf Pro admins, providing a user-friendly framework to connect multiple services seamlessly within an organization.
+
 
 *Check out [JAWA on the Jamf Marketplace](https://marketplace.jamf.com/details/jawa/) for screenshots.*
 
-## How it works?
+## How it works
 
-JAWA is a Python Flask web app which runs on Linux and can be accessed from a web-browser. Once installed, the IT Admin is
-able to use JAWA to upload, edit, or adjust webhook and timed automations managed by JAWA. Automation scripts can be
-uploaded by the IT admin and be configured to run when triggered (webhook), or run on a timer (cron). JAWA leverages
-Jamf and Okta APIs when creating webhooks in their respective services.
+Jamf Automation and Webhook Assistant (JAWA) is a web server that facilitates automation tools integration with Jamf Pro, Okta, and other services. It features a webhook receiver for real-time automation workflows and a crontab for scheduled script execution and report generation. JAWA simplifies the creation of time-saving workflows for Jamf Pro admins and enables seamless integration across multiple organizational services.
 
 ## Server Requirements
 
 General Server Requirements:
 
-- Ubuntu 18.04+ or RHEL 7.x+
-- Minimum: 512MB RAM (4GB recommended)
-- Minimum: 12GB Storage (64GB recommended)
-- Minimum: 1 CPU Core (2 Cores recommended)
+- Ubuntu 20.04+ or RHEL 8.x+
+- Minimum: 8GB RAM (16GB recommended)
+- Minimum: 128GB Storage (512GB recommended)
+- Minimum: 2 CPU Core (4 Cores recommended)
 - Python 3.7+ (with pip)
 
 Network Requirements:
 
 - Inbound port 443 from JPS for
   webhooks ([IPs for Jamf Cloud](https://docs.jamf.com/technical-articles/Permitting_InboundOutbound_Traffic_with_Jamf_Cloud.html))
-- Inbound port 443 from LAN (for web access)
+- Optional: Inbound port 443 from your LAN/IP (for web console access)
 - Outbound port 443 to JPS and auxiliary services (
   Okta, WorkDay, etc.)
+- A public DNS entry for the JAWA FQDN
 
-Certificate Requirements
+Certificate Requirements:
 
-- SSL/TLS certificate (publicly trusted) and private key
-- A publicly trusted _full-chain certificate_ (bundle of root CA + intermediate + server cert) is preferred
-  for `jawa.crt`
+- Jamf Pro connects to JAWA over HTTPS to send webhooks.  JAWA must present a valid certificate for Jamf Pro to trust the connection. 
+- A Publicly Trusted SSL Certificate and corresponding private key (for nginx)
+   - Note: A _Publicly Trusted Full-chain Certificate_ is preferred
+  for `jawa.crt`(i.e., root CA + intermediate + leaf cert bundle) 
 
-Jamf Pro Requirements
+Jamf Pro Requirements:
 - Jamf Pro Server 10.35.0+ 
 
-## How do I use it?
+- Note: A _Publicly Trusted Full-chain Certificate_ (root CA + intermediate + leaf cert bundle) is preferred for `jawa.crt`.
 
-*See the "JAWA Administrators Guide" found in the [release](https://github.com/jamf/JAWA/releases) for more detailed
-installation and configuration instructions.*
+### Jamf Pro Requirements:
+- Jamf Pro Server 10.35.0+ 
 
-Installation Steps:
+## How to Use JAWA
 
-1. Complete server requirements
-2. Rename certificate to jawa.crt and the private key to jawa.key
-3. Ensure you are in the same directory as your jawa.crt and jawa.key
-4. Download and run JAWA installer:
-   1. Ubuntu installer: 
+Refer to the "JAWA Administrators Guide" in the [release](https://github.com/jamf/JAWA/releases) for detailed installation and configuration instructions.
+
+### Installation Steps:
+
+1. Verify that you meet the server requirements.
+2. Rename the certificate to `jawa.crt` and the private key to `jawa.key`.
+3. Ensure you are in the same directory as your `jawa.crt` and `jawa.key`.
+4. Download and run the JAWA installer:
 
       ```bash 
-      curl -O https://raw.githubusercontent.com/jamf/JAWA/master/bin/ubuntu_installer.sh && sudo bash ./ubuntu_installer.sh
+      curl -O https://raw.githubusercontent.com/jamf/JAWA/master/bin/installer.sh && sudo bash ./installer.sh
       ``` 
-   2. RHEL installer:
-       ```bash 
-      curl -O https://raw.githubusercontent.com/jamf/JAWA/master/bin/rhel_installer.sh && sudo bash ./rhel_installer.sh
-      ``` 
-5. After installation completes, navigate to your FQDN/IP (i.e., https://jawa.company.com) in your web browser to
-   continue with the web-based setup
 
-Configuration Steps:
+5. After the installation is complete, go to your FQDN (e.g., https://jawa.company.com) in your web browser to continue with the web-based setup.
 
-1. Log in to JAWA with your Jamf Pro URL and Jamf Pro Administrator Credentials
-2. Click the “Configure JAWA” link in the JAWA Dashboard or click Setup in the top-nav
+### Configuration Steps:
+
+1. Log in to JAWA with your Jamf Pro URL and Jamf Pro Administrator Credentials.
+2. Click the “Setup link in the JAWA Dashboard or click Setup in the top navigation.
 3. Fill out the Server Setup form:
-    1. [required] JAWA Server Address FQDN (i.e: https://jawa.company.com) - this address needs to be resolvable by the
-       Jamf Pro Server to send webhooks
-    2. [recommended] Lock your JAWA to a primary Jamf Pro Server
-    3. [optional] Add an alternate Jamf Pro Server for
-4. Click Setup
-5. Set up your first webhook or timed automation
+    - [required] JAWA Server Address FQDN (e.g., https://jawa.company.com) - this address must be resolvable by the Jamf Pro Server to send webhooks.
+    - [recommended] Lock your JAWA to a primary Jamf Pro Server.
+    - [optional] Add an alternate Jamf Pro Server.
+4. Click Setup.
+5. Set up your first webhook or timed automation.
+
+When scripting for webhooks, verify the JSON structure.
+
 
 When scripting for webhooks, verify JSON structure sent from source:
 
@@ -96,9 +93,13 @@ When scripting for webhooks, verify JSON structure sent from source:
 Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
 
 
-### JAWA v3.0.3 release
+### JAWA v3.1.0 release
 - New features
-    - Jamf Pro API actions now use token-based authentication (resolving #32)
-    - Option added for JAWA to return script results/output as part of a Custom webhook's response body (resolving #27)
-    - Enhanced JAWA logging
-    - Option added to use custom header authentication for Jamf Pro or Custom webhooks
+    - enhanced UI, mobile-friendly view
+    - unified installer
+    - enhanced script cleanup routine
+- Bugfixes
+    - improved error handling
+    - sanitized user inputs
+    - unified installer that does not overwrite nginx defaults (resolving #31)
+    - general bugfix and maintenance

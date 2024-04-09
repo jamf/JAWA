@@ -80,8 +80,6 @@ Refer to the "JAWA Administrators Guide" in the [release](https://github.com/jam
 4. Click Setup.
 5. Set up your first webhook or timed automation.
 
-When scripting for webhooks, verify the JSON structure.
-
 
 When scripting for webhooks, verify JSON structure sent from source:
 

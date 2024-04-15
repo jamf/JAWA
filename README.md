@@ -7,20 +7,16 @@ JAWA allows an IT Administrator to focus on providing the best end user experien
 
 ***[!]** NOTE: Always test automations in a dev/eval environment before deploying to production.*
 
-## What is it?
+## What is JAWA?
 
 JAWA, the Jamf Automation and Webhook Assistant, is a web server designed to streamline automation workflows with Jamf Pro and other services. It features a webhook receiver for real-time automation and a crontab for scheduled script execution and report generation. JAWA simplifies the creation of time-saving workflows for Jamf Pro admins, providing a user-friendly framework to connect multiple services seamlessly within an organization.
 
 
 *Check out [JAWA on the Jamf Marketplace](https://marketplace.jamf.com/details/jawa/) for screenshots.*
 
-## How it works
-
-Jamf Automation and Webhook Assistant (JAWA) is a web server that facilitates automation tools integration with Jamf Pro, Okta, and other services. It features a webhook receiver for real-time automation workflows and a crontab for scheduled script execution and report generation. JAWA simplifies the creation of time-saving workflows for Jamf Pro admins and enables seamless integration across multiple organizational services.
-
 ## Server Requirements
 
-General Server Requirements:
+### General Server Requirements:
 
 - Ubuntu 20.04+ or RHEL 8.x+
 - Minimum: 8GB RAM (16GB recommended)
@@ -28,7 +24,7 @@ General Server Requirements:
 - Minimum: 2 CPU Core (4 Cores recommended)
 - Python 3.8+ (with pip)
 
-Network Requirements:
+### Network Requirements:
 
 - Inbound port 443 from JPS for
   webhooks ([IPs for Jamf Cloud](https://docs.jamf.com/technical-articles/Permitting_InboundOutbound_Traffic_with_Jamf_Cloud.html))
@@ -37,24 +33,20 @@ Network Requirements:
   Okta, WorkDay, etc.)
 - A public DNS entry for the JAWA FQDN
 
-Certificate Requirements:
+### Certificate Requirements:
 
 - Jamf Pro connects to JAWA over HTTPS to send webhooks.  JAWA must present a valid certificate for Jamf Pro to trust the connection. 
 - A Publicly Trusted SSL Certificate and corresponding private key (for nginx)
    - Note: A _Publicly Trusted Full-chain Certificate_ is preferred
   for `jawa.crt`(i.e., root CA + intermediate + leaf cert bundle) 
 
-Jamf Pro Requirements:
-- Jamf Pro Server 10.35.0+ 
-
-- Note: A _Publicly Trusted Full-chain Certificate_ (root CA + intermediate + leaf cert bundle) is preferred for `jawa.crt`.
 
 ### Jamf Pro Requirements:
 - Jamf Pro Server 10.35.0+ 
 
 ## How to Use JAWA
 
-Refer to the "JAWA Administrators Guide" in the [release](https://github.com/jamf/JAWA/releases) for detailed installation and configuration instructions.
+Refer to the "JAWA Administrators Guide" in the [current release](https://github.com/jamf/JAWA/releases) for detailed installation and configuration instructions.
 
 ### Installation Steps:
 
@@ -98,6 +90,6 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
     - enhanced script cleanup routine
 - Bugfixes
     - improved error handling
-    - sanitized user inputs
+    - sanitized user inputs to prevent XSS exploits 
     - unified installer that does not overwrite nginx defaults (resolving #31)
     - general bugfix and maintenance

@@ -14,6 +14,8 @@ JAWA, the Jamf Automation and Webhook Assistant, is a web server designed to str
 
 *Check out [JAWA on the Jamf Marketplace](https://marketplace.jamf.com/details/jawa/) for screenshots.*
 
+*Read the [JAWA Admin Guide](https://github.com/jamf/JAWA/wiki) too!*
+
 ## Server Requirements
 
 ### General Server Requirements:

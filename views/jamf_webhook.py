@@ -306,6 +306,12 @@ def jamf_pro_edit():
     if not check_for_name:
         logthis.info(f"Webhook '{name}' not in json")
         return redirect(url_for('jamf_pro_webhooks.jamf_webhook'))
+
+    extra_notice = None
+    custom_header = None
+    smart_group_notice = None
+    smart_group_instructions = None
+
     webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
     if request.method == 'POST':
         button_choice = request.form.get('button_choice')

@@ -84,6 +84,10 @@ def edit_webhook():
     if not check_for_name:
         logthis.info(f"JAWA is not aware of any custom webhook named {name}")
         return redirect(url_for('custom_webhook.custom_webhook'))
+
+    extra_notice = None
+    custom_header = None
+    
     if request.method == 'POST':
         button_choice = request.form.get('button_choice')
         if button_choice == 'Delete':

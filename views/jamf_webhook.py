@@ -229,7 +229,7 @@ def jamf_pro_new():
         webhook_response = requests.post(full_url,
                                          headers={'Content-Type': 'application/xml',
                                                   "Authorization": f"Bearer {session['token']}",
-                                                  'User-Agent': 'JAWA%20v3.1.0b'}, data=data,
+                                                  'User-Agent': 'JAWA%20v3.1.1'}, data=data,
                                          verify=verify_ssl)
         logthis.info(f"[{webhook_response.status_code}]  {webhook_response.text}")
         if webhook_response.status_code == 409:
@@ -455,7 +455,7 @@ def jamf_pro_edit():
                     webhook_response = requests.put(full_url,
                                                     headers={'Content-Type': 'application/xml',
                                                              "Authorization": f"Bearer {session['token']}",
-                                                             'User-Agent': 'JAWA%20v3.1.0b'}, data=data,
+                                                             'User-Agent': 'JAWA%20v3.1.1'}, data=data,
                                                     verify=verify_ssl)
                 except:
                     error_message = f"The request could not be sent to your Jamf Pro server," \

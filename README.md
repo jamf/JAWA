@@ -1,4 +1,4 @@
-# Jamf Automation and Webhook Assistant ("JAWA") Version 3.1.0
+# Jamf Automation and Webhook Assistant ("JAWA") Version 3.1.1
 
 <p align="center"> <img src="https://github.com/jamf/JAWA/blob/main/static/img/jawa_icon.png" width="384"/> </p>
 
@@ -84,6 +84,10 @@ When scripting for webhooks, verify JSON structure sent from source:
 
 Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
 
+### JAWA v3.1.1 release
+- Bugfix
+ - Resolved #49
+- Repository Maintenance
 
 ### JAWA v3.1.0 release
 - New features

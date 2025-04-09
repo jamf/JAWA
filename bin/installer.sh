@@ -239,7 +239,7 @@ readme() {
 |  \`--'  |  /  _____  \  \    /\    / /  _____  \  
  \______/  /__/     \__\  \__/  \__/ /__/     \__\  
 
-                        v3.1.0
+                        v3.1.1
 
 
 Welcome to the Jamf Automation and Webhook Assistant, we hope it provides the solution you are looking for.
@@ -925,7 +925,7 @@ currentDir=$(pwd)
 installDir=/usr/local
 timenow=$(date +%m-%d-%y_%T)
 
-#branch="master"  # Default branch name if no arguments are provided
+#branch="main"  # Default branch name if no arguments are provided
 ​
 while [[ $# -gt 0 ]]; do
   key="$1"
@@ -945,7 +945,7 @@ done
 ​
 # If no branch argument was provided, default to "develop"
 if [ -z "$branch" ]; then
-  branch="master"
+  branch="main"
 fi
 ​
 

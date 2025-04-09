@@ -89,7 +89,7 @@ def login():
             resp = requests.get(
                 session['url'] + '/JSSResource/activationcode',
                 headers={'Accept': 'application/json', "Authorization": f"Bearer {session.get('token')}",
-                         'User-Agent': 'JAWA%20v3.1.0b'},
+                         'User-Agent': 'JAWA%20v3.1.1'},
                 verify=verify_ssl)
 
             resp.raise_for_status()

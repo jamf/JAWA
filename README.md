@@ -1,6 +1,6 @@
-# Jamf Automation and Webhook Assistant ("JAWA") Version 3.1.0
+# Jamf Automation and Webhook Assistant ("JAWA") Version 3.1.1
 
-<p align="center"> <img src="https://github.com/jamf/JAWA/blob/master/static/img/jawa_icon.png" width="384"/> </p>
+<p align="center"> <img src="https://github.com/jamf/JAWA/blob/main/static/img/jawa_icon.png" width="384"/> </p>
 
 
 JAWA allows an IT Administrator to focus on providing the best end user experience through automation.
@@ -58,7 +58,7 @@ Refer to the "JAWA Administrators Guide" in the [current release](https://github
 4. Download and run the JAWA installer:
 
       ```bash 
-      curl -O https://raw.githubusercontent.com/jamf/JAWA/master/bin/installer.sh && sudo bash ./installer.sh
+      curl -O https://raw.githubusercontent.com/jamf/JAWA/main/bin/installer.sh && sudo bash ./installer.sh
       ``` 
 
 5. After the installation is complete, go to your FQDN (e.g., https://jawa.company.com) in your web browser to continue with the web-based setup.
@@ -84,6 +84,10 @@ When scripting for webhooks, verify JSON structure sent from source:
 
 Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
 
+### JAWA v3.1.1 release
+- Bugfix
+ - Resolved #49
+- Repository Maintenance
 
 ### JAWA v3.1.0 release
 - New features

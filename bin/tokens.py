@@ -27,16 +27,16 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 from datetime import datetime, timezone, timedelta
-from flask import session, redirect, url_for
+from flask import Response, session, redirect, url_for
 import requests
-import time
+from typing import Optional
 
 from bin import logger
 
 logthis = logger.setup_child_logger('jawa', __name__)
 
 
-def get_token():
+def get_token() -> Optional[Response]:
     try:
         resp = requests.post(f"{session['url']}/api/v1/auth/token",
                              headers={'Authorization': f"Basic {session['b64_auth'].decode()}"})
@@ -44,12 +44,12 @@ def get_token():
         session['token'] = data.get('token')
         session['expires'] = data.get('expires')
     except Exception as err:
-        logthis.info(f"[{session.get('url')}] Could not get a token using session credentials.  Logging out.")
+        logthis.info(f"[{session.get('url')}] Could not get a token using session credentials: {err}.  Logging out.")
         return redirect(
             url_for('home_view.logout', error_title="Error Fetching API Token", error_message="Please sign in again"))
 
 
-def validate_token(expires):
+def validate_token(expires: str) -> bool:
     time_to_expire = datetime.strptime(expires, '%Y-%m-%dT%H:%M:%S.%f%z') - datetime.strptime(
         str(datetime.now(timezone.utc)), '%Y-%m-%d %H:%M:%S.%f%z')
     if time_to_expire > timedelta(0):
@@ -59,7 +59,7 @@ def validate_token(expires):
         return False
 
 
-def invalidate_token():
+def invalidate_token() -> None:
     if not session.get('token'):
         return
     try:

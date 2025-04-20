@@ -29,6 +29,7 @@
 import logging
 from logging import handlers
 import os
+from typing import Optional
 
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger_name = 'jawa'
@@ -37,7 +38,7 @@ log_roll_size = (1048576 * 100)
 log_backupCount = 10
 
 
-def setup_logger(log_name=logger_name, log_filename=f"{logger_name}.log", log_level=default_log_level):
+def setup_logger(log_name: Optional[str] = logger_name, log_filename: Optional[str] = f"{logger_name}.log", log_level: Optional[int] = default_log_level) -> logging.Logger:
     log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data'))
     if not os.path.isdir(log_path):
         os.makedirs(log_path)
@@ -52,7 +53,7 @@ def setup_logger(log_name=logger_name, log_filename=f"{logger_name}.log", log_le
     return logger
 
 
-def setup_child_logger(name_of_logger, name_of_child):
+def setup_child_logger(name_of_logger: str, name_of_child: str) -> logging.Logger:
     return logging.getLogger(name_of_logger).getChild(name_of_child)
 
 

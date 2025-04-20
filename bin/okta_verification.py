@@ -25,11 +25,14 @@
 #       SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-def verify_new_webhook(challenge):
+from typing import Dict, Optional
+
+
+def verify_new_webhook(challenge: Optional[str]) -> Dict[str, str]:
     return {"verification": f"{challenge}"}
 
 
-def main():
+def main() -> None:
     pass
 
 

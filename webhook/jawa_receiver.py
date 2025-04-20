@@ -30,9 +30,12 @@ from flask import Blueprint, request
 import json
 import os
 import subprocess
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from bin import okta_verification
 from bin import logger
+
+JSONType = Union[Dict[str, Any], List[Any], str, int, float, bool, None]
 
 logthis = logger.setup_child_logger('jawa', 'webhook_receiver')
 
@@ -42,10 +45,13 @@ scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scr
 
 blueprint = Blueprint('jawa_receiver', __name__, template_folder='templates')
 
+def load_json(file_path: str) -> Any:
+    with open(file_path, "r") as fin:
+        return json.load(fin)
+    
 
-def validate_webhook(webhook_data, webhook_name, webhook_user, webhook_pass, webhook_apikey):
-    with open(jp_webhooks_file, "r") as fin:
-        webhooks_json = json.load(fin)
+def validate_webhook(webhook_data: JSONType, webhook_name: str, webhook_user: str, webhook_pass: str, webhook_apikey: str) -> bool:
+    webhooks_json = load_json(jp_webhooks_file)
     truth_test = False
     for each_webhook in webhooks_json:
         if each_webhook['name'] == webhook_name:
@@ -59,15 +65,14 @@ def validate_webhook(webhook_data, webhook_name, webhook_user, webhook_pass, web
     return truth_test
 
 
-def run_script(webhook_data, webhook_name):
-    with open(jp_webhooks_file, "r") as fin:
-        webhooks_json = json.load(fin)
+def run_script(webhook_data: JSONType, webhook_name: str) -> Optional[bytes]:
+    webhooks_json = load_json(jp_webhooks_file)
     for each_webhook in webhooks_json:
         if each_webhook['name'] == webhook_name:
             return script_results(webhook_data, each_webhook)
 
 
-def script_results(webhook_data, each_webhook):
+def script_results(webhook_data: JSONType, each_webhook: Dict) -> bytes:
     webhook_data = json.dumps(webhook_data)
     proc = subprocess.Popen([each_webhook['script'], f"{webhook_data}"], stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT)
@@ -78,9 +83,8 @@ def script_results(webhook_data, each_webhook):
     return output
 
 
-def custom_output_options(webhook_name):
-    with open(jp_webhooks_file, "r") as fin:
-        webhooks_json = json.load(fin)
+def custom_output_options(webhook_name: str) -> Union[Tuple[Any, Any], Tuple[None, None]]:
+    webhooks_json = load_json(jp_webhooks_file)
     for each_webhook in webhooks_json:
         if each_webhook['name'] == webhook_name:
             webhook_tag = each_webhook.get('tag')
@@ -90,7 +94,7 @@ def custom_output_options(webhook_name):
 
 
 @blueprint.route('/hooks/<webhook_name>', methods=['POST', 'GET'])
-def webhook_handler(webhook_name):
+def webhook_handler(webhook_name: str):
     logthis.info(f"Incoming request at /hooks/{webhook_name} ...")
     if request.headers.get('x-okta-verification-challenge'):
         logthis.info("This is an Okta verification challenge...")
@@ -126,7 +130,7 @@ def webhook_handler(webhook_name):
         if custom_output and webhook_tag == "custom":
             return {"webhook": f"{webhook_name}", "result": f"{output}"}, 202
         else:
-            return {"webhook": f"{webhook_name}", "result": f"valid webhook received"}
+            return {"webhook": f"{webhook_name}", "result": "valid webhook received"}
     else:
         logthis.info(f"401 - Incorrect authentication provided for /hooks/{webhook_name}.")
         return f"Unauthorized - incorrect authentication provided for /hooks/{webhook_name}.", 401

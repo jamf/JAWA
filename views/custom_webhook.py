@@ -27,11 +27,20 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 from collections import defaultdict
-from flask import (Blueprint, redirect, render_template,
-                   request, session, url_for)
+from flask import (
+    Blueprint,
+    Response,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 import json
 from markupsafe import escape
 import os
+from typing import Any, Dict, Union
+
 from werkzeug.utils import secure_filename
 
 from bin.view_modifiers import response
@@ -41,68 +50,102 @@ logthis = logger.setup_child_logger('jawa', __name__)
 
 blueprint = Blueprint('custom_webhook', __name__, template_folder='templates')
 
-server_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
-okta_json_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'okta_json.json'))
-okta_verification_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'bin', 'okta_verification.py'))
-webhooks_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json'))
-scripts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
+server_json_file = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json')
+)
+okta_json_file = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'data', 'okta_json.json')
+)
+okta_verification_file = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__), '..', 'bin', 'okta_verification.py'
+    )
+)
+webhooks_file = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'data', 'webhooks.json')
+)
+scripts_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'scripts')
+)
 
 
 @blueprint.route('/webhooks/custom', methods=['GET', 'POST'])
 @response(template_file='webhooks/custom/home.html')
-def custom_webhook():
+def custom_webhook() -> Union[Response, Dict[str, Any]]:
     if 'username' not in session:
         return redirect(
-            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
+            url_for(
+                'home_view.logout',
+                error_title='Session Timed Out',
+                error_message='Please sign in again',
+            )
+        )
     with open(webhooks_file, 'r') as fin:
         webhooks_json = json.load(fin)
     custom_webhooks_list = []
     for each_webhook in webhooks_json:
-        data = defaultdict(lambda: "MISSING", each_webhook)
+        data = defaultdict(lambda: 'MISSING', each_webhook)
         tag = data['tag']
-        if tag == "custom":
+        if tag == 'custom':
             custom_webhooks_list.append(each_webhook)
 
-    return {'username': session.get('username'),
-            'custom_list': custom_webhooks_list}
+    return {
+        'username': session.get('username'),
+        'custom_list': custom_webhooks_list,
+    }
 
 
 @blueprint.route('/webhooks/custom/edit', methods=['GET', 'POST'])
 @response(template_file='webhooks/custom/edit.html')
-def edit_webhook():
+def edit_webhook() -> Union[Response, Dict[str, Any]]:
     if 'username' not in session:
         return redirect(
-            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
+            url_for(
+                'home_view.logout',
+                error_title='Session Timed Out',
+                error_message='Please sign in again',
+            )
+        )
     name = request.args.get('name')
     if name:
         name = escape(name)
     logthis.info(f"Checking for custom webhook '{name}'")
     with open(webhooks_file) as fin:
         webhooks_json = json.load(fin)
-    check_for_name = [True for each_webhook in webhooks_json if each_webhook['name'] == name]
-    logthis.info(f"Name exists? {check_for_name}")
+    check_for_name = [
+        True for each_webhook in webhooks_json if each_webhook['name'] == name
+    ]
+    logthis.info(f'Name exists? {check_for_name}')
     if not check_for_name:
-        logthis.info(f"JAWA is not aware of any custom webhook named {name}")
+        logthis.info(f'JAWA is not aware of any custom webhook named {name}')
         return redirect(url_for('custom_webhook.custom_webhook'))
 
     extra_notice = None
     custom_header = None
-    
+
     if request.method == 'POST':
         button_choice = request.form.get('button_choice')
         if button_choice == 'Delete':
-            logthis.info(f"{session.get('username')} is considering deleting a custom webhook ({name})...")
-            return redirect(url_for('webhooks.delete_webhook', target_webhook=name))
+            logthis.info(
+                f'{session.get("username")} is considering deleting a custom webhook ({name})...'
+            )
+            return redirect(
+                url_for('webhooks.delete_webhook', target_webhook=name)
+            )
         for each_webhook in webhooks_json:
             if each_webhook['name'] == name:
-                logthis.info(f"{session.get('username')} is editing a custom webhook ({name})...")
+                logthis.info(
+                    f'{session.get("username")} is editing a custom webhook ({name})...'
+                )
                 output = request.form.get('output')
                 new_custom_name = request.form.get('custom_name')
                 if not new_custom_name:
                     new_custom_name = name
                 description = request.form.get('description')
                 if request.form.get('basic'):
-                    new_webhook_user = request.form.get('basic_username', 'null')
+                    new_webhook_user = request.form.get(
+                        'basic_username', 'null'
+                    )
                     new_webhook_pass = request.form.get('new-password', 'null')
                 else:
                     new_webhook_user = 'null'
@@ -110,18 +153,18 @@ def edit_webhook():
                 if request.form.get('custom'):
                     new_webhook_apikey = request.form.get('api_key', 'null')
                     extra_notice = 'Copy and paste the following into the Header Authentication section of Jamf Pro webhooks:'
-                    custom_header = {f"x-api-key": f"{new_webhook_apikey}"}
+                    custom_header = {'x-api-key': f'{new_webhook_apikey}'}
                 else:
                     new_webhook_apikey = 'null'
-                if new_webhook_user and new_webhook_user != "":
+                if new_webhook_user and new_webhook_user != '':
                     each_webhook['webhook_username'] = new_webhook_user
                 else:
                     each_webhook['webhook_username'] = 'null'
-                if new_webhook_pass and new_webhook_pass != "":
+                if new_webhook_pass and new_webhook_pass != '':
                     each_webhook['webhook_password'] = new_webhook_pass
                 else:
                     each_webhook['webhook_password'] = 'null'
-                if new_webhook_apikey and new_webhook_apikey != "":
+                if new_webhook_apikey and new_webhook_apikey != '':
                     each_webhook['api_key'] = new_webhook_apikey
                 else:
                     each_webhook['webhook_password'] = 'null'
@@ -131,11 +174,15 @@ def edit_webhook():
                     os.chdir(scripts_dir)
 
                     if ' ' in new_script.filename:
-                        new_script.filename = new_script.filename.replace(" ", "-")
+                        new_script.filename = new_script.filename.replace(
+                            ' ', '-'
+                        )
 
-                    new_filename = f"{new_custom_name}-{new_script.filename}"
+                    new_filename = f'{new_custom_name}-{new_script.filename}'
                     new_script.save(secure_filename(new_filename))
-                    new_filename = os.path.join(scripts_dir, f"{new_custom_name}-{new_script.filename}")
+                    new_filename = os.path.join(
+                        scripts_dir, f'{new_custom_name}-{new_script.filename}'
+                    )
                     os.chmod(new_filename, mode=0o0755)
                     os.chdir(owd)
                     each_webhook['script'] = new_filename
@@ -150,21 +197,38 @@ def edit_webhook():
                 with open(webhooks_file, 'w') as fout:
                     json.dump(webhooks_json, fout, indent=4)
                 webhook_info = [each_webhook]
-                return {"webhooks": "success",
-                        "success_msg": f"Edited custom webhook {new_custom_name}.",
-                        "username": session.get('username'), 'webhook_info': webhook_info,
-                        "webhook_name": new_custom_name,
-                        "description": each_webhook.get('description'), "extra_notice": extra_notice,
-                        "custom_header": custom_header}
-    webhook_info = [each_webhook for each_webhook in webhooks_json if each_webhook['name'] == name]
-    return {'username': session.get('username'), 'webhook_name': name, 'webhook_info': webhook_info}
+                return {
+                    'webhooks': 'success',
+                    'success_msg': f'Edited custom webhook {new_custom_name}.',
+                    'username': session.get('username'),
+                    'webhook_info': webhook_info,
+                    'webhook_name': new_custom_name,
+                    'description': each_webhook.get('description'),
+                    'extra_notice': extra_notice,
+                    'custom_header': custom_header,
+                }
+    webhook_info = [
+        each_webhook
+        for each_webhook in webhooks_json
+        if each_webhook['name'] == name
+    ]
+    return {
+        'username': session.get('username'),
+        'webhook_name': name,
+        'webhook_info': webhook_info,
+    }
 
 
 @blueprint.route('/webhooks/custom/new', methods=['GET', 'POST'])
-def new_webhook():
+def new_webhook() -> Union[Response, Dict[str, Any], str]:
     if 'username' not in session:
         return redirect(
-            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
+            url_for(
+                'home_view.logout',
+                error_title='Session Timed Out',
+                error_message='Please sign in again',
+            )
+        )
     if request.method == 'POST':
         new_custom_name = request.form.get('custom_name')
         description = request.form.get('description')
@@ -172,13 +236,14 @@ def new_webhook():
 
         if request.form.get('custom_name') != '':
             check = 0
-            logthis.info(f"New webhook name: {request.form.get('custom_name')}")
+            logthis.info(
+                f'New webhook name: {request.form.get("custom_name")}'
+            )
 
             with open(webhooks_file, 'r') as json_file:
                 webhooks_json = json.load(json_file)
             if webhooks_json:
                 for each_webhook in webhooks_json:
-
                     if each_webhook.get('name') == new_custom_name:
                         check = 1
             owd = os.getcwd()
@@ -188,49 +253,66 @@ def new_webhook():
             target_file = request.files.get('new_file')
 
             if ' ' in target_file.filename:
-                target_file.filename = target_file.filename.replace(" ", "-")
+                target_file.filename = target_file.filename.replace(' ', '-')
 
-            new_filename = f"{new_custom_name}-{target_file.filename}"
+            new_filename = f'{new_custom_name}-{target_file.filename}'
             target_file.save(secure_filename(new_filename))
-            new_filename = os.path.join(scripts_dir, f"{new_custom_name}-{target_file.filename}")
+            new_filename = os.path.join(
+                scripts_dir, f'{new_custom_name}-{target_file.filename}'
+            )
             os.chmod(new_filename, mode=0o0755)
             os.chdir(owd)
             if check != 0:
-                error_message = "Name already exists!"
-                logthis.info(f"Could not create new webhook. Message: {error_message}")
-                return {"error": error_message, "username": session.get('username'), 'name': new_custom_name,
-                        'description': description}
+                error_message = 'Name already exists!'
+                logthis.info(
+                    f'Could not create new webhook. Message: {error_message}'
+                )
+                return {
+                    'error': error_message,
+                    'username': session.get('username'),
+                    'name': new_custom_name,
+                    'description': description,
+                }
             new_webhook_user = request.form.get('basic_username', 'null')
             if not new_webhook_user:
-                new_webhook_user = "null"
+                new_webhook_user = 'null'
             new_webhook_pass = request.form.get('new-password', 'null')
             if not new_webhook_pass:
-                new_webhook_pass = "null"
+                new_webhook_pass = 'null'
             if request.form.get('custom'):
                 api_key = request.form.get('api_key', 'null')
                 extra_notice = 'Copy and paste the following into the Header Authentication section of Jamf Pro webhooks:'
-                custom_header = {f"x-api-key": f"{api_key}"}
+                custom_header = {'x-api-key': f'{api_key}'}
             else:
                 extra_notice = None
                 custom_header = None
                 api_key = 'null'
-            webhooks_json.append({"url": str(session['url']),
-                                  "jawa_admin": str(session['username']),
-                                  "name": new_custom_name,
-                                  "webhook_username": new_webhook_user,
-                                  "webhook_password": new_webhook_pass,
-                                  "api_key": api_key,
-                                  "script": new_filename,
-                                  "description": description,
-                                  "tag": "custom",
-                                  "output": output})
+            webhooks_json.append(
+                {
+                    'url': str(session['url']),
+                    'jawa_admin': str(session['username']),
+                    'name': new_custom_name,
+                    'webhook_username': new_webhook_user,
+                    'webhook_password': new_webhook_pass,
+                    'api_key': api_key,
+                    'script': new_filename,
+                    'description': description,
+                    'tag': 'custom',
+                    'output': output,
+                }
+            )
 
             with open(webhooks_file, 'w') as outfile:
                 json.dump(webhooks_json, outfile, indent=4)
-            success_msg = "New webhook created:"
-            return render_template('success.html',
-                                   webhooks="success",
-                                   success_msg=success_msg, extra_notice=extra_notice,
-                                   custom_header=custom_header,
-                                   username=str(escape(session['username'])))
-    return render_template('webhooks/custom/new.html', username=session.get('username'))
+            success_msg = 'New webhook created:'
+            return render_template(
+                'success.html',
+                webhooks='success',
+                success_msg=success_msg,
+                extra_notice=extra_notice,
+                custom_header=custom_header,
+                username=str(escape(session['username'])),
+            )
+    return render_template(
+        'webhooks/custom/new.html', username=session.get('username')
+    )

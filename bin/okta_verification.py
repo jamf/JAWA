@@ -29,7 +29,7 @@ from typing import Dict, Optional
 
 
 def verify_new_webhook(challenge: Optional[str]) -> Dict[str, str]:
-    return {"verification": f"{challenge}"}
+    return {'verification': f'{challenge}'}
 
 
 def main() -> None:

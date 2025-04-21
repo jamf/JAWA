@@ -29,9 +29,18 @@
 import json
 import os
 from datetime import datetime
+from typing import Any, Dict, Tuple, Union
 
-from flask import (Blueprint, redirect, render_template,
-                   request, send_file, session, url_for)
+from flask import (
+    Blueprint,
+    Response,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    session,
+    url_for,
+)
 from markupsafe import escape
 from werkzeug.utils import secure_filename
 
@@ -40,20 +49,35 @@ from bin.view_modifiers import response
 
 logthis = logger.setup_child_logger('jawa', __name__)
 
-log_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'jawa.log'))
-server_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json'))
-resources_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'resources'))
-files_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'resources', 'files'))
-img_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static', 'img'))
+log_file = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'data', 'jawa.log')
+)
+server_file = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'data', 'server.json')
+)
+resources_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'resources')
+)
+files_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'resources', 'files')
+)
+img_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..', 'static', 'img')
+)
 
 blueprint = Blueprint('resources_view', __name__, template_folder='templates')
 
 
 @blueprint.route('/resources/files', methods=['GET', 'POST'])
-def files():
+def files() -> Union[Response, Tuple[str, int]]:
     if 'username' not in session:
         return redirect(
-            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
+            url_for(
+                'home_view.logout',
+                error_title='Session Timed Out',
+                error_message='Please sign in again',
+            )
+        )
     target_file = request.args.get('target_file')
     if target_file:
         target_file = secure_filename(target_file)
@@ -61,29 +85,50 @@ def files():
     if button_choice:
         button_choice = escape(button_choice)
     if target_file:
-        target_file_dir = os.path.dirname(os.path.abspath(os.path.join(files_dir, target_file)))
-        target_file_path = os.path.abspath(os.path.join(files_dir, target_file))
-        if button_choice == "Download":
-            logthis.info(f"[{session.get('url')}] {session.get('username')} downloading file: {target_file}.")
+        target_file_dir = os.path.dirname(
+            os.path.abspath(os.path.join(files_dir, target_file))
+        )
+        target_file_path = os.path.abspath(
+            os.path.join(files_dir, target_file)
+        )
+        if button_choice == 'Download':
+            logthis.info(
+                f'[{session.get("url")}] {session.get("username")} downloading file: {target_file}.'
+            )
             if target_file_dir != files_dir:
                 logthis.info(
-                    f"WARNING: [{session.get('url')}] {session.get('username')} attempted to download a file from a forbidden path: {target_file_path}.")
-                return "Forbidden:  you are not allowed to download files from alternative paths.", 403
+                    f'WARNING: [{session.get("url")}] {session.get("username")} attempted to download a file from a forbidden path: {target_file_path}.'
+                )
+                return (
+                    'Forbidden:  you are not allowed to download files from alternative paths.',
+                    403,
+                )
             return send_file(f'{target_file_path}', as_attachment=True)
-        elif button_choice == "Delete":
+        elif button_choice == 'Delete':
             logthis.debug(
-                f"[{session.get('url')}] {session.get('username')} is considering deleting a Resource file ({target_file_path})...")
-            return redirect(url_for('resources_view.delete_file', target_file=target_file))
+                f'[{session.get("url")}] {session.get("username")} is considering deleting a Resource file ({target_file_path})...'
+            )
+            return redirect(
+                url_for('resources_view.delete_file', target_file=target_file)
+            )
 
-    if request.method == "POST":
-        logthis.info(f"[{session.get('url')}] {session.get('username')} {request.path} {request.method}")
+    if request.method == 'POST':
+        logthis.info(
+            f'[{session.get("url")}] {session.get("username")} {request.path} {request.method}'
+        )
         upload_files_list = request.files.getlist('upload')
         for each_upload in upload_files_list:
             if ' ' in each_upload.filename:
-                each_upload.filename = each_upload.filename.replace(" ", "-")
-            logthis.info(f"[{session.get('url')}] {session.get('username')} uploaded {each_upload.filename}.")
-            each_upload.save(os.path.join(files_dir, secure_filename(each_upload.filename)))
-    logthis.info(f"[{session.get('url')}] {session.get('username')} {request.path} {request.method}")
+                each_upload.filename = each_upload.filename.replace(' ', '-')
+            logthis.info(
+                f'[{session.get("url")}] {session.get("username")} uploaded {each_upload.filename}.'
+            )
+            each_upload.save(
+                os.path.join(files_dir, secure_filename(each_upload.filename))
+            )
+    logthis.info(
+        f'[{session.get("url")}] {session.get("username")} {request.path} {request.method}'
+    )
     file_list = os.listdir(files_dir)
     for file in file_list:
         if file[0] == '.':
@@ -91,56 +136,91 @@ def files():
     files_list = []
     for each_file in file_list:
         mtime = os.path.getmtime(os.path.join(files_dir, each_file))
-        pretty_mtime = datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M:%S')
-        files_list.append({"name": each_file, "mtime": pretty_mtime})
-    return render_template('resources/files.html', username=session.get('username'), files_repo=files_dir,
-                           files=files_list)
+        pretty_mtime = datetime.fromtimestamp(mtime).strftime(
+            '%Y-%m-%d %H:%M:%S'
+        )
+        files_list.append({'name': each_file, 'mtime': pretty_mtime})
+    return render_template(
+        'resources/files.html',
+        username=session.get('username'),
+        files_repo=files_dir,
+        files=files_list,
+    )
 
 
 @blueprint.route('/resources/delete.html', methods=['GET', 'POST'])
-def delete_file():
+def delete_file() -> Union[Response, Tuple[str, int]]:
     target_file = request.args.get('target_file')
     if target_file:
         target_file = secure_filename(target_file)
     if 'username' not in session:
         return redirect(
-            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
+            url_for(
+                'home_view.logout',
+                error_title='Session Timed Out',
+                error_message='Please sign in again',
+            )
+        )
     if request.method != 'POST':
-        return render_template('resources/delete.html',
-                               target_file=target_file, username=str(escape(session.get('username'))))
+        return render_template(
+            'resources/delete.html',
+            target_file=target_file,
+            username=str(escape(session.get('username'))),
+        )
     if target_file:
-        target_file_dir = os.path.dirname(os.path.abspath(os.path.join(files_dir, target_file)))
-        target_file_path = os.path.abspath(os.path.join(files_dir, target_file))
+        target_file_dir = os.path.dirname(
+            os.path.abspath(os.path.join(files_dir, target_file))
+        )
+        target_file_path = os.path.abspath(
+            os.path.join(files_dir, target_file)
+        )
 
     if target_file_dir != files_dir:
         logthis.info(
-            f"WARNING: [{session.get('url')}] {session.get('username')} attempted to delete a file from a forbidden path: {target_file_path}.")
-        return "Forbidden:  you are not allowed to download files from alternative paths.", 403
-    logthis.info(f"[{session.get('url')}] {session.get('username')} deleting file: {target_file}.")
+            f'WARNING: [{session.get("url")}] {session.get("username")} attempted to delete a file from a forbidden path: {target_file_path}.'
+        )
+        return (
+            'Forbidden:  you are not allowed to download files from alternative paths.',
+            403,
+        )
+    logthis.info(
+        f'[{session.get("url")}] {session.get("username")} deleting file: {target_file}.'
+    )
     if os.path.exists(os.path.join(files_dir, target_file)):
         os.remove(os.path.join(files_dir, target_file))
-        logthis.info(f"[{session.get('url')}] {session.get('username')} successfully deleted the Resource file: {target_file}.")
+        logthis.info(
+            f'[{session.get("url")}] {session.get("username")} successfully deleted the Resource file: {target_file}.'
+        )
         return redirect(url_for('resources_view.files'))
     else:
-        error = f"Error deleting file."
-        error_message = f"File does not exist {target_file}."
-        return render_template('error.html', error=error, error_message=error_message,
-                               username=str(escape(session['username'])))
+        error = 'Error deleting file.'
+        error_message = f'File does not exist {target_file}.'
+        return render_template(
+            'error.html',
+            error=error,
+            error_message=error_message,
+            username=str(escape(session['username'])),
+        )
 
 
 @blueprint.route('/branding', methods=['GET', 'POST'])
 @response(template_file='setup/branding.html')
-def rebrand():
+def rebrand() -> Union[Response, Dict[str, Any]]:
     if 'username' not in session:
         return redirect(
-            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
+            url_for(
+                'home_view.logout',
+                error_title='Session Timed Out',
+                error_message='Please sign in again',
+            )
+        )
     if not os.path.isfile(server_file):
-        with open(server_file, "w") as fout:
+        with open(server_file, 'w') as fout:
             json.dump({}, fout)
     with open(server_file) as fin:
         server_json = json.load(fin)
     brand = server_json.get('brand')
-    if request.method == "POST":
+    if request.method == 'POST':
         upload_files_list = request.files.getlist('upload')
         new_name = request.form.get('new_name')
         if new_name:
@@ -152,28 +232,41 @@ def rebrand():
         if upload_files_list:
             target_file = upload_files_list[0]
             if target_file:
-                os.rename(f"{img_dir}/jawa_icon.png", f"{img_dir}/old_jawa_icon_{datetime.now()}.png")
-                target_file.save(os.path.join(img_dir, "jawa_icon.png"))
+                os.rename(
+                    f'{img_dir}/jawa_icon.png',
+                    f'{img_dir}/old_jawa_icon_{datetime.now()}.png',
+                )
+                target_file.save(os.path.join(img_dir, 'jawa_icon.png'))
                 return redirect(url_for('resources_view.rebrand'))
-            return {'username': session.get('username'), "app_name": brand}
-        return {'username': session.get('username'), "app_name": brand}
+            return {'username': session.get('username'), 'app_name': brand}
+        return {'username': session.get('username'), 'app_name': brand}
 
-    return {'username': session.get('username'), "app_name": brand}
+    return {'username': session.get('username'), 'app_name': brand}
 
 
-@blueprint.route("/python")
-@response(template_file="resources/python.html")
-def python():
+@blueprint.route('/python')
+@response(template_file='resources/python.html')
+def python() -> Union[Response, Dict[str, Any]]:
     if 'username' not in session:
         return redirect(
-            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
-    return {"username": session.get('username')}
+            url_for(
+                'home_view.logout',
+                error_title='Session Timed Out',
+                error_message='Please sign in again',
+            )
+        )
+    return {'username': session.get('username')}
 
 
-@blueprint.route("/bash")
-@response(template_file="resources/bash.html")
-def bash():
+@blueprint.route('/bash')
+@response(template_file='resources/bash.html')
+def bash() -> Union[Response, Dict[str, Any]]:
     if 'username' not in session:
         return redirect(
-            url_for('home_view.logout', error_title="Session Timed Out", error_message="Please sign in again"))
-    return {"username": session.get('username')}
+            url_for(
+                'home_view.logout',
+                error_title='Session Timed Out',
+                error_message='Please sign in again',
+            )
+        )
+    return {'username': session.get('username')}

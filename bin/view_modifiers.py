@@ -5,7 +5,7 @@ import flask
 import werkzeug
 import werkzeug.wrappers
 
-F = TypeVar('F', bound=Callable[..., Any])
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 def response(
@@ -31,7 +31,7 @@ def response(
 
             if template_file and not isinstance(response_val, dict):
                 raise Exception(
-                    'Invalid return type {}, we expected a dict as the return value.'.format(
+                    "Invalid return type {}, we expected a dict as the return value.".format(
                         type(response_val)
                     )
                 )

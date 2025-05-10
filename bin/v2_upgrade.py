@@ -32,19 +32,19 @@ import sys
 
 try:
     backup_dir = sys.argv[1]
-    old_server_json_path = f'{backup_dir}/v2/server.json'
-    new_server_json_path = f'{backup_dir}/data/server.json'
-    jp_webhooks_path = f'{backup_dir}/v2/jp_webhooks.json'
-    webhook_conf = f'{backup_dir}/v2/webhook.conf'
-    new_webhooks_path = f'{backup_dir}/data/webhooks.json'
-    jawa_address = ''
+    old_server_json_path = f"{backup_dir}/v2/server.json"
+    new_server_json_path = f"{backup_dir}/data/server.json"
+    jp_webhooks_path = f"{backup_dir}/v2/jp_webhooks.json"
+    webhook_conf = f"{backup_dir}/v2/webhook.conf"
+    new_webhooks_path = f"{backup_dir}/data/webhooks.json"
+    jawa_address = ""
 except IndexError:
-    print('Backup directory not specified in program arguments.')
+    print("Backup directory not specified in program arguments.")
     exit(1)
 
 # Create data dir in backup dir if necessary
-if not os.path.isdir(f'{backup_dir}/data'):
-    os.mkdir(f'{backup_dir}/data')
+if not os.path.isdir(f"{backup_dir}/data"):
+    os.mkdir(f"{backup_dir}/data")
 
 # Check for server.json
 if os.path.isfile(old_server_json_path):
@@ -52,10 +52,10 @@ if os.path.isfile(old_server_json_path):
         server_json = json.load(fin)
     for each_entry in server_json:
         new_server_json = each_entry
-        jawa_address = each_entry.get('jawa_address')
-        jps_url = each_entry.get('jps_url')
-        new_server_json['alternate_jps'] = ''
-    with open(new_server_json_path, 'w') as fout:
+        jawa_address = each_entry.get("jawa_address")
+        jps_url = each_entry.get("jps_url")
+        new_server_json["alternate_jps"] = ""
+    with open(new_server_json_path, "w") as fout:
         json.dump(new_server_json, fout, indent=4)
 
 new_webhooks_json = []
@@ -66,20 +66,20 @@ if os.path.isfile(jp_webhooks_path):
         jp_webhooks_json = json.load(fin)
     for each_entry in jp_webhooks_json:
         new_entry = {
-            'url': each_entry['url'],
-            'jawa_admin': each_entry['username'],
-            'name': each_entry['name'],
-            'webhook_username': 'null',
-            'webhook_password': 'null',
-            'event': each_entry['event'],
-            'script': each_entry['script'],
-            'description': each_entry['description'],
-            'tag': 'jamfpro',
-            'jamf_id': '',
+            "url": each_entry["url"],
+            "jawa_admin": each_entry["username"],
+            "name": each_entry["name"],
+            "webhook_username": "null",
+            "webhook_password": "null",
+            "event": each_entry["event"],
+            "script": each_entry["script"],
+            "description": each_entry["description"],
+            "tag": "jamfpro",
+            "jamf_id": "",
         }
         new_webhooks_json.append(new_entry)
 
-names = [each_entry['name'] for each_entry in new_webhooks_json]
+names = [each_entry["name"] for each_entry in new_webhooks_json]
 
 # Checking for all other webhooks
 if os.path.isfile(webhook_conf):
@@ -88,19 +88,19 @@ if os.path.isfile(webhook_conf):
 
     for each_entry in webhooks_json:
         # Checking for unique entries
-        if each_entry['id'] not in names:
+        if each_entry["id"] not in names:
             new_entry = {
-                'url': jps_url,
-                'jawa_admin': 'Guy Incognito',
-                'name': each_entry['id'],
-                'webhook_username': 'null',
-                'webhook_password': 'null',
-                'script': each_entry['execute-command'],
-                'description': '',
-                'tag': 'custom',
+                "url": jps_url,
+                "jawa_admin": "Guy Incognito",
+                "name": each_entry["id"],
+                "webhook_username": "null",
+                "webhook_password": "null",
+                "script": each_entry["execute-command"],
+                "description": "",
+                "tag": "custom",
             }
             new_webhooks_json.append(new_entry)
 
 # Writing new webhook file
-with open(new_webhooks_path, 'w+') as fout:
+with open(new_webhooks_path, "w+") as fout:
     json.dump(new_webhooks_json, fout, indent=4)

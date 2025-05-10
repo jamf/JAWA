@@ -148,3 +148,6 @@ dmypy.json
 .Spotlight-V100
 .Trashes
 /.idea
+
+# ruff
+.ruff_cache

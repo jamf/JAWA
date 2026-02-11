@@ -1,0 +1,15 @@
+{% from "shared/_macros.html" import description_field, script_upload %}
+
+<input name="webhookname" type="text" pattern="[^' ']+" placeholder="New Webhook Name (no spaces)" required
+       title="No spaces, please." class="form-control text-center" value="{{ name }}" autofocus>
+<input type="text" name="okta_server" class="form-control text-center" value="{{ okta_server }}"
+       placeholder="Okta Server URI" required pattern="https?://.+" title="Use https://">
+<input type="text" name="token" class="form-control text-center" value="{{ token }}"
+       placeholder="Okta Token" required>
+<input type="text" name="event" class="form-control text-center" value="{{ event }}"
+       placeholder="Okta Event" required>
+<a href="https://developer.okta.com/docs/reference/api/event-types/" style="color:#3c6aa7;" target="_blank">Okta Event Types</a>
+(example: user.lifecycle.deactivate)
+
+{{ description_field() }}
+{{ script_upload("script") }}

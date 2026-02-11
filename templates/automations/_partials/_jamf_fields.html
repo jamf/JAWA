@@ -1,0 +1,52 @@
+{% from "shared/_macros.html" import description_field, script_upload, jamf_auth_fields %}
+
+<input name="webhook_name" type="text" pattern="[^' ']+" placeholder="New Webhook Name (no spaces)"
+       {% if not edit_mode %}required{% endif %}
+       title="No spaces, please." class="form-control text-center"
+       value="{{ webhook_info[0].name if webhook_info else '' }}" autofocus>
+
+{% if error %}
+    <div class="alert-danger text-center">{{ error }}</div>
+{% endif %}
+
+<div class="d-flex justify-content-center text-center">
+    <b>Jamf Event:</b>
+</div>
+<select class="form-control text-center" name="event"
+        onchange="showSmartGroupNote(this.value)"
+        {% if not edit_mode %}required{% endif %}>
+    <option value="">{{ '-- Keep current --' if edit_mode else '' }}</option>
+    <option value="ComputerAdded" {{ 'selected' if webhook_info and webhook_info[0].event == 'ComputerAdded' }}>ComputerAdded</option>
+    <option value="ComputerCheckIn" {{ 'selected' if webhook_info and webhook_info[0].event == 'ComputerCheckIn' }}>ComputerCheckIn</option>
+    <option value="ComputerInventoryCompleted" {{ 'selected' if webhook_info and webhook_info[0].event == 'ComputerInventoryCompleted' }}>ComputerInventoryCompleted</option>
+    <option value="ComputerPatchPolicyCompleted" {{ 'selected' if webhook_info and webhook_info[0].event == 'ComputerPatchPolicyCompleted' }}>ComputerPatchPolicyCompleted</option>
+    <option value="ComputerPolicyFinished" {{ 'selected' if webhook_info and webhook_info[0].event == 'ComputerPolicyFinished' }}>ComputerPolicyFinished</option>
+    <option value="ComputerPushCapabilityChanged" {{ 'selected' if webhook_info and webhook_info[0].event == 'ComputerPushCapabilityChanged' }}>ComputerPushCapabilityChanged</option>
+    <option value="DeviceAddedToDEP" {{ 'selected' if webhook_info and webhook_info[0].event == 'DeviceAddedToDEP' }}>DeviceAddedToDEP</option>
+    <option value="DeviceRateLimited" {{ 'selected' if webhook_info and webhook_info[0].event == 'DeviceRateLimited' }}>DeviceRateLimited</option>
+    <option value="JSSShutdown" {{ 'selected' if webhook_info and webhook_info[0].event == 'JSSShutdown' }}>JSSShutdown</option>
+    <option value="JSSStartup" {{ 'selected' if webhook_info and webhook_info[0].event == 'JSSStartup' }}>JSSStartup</option>
+    <option value="MobileDeviceCheckIn" {{ 'selected' if webhook_info and webhook_info[0].event == 'MobileDeviceCheckIn' }}>MobileDeviceCheckIn</option>
+    <option value="MobileDeviceCommandCompleted" {{ 'selected' if webhook_info and webhook_info[0].event == 'MobileDeviceCommandCompleted' }}>MobileDeviceCommandCompleted</option>
+    <option value="MobileDeviceEnrolled" {{ 'selected' if webhook_info and webhook_info[0].event == 'MobileDeviceEnrolled' }}>MobileDeviceEnrolled</option>
+    <option value="MobileDeviceInventoryCompleted" {{ 'selected' if webhook_info and webhook_info[0].event == 'MobileDeviceInventoryCompleted' }}>MobileDeviceInventoryCompleted</option>
+    <option value="MobileDevicePushSent" {{ 'selected' if webhook_info and webhook_info[0].event == 'MobileDevicePushSent' }}>MobileDevicePushSent</option>
+    <option value="MobileDeviceUnEnrolled" {{ 'selected' if webhook_info and webhook_info[0].event == 'MobileDeviceUnEnrolled' }}>MobileDeviceUnEnrolled</option>
+    <option value="PatchSoftwareTitleUpdated" {{ 'selected' if webhook_info and webhook_info[0].event == 'PatchSoftwareTitleUpdated' }}>PatchSoftwareTitleUpdated</option>
+    <option value="PushSent" {{ 'selected' if webhook_info and webhook_info[0].event == 'PushSent' }}>PushSent</option>
+    <option value="RestAPIOperation" {{ 'selected' if webhook_info and webhook_info[0].event == 'RestAPIOperation' }}>RestAPIOperation</option>
+    <option value="SCEPChallenge" {{ 'selected' if webhook_info and webhook_info[0].event == 'SCEPChallenge' }}>SCEPChallenge</option>
+    <option value="SmartGroupComputerMembershipChange" {{ 'selected' if webhook_info and webhook_info[0].event == 'SmartGroupComputerMembershipChange' }}>SmartGroupComputerMembershipChange</option>
+    <option value="SmartGroupMobileDeviceMembershipChange" {{ 'selected' if webhook_info and webhook_info[0].event == 'SmartGroupMobileDeviceMembershipChange' }}>SmartGroupMobileDeviceMembershipChange</option>
+    <option value="SmartGroupUserMembershipChange" {{ 'selected' if webhook_info and webhook_info[0].event == 'SmartGroupUserMembershipChange' }}>SmartGroupUserMembershipChange</option>
+</select>
+
+<div id="smartGroupNote" class="text-center" style="display:none">
+    * Note: If utilizing the event for Smart Group Membership Change, after submitting, navigate to the
+    <a href="{{ session_url }}/webhooks.html" style="color:#3c6aa7;" target="_blank">Webhooks</a> setting in Jamf Pro
+    and adjust the proper Smart Group for this Webhook.
+</div>
+
+{{ description_field(webhook_info[0].description if webhook_info else '') }}
+{{ script_upload("new_file", required=not edit_mode) }}
+{{ jamf_auth_fields(webhook_info) }}

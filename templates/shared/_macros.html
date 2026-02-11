@@ -1,0 +1,167 @@
+{# Shared Jinja2 macros for JAWA automation templates #}
+
+{% macro hero_section(title, subtitle="", create_url="", create_label="Create", secondary_url="", secondary_label="") %}
+<div class="hero-section">
+    <div class="container">
+        <h2>{{ title }}</h2>
+        {% if subtitle %}
+        <p>{{ subtitle|safe }}</p>
+        {% endif %}
+        {% if create_url or secondary_url %}
+        <div class="hero-cta">
+            {% if create_url %}
+            <a href="{{ create_url }}" class="btn btn-hero-primary">{{ create_label }}</a>
+            {% endif %}
+            {% if secondary_url %}
+            <a href="{{ secondary_url }}" class="btn btn-hero-secondary">{{ secondary_label }}</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro automation_card(item, handler, loop_index, auto_type, session_url="") %}
+<div class="card col-md-6 col-lg-3 webhooks-list container-bg border-info d-flex flex-column">
+    <span class="badge {{ handler.badge_class }} mb-2">{{ handler.display_name }}</span>
+    <img src="/static/img/{{ handler.icon }}" class="card-img mx-auto" alt="{{ handler.display_name }}">
+    <div class="card-body flex-column d-flex webhooks-list">
+        <h6 class="overflow-hidden card-title font-weight-bolder">{{ item.name }}</h6>
+        <a class="btn btn-jawa text-white overflow-hidden mt-auto"
+           href="/automations/{{ auto_type }}/{{ item.name }}">
+            View
+        </a>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro detail_field(label, value) %}
+<div class="overflow-auto log-frame text-break" style="max-width: 100%; max-height: 10vh">
+    <b>{{ label }}</b>: {{ value }}
+</div>
+{% endmacro %}
+
+{% macro empty_state(message, create_url="", create_label="Create one now") %}
+<div class="form-section" style="max-width: fit-content; text-align: center; margin: 1rem auto;">
+    <div class="table-responsive">
+        {{ message }}
+        {% if create_url %}
+        <a href="{{ create_url }}">{{ create_label }}</a>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro delete_confirmation(item_name, item_type, delete_url) %}
+<div class="confirm-delete-box">
+    <h4>Delete {{ item_type }}: {{ item_name }}?</h4>
+    <p>This action cannot be undone.</p>
+    <form method="POST" action="{{ delete_url }}">
+        <a href="javascript:history.back()" class="btn btn-secondary" style="margin: 5px; padding: 5px; width: 150px;">Cancel</a>
+        <button type="submit" class="btn btn-danger">Delete</button>
+    </form>
+</div>
+{% endmacro %}
+
+{% macro description_field(value="") %}
+<textarea name="description" rows="3" type="text" placeholder="Description (optional)"
+          class="form-control text-center">{{ value }}</textarea>
+{% endmacro %}
+
+{% macro script_upload(field_name="new_file", required=true) %}
+<div class="d-flex justify-content-center text-center custom-file">
+    <input type="file" name="{{ field_name }}" id="{{ field_name }}" pattern="[^' ']+"
+           {% if required %}required{% endif %}
+           class="custom-file-input text-center"
+           title="No Spaces in the filename!"
+           accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"/>
+    <label class="custom-file-label text-center" for="{{ field_name }}">Upload a script</label>
+</div>
+<div class="d-flex justify-content-center">
+    <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>,
+    <a href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>]</p>
+</div>
+{% endmacro %}
+
+{% macro auth_fields(show_basic=true, show_custom=true, show_output=false, webhook_info=none) %}
+{% if show_basic %}
+<div class="d-flex justify-content-center">
+    <label>
+        <input type="checkbox" class="form-check-input" name="basic" value="basic"
+               onchange="toggleAuthField('auth-basic-fields')">
+        <b>&nbsp;Basic Authentication (optional):</b>
+    </label>
+</div>
+<div class="d-flex justify-content-center">
+    <div id="auth-basic-fields" style="display:none" class="center_box">
+        <div class="d-flex justify-content-center">
+            <input class="form-control-sm" name="basic_username" title="Username (optional)"
+                   autocomplete="off" placeholder="Username (optional)"
+                   {% if webhook_info and webhook_info[0].webhook_username != 'null' %}value="{{ webhook_info[0].webhook_username }}"{% endif %}>
+            <input name="new-password" autocomplete="off" class="form-control-sm" type="password"
+                   title="Password (optional)" placeholder="Password (optional)">
+        </div>
+    </div>
+</div>
+{% endif %}
+{% if show_custom %}
+<div class="d-flex justify-content-center">
+    <label>
+        <input type="checkbox" class="form-check-input" name="custom" value="custom"
+               onchange="toggleAuthField('auth-custom-fields')">
+        <b>&nbsp;Custom Authentication (optional):</b>
+    </label>
+</div>
+<div class="d-flex justify-content-center">
+    <div id="auth-custom-fields" style="display:none">
+        <input name="api_key" class="form-control-sm" title="x-api-key (optional)"
+               placeholder="x-api-key value (optional)" autocomplete="off"
+               {% if webhook_info and webhook_info[0].api_key != 'null' %}value="{{ webhook_info[0].api_key }}"{% endif %}>
+    </div>
+</div>
+{% endif %}
+{% if show_output %}
+<div class="d-flex justify-content-center">
+    <label>
+        <input name="output" class="form-check-input" type="checkbox"
+               {% if webhook_info and webhook_info[0].output %}checked{% endif %}>
+        <b>&nbsp;Send script output in response?</b>
+    </label>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro jamf_auth_fields(webhook_info=none) %}
+<div class="d-flex justify-content-center">
+    <label>
+        <input type="radio" name="choice" value="basic"
+               onchange="toggleAuthField('jamf-auth-basic-fields')">
+        <b>&nbsp;Basic Authentication (optional):</b>
+    </label>
+</div>
+<div class="d-flex justify-content-center">
+    <div id="jamf-auth-basic-fields" style="display:none" class="center_box">
+        <div class="d-flex justify-content-center">
+            <input class="form-control-sm" name="basic_username" title="Username (optional)"
+                   autocomplete="off" placeholder="Username (optional)" style="padding: unset"
+                   {% if webhook_info and webhook_info[0].webhook_username != 'null' %}value="{{ webhook_info[0].webhook_username }}"{% endif %}>
+            <input name="basic_password" autocomplete="off" class="form-control-sm" type="password"
+                   title="Password (optional)" placeholder="Password (optional)" style="padding: unset">
+        </div>
+    </div>
+</div>
+<div class="d-flex justify-content-center">
+    <label>
+        <input type="radio" name="choice" value="custom"
+               onchange="toggleAuthField('jamf-auth-custom-fields')">
+        <b>&nbsp;Custom Authentication (optional):</b>
+    </label>
+</div>
+<div class="d-flex justify-content-center">
+    <div id="jamf-auth-custom-fields" style="display:none">
+        <input name="api_key" class="form-control-sm" title="x-api-key (optional)"
+               placeholder="x-api-key value (optional)" autocomplete="off"
+               {% if webhook_info and webhook_info[0].api_key != 'null' %}value="{{ webhook_info[0].api_key }}"{% endif %}>
+    </div>
+</div>
+{% endmacro %}

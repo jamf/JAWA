@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
-# Copyright (c) 2022 Jamf.  All rights reserved.
+# Copyright (c) 2026 Jamf.  All rights reserved.
 #
 #       Redistribution and use in source and binary forms, with or without
 #       modification, are permitted provided that the following conditions are met:
@@ -29,7 +29,6 @@
 import base64
 import json
 import os
-from collections import defaultdict
 from typing import Union
 
 import requests
@@ -74,6 +73,70 @@ verify_ssl = True  # Enables Jamf Pro SSL certificate verification
 
 blueprint = Blueprint("home_view", __name__, template_folder="templates")
 
+LOGOUT_ENDPOINT = "home_view.logout"
+DASHBOARD_ENDPOINT = "home_view.dashboard"
+HOME_TEMPLATE = "home.html"
+ERROR_TITLE_SESSION = "Session Timed Out"
+ERROR_MSG_SIGN_IN = "Please sign in again"
+
+
+def _resolve_url_from_server(form, server_json: dict) -> str:
+    """Determine the Jamf Pro URL from form data and server config."""
+    if form.get("active_url"):
+        return str(form.get("active_url"))
+    jps_url = server_json.get("jps_url")
+    if jps_url:
+        return str(jps_url)
+    return _strip_trailing_slash(form.get("url", ""))
+
+
+def _strip_trailing_slash(url: str) -> str:
+    """Remove a trailing slash from a URL string."""
+    return url.rstrip("/") if url.endswith("/") else url
+
+
+def _login_error(title: str, message) -> Response:
+    """Redirect to logout with an error."""
+    return redirect(
+        url_for(LOGOUT_ENDPOINT, error_title=title, error_message=message)
+    )
+
+
+def _validate_credentials() -> Union[Response, None]:
+    """Validate password and token, returning a redirect on failure."""
+    if request.form["password"] == "":
+        return _login_error("Authentication error", "Passwords can't be blank")
+    if not session.get("token"):
+        return _login_error("Could not fetch token", "try again")
+    return None
+
+
+def _verify_jamf_access() -> Union[Response, None]:
+    """Verify Jamf Pro API access, returning a redirect on failure."""
+    try:
+        resp = requests.get(
+            session["url"] + "/JSSResource/activationcode",
+            headers={
+                "Accept": "application/json",
+                "Authorization": f"Bearer {session.get('token')}",
+                "User-Agent": "JAWA%20v3.1.1",
+            },
+            verify=verify_ssl,
+        )
+        resp.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        logthis.info(f"Error occurred: {err}")
+        return _login_error(
+            "Login error", "check account credentials and privileges"
+        )
+    except requests.exceptions.ConnectTimeout as err:
+        logthis.info(f"Error occurred: {err}")
+        return _login_error("Connection Timeout", err)
+    except requests.exceptions.ConnectionError as err:
+        logthis.info(f"Error occurred: {err}")
+        return _login_error("HTTP Error", err)
+    return None
+
 
 @blueprint.route("/login", methods=["GET", "POST"])
 def login() -> Response:
@@ -81,27 +144,12 @@ def login() -> Response:
         if os.path.isfile(server_file):
             with open(server_file) as json_file:
                 server_json = json.load(json_file)
-            if request.form.get("active_url"):
-                session["url"] = str(request.form.get("active_url"))
-            elif server_json.get("jps_url", 0):
-                if (
-                    server_json["jps_url"] is not None
-                    and len(server_json["jps_url"]) != 0
-                ):
-                    session["url"] = str(server_json["jps_url"])
-            elif request.form.get("url")[-1:] == "/":
-                session["url"] = str(request.form.get("url")).rstrip(
-                    request.form.get("url")[-1]
-                )
-            else:
-                session["url"] = request.form["url"]
-
-        elif request.form.get("active_url")[-1:] == "/":
-            session["url"] = str(request.form.get("url")).rstrip(
-                request.form.get("url")[-1]
+            session["url"] = _resolve_url_from_server(
+                request.form, server_json
             )
         else:
-            session["url"] = request.form["url"]
+            session["url"] = _strip_trailing_slash(request.form.get("url", ""))
+
         session["username"] = request.form["username"]
         session["password"] = request.form["password"]
         session["b64_auth"] = base64.b64encode(
@@ -109,83 +157,35 @@ def login() -> Response:
         )
         get_token()
         logthis.info(
-            f"[{session.get('url')}] Attempting login for: {session.get('username')}"
+            f"[{session.get('url')}] Attempting login for: "
+            f"{session.get('username')}"
         )
 
-        if request.form["password"] == "":
-            title = "Authentication error"
-            msg = "Passwords can't be blank"
-            return redirect(
-                url_for(
-                    "home_view.logout", error_title=title, error_message=msg
-                )
-            )
-        if not session.get("token"):
-            return redirect(
-                url_for(
-                    "home_view.logout",
-                    error_title="Could not fetch token",
-                    error_message="try again",
-                )
-            )
-        try:
-            resp = requests.get(
-                session["url"] + "/JSSResource/activationcode",
-                headers={
-                    "Accept": "application/json",
-                    "Authorization": f"Bearer {session.get('token')}",
-                    "User-Agent": "JAWA%20v3.1.1",
-                },
-                verify=verify_ssl,
-            )
+        error = _validate_credentials()
+        if error:
+            return error
 
-            resp.raise_for_status()
-
-        except requests.exceptions.HTTPError as err:
-            logthis.info(f"Error occurred: {err}")
-            return redirect(
-                url_for(
-                    "home_view.logout",
-                    error_title="Login error",
-                    error_message="check account credentials and privileges",
-                )
-            )
-        except requests.exceptions.ConnectTimeout as err:
-            logthis.info(f"Error occurred: {err}")
-            return redirect(
-                url_for(
-                    "home_view.logout",
-                    error_title="Connection Timeout",
-                    error_message=err,
-                )
-            )
-        except requests.exceptions.ConnectionError as err:
-            logthis.info(f"Error occurred: {err}")
-            return redirect(
-                url_for(
-                    "home_view.logout",
-                    error_title="HTTP Error",
-                    error_message=err,
-                )
-            )
+        error = _verify_jamf_access()
+        if error:
+            return error
 
         logthis.info(
             f"[{session.get('url')}] Logging In: "
             + str(escape(session["username"]))
         )
 
-        return redirect(url_for("home_view.dashboard"))
+        return redirect(url_for(DASHBOARD_ENDPOINT))
 
     if "username" not in session:
         return redirect(
             url_for(
-                "home_view.logout",
-                error_title="Session Timed Out",
-                error_message="Please sign in again",
+                LOGOUT_ENDPOINT,
+                error_title=ERROR_TITLE_SESSION,
+                error_message=ERROR_MSG_SIGN_IN,
             )
         )
 
-    return redirect(url_for("home_view.dashboard"))
+    return redirect(url_for(DASHBOARD_ENDPOINT))
 
 
 @blueprint.route("/logout")
@@ -203,56 +203,64 @@ def logout() -> Union[Response, str]:
     return load_home(error_title, error_message)
 
 
+def _load_server_config() -> dict:
+    """Load server.json, creating it if it doesn't exist."""
+    if not os.path.isfile(server_file):
+        with open(server_file, "w") as fout:
+            json.dump({}, fout)
+    with open(server_file, "r") as fin:
+        return json.load(fin)
+
+
+def _render_home(error_title="", error_message="", **kwargs) -> str:
+    """Render the home template with common error parameters."""
+    return render_template(
+        HOME_TEMPLATE,
+        error_title=error_title,
+        error_message=error_message,
+        **kwargs,
+    )
+
+
 def load_home(
     error_title: str = "", error_message: str = ""
 ) -> Union[Response, str]:
     if "username" in session:
-        return redirect(url_for("home_view.dashboard"))
-    if not os.path.isfile(server_file):
-        with open(server_file, "w") as fout:
-            json.dump({}, fout)
+        return redirect(url_for(DASHBOARD_ENDPOINT))
 
-    with open(server_file, "r") as fin:
-        server_json = json.load(fin)
+    server_json = _load_server_config()
     if not server_json:
-        return render_template("home.html")
+        return render_template(HOME_TEMPLATE)
+
     brand = server_json.get("brand")
+    jps_url = server_json.get("jps_url")
 
-    if (
-        "jps_url" not in server_json
-        or server_json["jps_url"] is None
-        or len(server_json["jps_url"]) == 0
-    ):
-        return render_template("home.html", app_name=brand)
-    if "alternate_jps" not in server_json:
-        return render_template(
-            "home.html",
-            app_name=brand,
-            error_title=error_title,
-            error_message=error_message,
-        )
+    if not jps_url:
+        return _render_home(app_name=brand)
 
-    if server_json["alternate_jps"] != "":
-        return render_template(
-            "home.html",
-            jps_url=server_json["jps_url"],
-            jps_url2=server_json["alternate_jps"],
+    alt_jps = server_json.get("alternate_jps")
+    if alt_jps is None:
+        return _render_home(error_title, error_message, app_name=brand)
+
+    if alt_jps != "":
+        return _render_home(
+            error_title,
+            error_message,
+            jps_url=jps_url,
+            jps_url2=alt_jps,
             welcome="true",
             jsslock="true",
             app_name=brand,
-            error_title=error_title,
-            error_message=error_message,
         )
 
-    session["url"] = server_json["jps_url"]
-    return render_template(
-        "home.html",
+    session["url"] = jps_url
+    return _render_home(
+        error_title,
+        error_message,
         jps_url=str(escape(session["url"])),
         welcome="true",
         jsslock="true",
         app_name=brand,
-        error_title=error_title,
-        error_message=error_message,
     )
 
 
@@ -261,72 +269,39 @@ def dashboard() -> Union[Response, str]:
     if "username" not in session:
         return redirect(
             url_for(
-                "home_view.logout",
-                error_title="Session Timed Out",
-                error_message="Please sign in again",
+                LOGOUT_ENDPOINT,
+                error_title=ERROR_TITLE_SESSION,
+                error_message=ERROR_MSG_SIGN_IN,
             )
         )
     logthis.info(
         f"[{session.get('url')}] {session.get('username')} rendering /dashboard."
     )
-    with open(webhooks_file) as webhook_json:
-        webhooks_installed = json.load(webhook_json)
-    jamf_pro_webhooks = []
-    okta_webhooks = []
-    custom_webhooks = []
-    for each_webhook in webhooks_installed:
-        data = defaultdict(lambda: "MISSING", each_webhook)
-        tag = data["tag"]
-        if tag == "jamfpro":
-            jamf_pro_webhooks.append(each_webhook)
-        elif tag == "okta":
-            okta_webhooks.append(each_webhook)
-        elif tag == "custom":
-            custom_webhooks.append(each_webhook)
 
-    data = []
+    from bin.data_store import get_all_webhooks, get_all_crons
+    from views._type_handlers import HANDLERS
 
-    if not os.path.isfile(cron_file):
-        with open(cron_file, "w") as outfile:
-            json.dump(data, outfile)
+    all_webhooks = get_all_webhooks()
+    all_crons = get_all_crons()
 
-    with open(cron_file, "r") as cron_json:
-        try:
-            cron_list = json.load(cron_json)
-        except json.decoder.JSONDecodeError:
-            with open(cron_file, "w") as cron_json:
-                cron_list = []
-                json.dump(cron_list, cron_json, indent=4)
+    categorized = {}
+    for tag, handler in HANDLERS.items():
+        if tag == "cron":
+            items = all_crons
+        else:
+            items = [w for w in all_webhooks if w.get("tag") == tag]
+        categorized[tag] = {"handler": handler, "items": items}
 
-    cron_json = []
-    for cron in cron_list:
-        script = cron["script"].rsplit("/", 1)
-        cron_json.append(
-            {
-                "name": cron["name"],
-                "frequency": cron["frequency"],
-                "script": script[1],
-                "description": cron["description"],
-            }
-        )
+    total_webhooks = len(all_webhooks)
+    total_cron = len(all_crons)
 
-    webhook_url = session["url"]
+    logthis.info(f"Total webhooks managed by JAWA: {total_webhooks}")
 
-    if not cron_json:
-        cron_json = ""
-    logthis.info(f"Total webhooks managed by JAWA: {len(webhooks_installed)}")
-    if webhook_json == cron_json:
-        return redirect(url_for("first_automation"))
     return render_template(
         "dashboard.html",
-        webhook_url=webhook_url,
-        jamfpro_list=jamf_pro_webhooks,
-        url=session.get("url"),
-        cron_list=cron_json,
-        okta_list=okta_webhooks,
-        custom_list=custom_webhooks,
-        total_webhooks=len(webhooks_installed),
-        total_cron=len(cron_json),
+        categorized=categorized,
+        total_webhooks=total_webhooks,
+        total_cron=total_cron,
         login="true",
         username=str(escape(session["username"])),
     )

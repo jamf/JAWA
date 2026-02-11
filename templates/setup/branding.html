@@ -1,6 +1,6 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {###}
-{## Copyright (c) 2022 Jamf.  All rights reserved.#}
+{## Copyright (c) 2026 Jamf.  All rights reserved.#}
 {###}
 {##       Redistribution and use in source and binary forms, with or without#}
 {##       modification, are permitted provided that the following conditions are met:#}
@@ -29,37 +29,42 @@
 {% extends "shared/_layout.html" %}
 {% block title %}JAWA Resource Files{% endblock %}
 {% block content %}
-    <div>
-        <div class="test-links sub_links sticky-top" style="min-width: 100vw">
-        <div class="stat"><a href="/setup">Setup</a></div>
-        <div class="stat"><a href="/cleanup">Cleanup</a></div>
-        <div class="stat"><a href="/branding">Branding</a></div>
+<div class="hero-section">
+    <div class="container">
+        <h2>Branding</h2>
+        <p>Customize your JAWA instance name and icon.</p>
+        <div class="hero-cta">
+            <a href="/setup" class="btn btn-hero-secondary">Setup</a>
+            <a href="/cleanup" class="btn btn-hero-secondary">Cleanup</a>
+            <a href="/setup/credentials" class="btn btn-hero-secondary">Credentials</a>
+        </div>
     </div>
+</div>
+<div class="container">
     <div class="form-container">
-        <div class="table-view log-frame overflow-auto" style="max-width: 42rem ; max-height: 66vh">
+        <div class="form-section log-frame overflow-auto" style="max-width: 42rem ; max-height: 66vh">
 
-            <h1 class="d-flex justify-content-center">
-                {% if app_name %}{{ app_name }}{% else %}JAWA{% endif %} Branding</h1>
             <div class="d-flex justify-content-center">
 
                 <form action="#" method="post" enctype="multipart/form-data">
                     <p>
                     <div class="d-flex justify-content-center">
                         <div class="img-thumbnail" style="max-width: 15vh">
-                            <img class="img-thumbnail align-items-center" src="/static/img/jawa_icon.png"><br/>
+                            <img class="img-thumbnail align-items-center" src="/static/img/jawa_icon.png" alt="App icon"><br/>
                         </div>
                     </div>
                     <div class="d-flex justify-content-center">
-                        <input id="upload" type="file" accept="image/*" name="upload" class="justify-content-center"
-                               formenctype="multipart/form-data" style="display:block"/>
-                        {#            <a href="#" id="upload_link">Upload files</a>#}
+                        <label for="brand-image-upload" class="visually-hidden">Upload app icon</label>
+                        <input id="brand-image-upload" type="file" accept="image/*" name="upload" class="form-control"
+                               formenctype="multipart/form-data"/>
                     </div>
                     </p>
                     <p>
                     <div class="d-flex justify-content-center">
-                        <input id="upload" type="text" placeholder="Change App Name" accept="image/*"
+                        <label for="brand-name-input" class="visually-hidden">App name</label>
+                        <input id="brand-name-input" type="text" placeholder="Change App Name"
                                name="new_name" value="{% if app_name %}{{ app_name }}{% endif %}"
-                               formenctype="multipart/form-data"/>
+                               class="form-control"/>
                     </div>
                     <br/>
                     <div class="d-flex justify-content-center">
@@ -69,23 +74,5 @@
             </div>
         </div>
     </div>
-{% endblock %}
-{% block additional_js %}
-    <script>
-        $(function () {
-            $("#upload_link").on('click', function (e) {
-                e.preventDefault();
-                $("#upload:hidden").trigger('click');
-            });
-        });
-        $(document).ready(
-            function () {
-                $('input:file').change(
-                    function () {
-                        if ($(this).val()) {
-                            $('input:submit').attr('disabled', false);
-                        }
-                    }
-                );
-            });</script>
+</div>
 {% endblock %}

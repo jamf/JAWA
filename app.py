@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
-# Copyright (c) 2024 Jamf.  All rights reserved.
+# Copyright (c) 2026 Jamf.  All rights reserved.
 #
 #       Redistribution and use in source and binary forms, with or without
 #       modification, are permitted provided that the following conditions are met:
@@ -46,6 +46,7 @@ from waitress import serve
 from typing import Any, Dict, Union
 
 from bin import logger
+from bin.context_processors import inject_common_vars
 from bin.view_modifiers import response
 from views.home_view import load_home
 
@@ -61,6 +62,9 @@ app = Flask(__name__)
 @app.before_request
 def func() -> None:
     session.modified = True
+
+
+app.context_processor(inject_common_vars)
 
 
 def main() -> None:
@@ -99,18 +103,10 @@ def register_blueprints() -> None:
     from webhook import jawa_receiver
 
     app.register_blueprint(jawa_receiver.blueprint)
-    # Jamf Pro Webhooks view
-    from views import jamf_webhook
-
-    app.register_blueprint(jamf_webhook.blueprint)
-    # Okta Webhooks view
-    from views.okta_webhook import blueprint
-
-    app.register_blueprint(blueprint)
-    # Create a new Cron Job
-    from views.cron_view import blueprint
-
-    app.register_blueprint(blueprint)
+    # Legacy views (deprecated — routes handled by automation_view)
+    # from views import jamf_webhook
+    # from views.okta_webhook import blueprint
+    # from views.cron_view import blueprint
     # Log view
     from views import log_view
 
@@ -119,18 +115,113 @@ def register_blueprints() -> None:
     from views import resource_view
 
     app.register_blueprint(resource_view.blueprint)
-    # Custom Webhooks view
-    from views import custom_webhook
+    # Legacy views (deprecated — routes handled by automation_view)
+    # from views import custom_webhook
+    # from views import webhook_view
+    # Template catalog, enable, and import view
+    from views import template_view
 
-    app.register_blueprint(custom_webhook.blueprint)
-    # Webhooks Base view
-    from views import webhook_view
+    app.register_blueprint(template_view.blueprint)
+    # Search view
+    from views import search_view
 
-    app.register_blueprint(webhook_view.blueprint)
+    app.register_blueprint(search_view.blueprint)
+    # Credential management view
+    from views import credential_view
+
+    app.register_blueprint(credential_view.blueprint)
+    # Unified Automations view
+    from views import automation_view
+
+    app.register_blueprint(automation_view.blueprint)
     # Home, Dashboard and Login view
     from views import home_view
 
     app.register_blueprint(home_view.blueprint)
+
+
+# --- Backward-compatibility 301 redirects ---
+# Old webhook routes → new /automations/ routes
+
+
+@app.route("/webhooks")
+def _redir_webhooks():
+    return redirect("/automations", code=301)
+
+
+@app.route("/webhooks/jamf")
+def _redir_jamf_list():
+    return redirect("/automations/jamfpro", code=301)
+
+
+@app.route("/webhooks/jamf/new")
+def _redir_jamf_new():
+    return redirect("/automations/jamfpro/new", code=301)
+
+
+@app.route("/webhooks/jamf/edit")
+def _redir_jamf_edit():
+    name = request.args.get("name", "")
+    return redirect(f"/automations/jamfpro/{name}/edit", code=301)
+
+
+@app.route("/webhooks/okta")
+def _redir_okta_list():
+    return redirect("/automations/okta", code=301)
+
+
+@app.route("/webhooks/okta/new")
+def _redir_okta_new():
+    return redirect("/automations/okta/new", code=301)
+
+
+@app.route("/webhooks/custom")
+def _redir_custom_list():
+    return redirect("/automations/custom", code=301)
+
+
+@app.route("/webhooks/custom/new")
+def _redir_custom_new():
+    return redirect("/automations/custom/new", code=301)
+
+
+@app.route("/webhooks/custom/edit")
+def _redir_custom_edit():
+    name = request.args.get("name", "")
+    return redirect(f"/automations/custom/{name}/edit", code=301)
+
+
+@app.route("/cron")
+def _redir_cron_list():
+    return redirect("/automations/cron", code=301)
+
+
+@app.route("/cron/new")
+def _redir_cron_new():
+    return redirect("/automations/cron/new", code=301)
+
+
+@app.route("/cron/edit")
+def _redir_cron_edit():
+    name = request.args.get("name", "")
+    return redirect(f"/automations/cron/{name}/edit", code=301)
+
+
+@app.route("/cron/delete")
+def _redir_cron_delete():
+    name = request.args.get("target_job", "")
+    return redirect(f"/automations/cron/{name}/delete", code=301)
+
+
+@app.route("/webhooks/delete")
+def _redir_webhook_delete():
+    name = request.args.get("target_webhook", "")
+    # Need to look up the tag to route properly
+    from bin.data_store import get_webhook_by_name
+
+    webhook = get_webhook_by_name(name)
+    tag = webhook.get("tag", "custom") if webhook else "custom"
+    return redirect(f"/automations/{tag}/{name}/delete", code=301)
 
 
 # Server setup including making .json file necessary for webhooks
@@ -321,7 +412,7 @@ def error() -> Union[Response, str]:
 
 
 @app.errorhandler(404)
-def page_not_found() -> Union[Response, str]:
+def page_not_found(e) -> Union[Response, str]:
     if "username" in session:
         logthis.info(
             f"[{session.get('url')}] {session.get('username')} wandered off course  ({request.path}) - redirecting to /dashboard."

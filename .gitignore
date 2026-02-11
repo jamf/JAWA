@@ -152,6 +152,10 @@ dmypy.json
 # ruff
 .ruff_cache
 
+# LLM generated files
+.claude/
+CLAUDE.md
+
 # JAWA runtime data
 data/server.json
 data/credentials.json

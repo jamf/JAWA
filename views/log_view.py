@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
-# Copyright (c) 2022 Jamf.  All rights reserved.
+# Copyright (c) 2026 Jamf.  All rights reserved.
 #
 #       Redistribution and use in source and binary forms, with or without
 #       modification, are permitted provided that the following conditions are met:
@@ -27,7 +27,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import os
-import re
 import subprocess
 from datetime import datetime
 from time import sleep
@@ -59,27 +58,34 @@ server_json_file = os.path.abspath(
 
 blueprint = Blueprint("log_view", __name__, template_folder="templates")
 
+ERROR_TITLE = "Session Timed Out"
+ERROR_MSG_SIGN_IN = "Please sign in again"
+LOGOUT_ENDPOINT = "home_view.logout"
+LOG_TEMPLATE = "log/home.html"
+LOG_TAIL_LINES = 500
+
+
+def _read_recent_logs() -> list:
+    """Read the last LOG_TAIL_LINES lines from the log file."""
+    with open(log_file, "r") as fin:
+        lines = [line.replace("\n", "") for line in fin.readlines()]
+    return lines[-LOG_TAIL_LINES:]
+
 
 @blueprint.route("/log/home.html", methods=["GET"])
 def log_home() -> Union[Response, str]:
     if "username" not in session:
         return redirect(
             url_for(
-                "home_view.logout",
-                error_title="Session Timed Out",
-                error_message="Please sign in again",
+                LOGOUT_ENDPOINT,
+                error_title=ERROR_TITLE,
+                error_message=ERROR_MSG_SIGN_IN,
             )
         )
     logthis.debug(
         f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}"
     )
-    with open(log_file, "r") as fin:
-        lines = [re.sub("\n", "", line) for line in fin.readlines()]
-        lines.reverse()
-        view_lines = lines[:500]
-    return render_template(
-        "log/home.html", username=session.get("username"), log=view_lines
-    )
+    return render_template(LOG_TEMPLATE, log=_read_recent_logs())
 
 
 @blueprint.route("/log/view", methods=["GET"])
@@ -87,21 +93,15 @@ def log_view() -> Union[Response, str]:
     if "username" not in session:
         return redirect(
             url_for(
-                "home_view.logout",
-                error_title="Session Timed Out",
-                error_message="Please sign in again",
+                LOGOUT_ENDPOINT,
+                error_title=ERROR_TITLE,
+                error_message=ERROR_MSG_SIGN_IN,
             )
         )
     logthis.debug(
         f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}"
     )
-    with open(log_file, "r") as fin:
-        lines = [re.sub("\n", "", line) for line in fin.readlines()]
-        lines.reverse()
-        view_lines = lines[:500]
-    return render_template(
-        "log/home.html", username=session.get("username"), log=view_lines
-    )
+    return render_template(LOG_TEMPLATE, log=_read_recent_logs())
 
 
 @blueprint.route("/log/live.html", methods=["GET"])
@@ -110,9 +110,9 @@ def stream() -> Response:
     if "username" not in session:
         return redirect(
             url_for(
-                "home_view.logout",
-                error_title="Session Timed Out",
-                error_message="Please sign in again",
+                LOGOUT_ENDPOINT,
+                error_title=ERROR_TITLE,
+                error_message=ERROR_MSG_SIGN_IN,
             )
         )
     logthis.debug(
@@ -132,9 +132,9 @@ def yield_log() -> Response:
     if "username" not in session:
         return redirect(
             url_for(
-                "home_view.logout",
-                error_title="Session Timed Out",
-                error_message="Please sign in again",
+                LOGOUT_ENDPOINT,
+                error_title=ERROR_TITLE,
+                error_message=ERROR_MSG_SIGN_IN,
             )
         )
     logthis.info(
@@ -162,9 +162,9 @@ def download_logs() -> Response:
     if "username" not in session:
         return redirect(
             url_for(
-                "home_view.logout",
-                error_title="Session Timed Out",
-                error_message="Please sign in again",
+                LOGOUT_ENDPOINT,
+                error_title=ERROR_TITLE,
+                error_message=ERROR_MSG_SIGN_IN,
             )
         )
     logthis.info(

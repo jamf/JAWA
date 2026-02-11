@@ -1,6 +1,6 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {###}
-{## Copyright (c) 2022 Jamf.  All rights reserved.#}
+{## Copyright (c) 2026 Jamf.  All rights reserved.#}
 {###}
 {##       Redistribution and use in source and binary forms, with or without#}
 {##       modification, are permitted provided that the following conditions are met:#}
@@ -28,13 +28,13 @@
 {% extends "shared/_layout.html" %}
 {% block title %}Confirm Delete{% endblock %}
 {% block content %}
-    <div>
-        <div class="test-links sub_links sticky-top" style="min-width: 100vw">
-        <div class="stat"><a href="/resources/files">Files</a></div>
-        <div class="stat"><a href="/log/home.html">Log</a></div>
+<div class="container" style="padding-top: 5rem;">
+    <div class="page-sub-nav">
+        <a href="/resources/files">Files</a>
+        <a href="/log/home.html">Log</a>
     </div>
     <div class="form-container">
-        <form action="#" method="POST" class="table-view"
+        <form action="#" method="POST" class="form-section"
               enctype="multipart/form-data">
             <h1>Confirm Delete:</h1>
             <div class="font-weight-bold text-center">Resource file -
@@ -57,6 +57,5 @@
 
                     </button>
                 </div>
+    </div>
 {% endblock %}
-</div>
-</body>

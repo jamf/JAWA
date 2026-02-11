@@ -151,3 +151,8 @@ dmypy.json
 
 # ruff
 .ruff_cache
+
+# LLM generated files
+/.claude
+/data/credentials.json
+/data/server.json

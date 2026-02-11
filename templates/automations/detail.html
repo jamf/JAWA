@@ -1,0 +1,46 @@
+{% extends "shared/_layout.html" %}
+{% from "shared/_macros.html" import hero_section, detail_field %}
+
+{% block title %}{{ automation.name }} | JAWA{% endblock %}
+
+{% block content %}
+{{ hero_section(
+    title=automation.name,
+    subtitle=handler.display_name ~ " automation"
+) }}
+
+<div class="container">
+    <div class="page-sub-nav">
+        <a href="/automations/{{ auto_type }}">{{ handler.display_name }}</a>
+        <a href="/automations/{{ auto_type }}/{{ automation.name }}" class="active">Detail</a>
+        {% if handler.supports_edit %}
+        <a href="/automations/{{ auto_type }}/{{ automation.name }}/edit">Edit</a>
+        {% endif %}
+    </div>
+
+    <div class="form-section" style="max-width: 700px; margin: 0 auto;">
+        <div class="d-flex align-items-center mb-3">
+            <span class="badge {{ handler.badge_class }} me-2">{{ handler.display_name }}</span>
+            <h4 class="mb-0">{{ automation.name }}</h4>
+        </div>
+
+        {% for label, value in detail_fields %}
+            {{ detail_field(label, value) }}
+        {% endfor %}
+
+        {% if automation.jamf_id and auto_type == 'jamfpro' %}
+        <div class="overflow-auto log-frame text-break" style="max-width: 100%; max-height: 10vh">
+            <b>View in Jamf</b>: <a href="{{ session_url }}/webhooks.html?id={{ automation.jamf_id }}" target="_blank">Open in Jamf Pro</a>
+        </div>
+        {% endif %}
+
+        <div class="d-flex justify-content-center mt-4 gap-2">
+            <a href="/automations/{{ auto_type }}" class="btn btn-secondary" style="border-radius: 1rem;">Back</a>
+            {% if handler.supports_edit %}
+            <a href="/automations/{{ auto_type }}/{{ automation.name }}/edit" class="btn btn-jawa">Edit</a>
+            {% endif %}
+            <a href="/automations/{{ auto_type }}/{{ automation.name }}/delete" class="btn btn-danger">Delete</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

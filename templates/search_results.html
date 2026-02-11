@@ -1,0 +1,49 @@
+{% extends "shared/_layout.html" %}
+{% block title %}Search - JAWA{% endblock %}
+{% block content %}
+<div class="hero-section">
+    <div class="container">
+        <h2>Search Results{% if query %} for "{{ query }}"{% endif %}</h2>
+        <p>Search webhooks, cron jobs, templates, and pages.</p>
+    </div>
+</div>
+<div class="container" style="max-width: 900px;">
+
+    <form action="/search" method="get" class="mb-4">
+        <div class="d-flex gap-2">
+            <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search webhooks, cron, templates, pages..." autofocus>
+            <button type="submit" class="btn btn-jawa">Search</button>
+        </div>
+    </form>
+
+    {% if results %}
+        <p style="color: var(--color-text-muted); font-size: 0.88rem;">{{ results|length }} result{{ 's' if results|length != 1 }} found</p>
+        <div class="list-group">
+            {% for result in results %}
+            <a href="{{ result.url }}" class="list-group-item list-group-item-action" style="border-radius: var(--radius-md); margin-bottom: 0.5rem; border: 1px solid var(--color-border);">
+                <div class="d-flex align-items-center gap-2">
+                    <h6 class="mb-1" style="font-weight: 600;">{{ result.title }}</h6>
+                    {% if result.result_type == 'webhook' %}
+                        <span class="badge" style="background: var(--color-navbar); font-size: 0.65rem;">Webhook</span>
+                    {% elif result.result_type == 'cron' %}
+                        <span class="badge" style="background: var(--color-accent-light); font-size: 0.65rem;">Cron</span>
+                    {% elif result.result_type == 'template' %}
+                        <span class="badge" style="background: var(--color-primary); font-size: 0.65rem;">Template</span>
+                    {% elif result.result_type == 'page' %}
+                        <span class="badge" style="background: #6c757d; font-size: 0.65rem;">Page</span>
+                    {% endif %}
+                </div>
+                {% if result.description %}
+                    <p class="mb-0" style="font-size: 0.85rem; color: var(--color-text-secondary);">{{ result.description }}</p>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+    {% elif query %}
+        <div class="form-section text-center" style="max-width: 500px; margin: 2rem auto;">
+            <p style="color: var(--color-text-muted);">No results found for "{{ query }}".</p>
+            <p style="color: var(--color-text-muted); font-size: 0.85rem;">Try different keywords or check your spelling.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

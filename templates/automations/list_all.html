@@ -1,0 +1,50 @@
+{% extends "shared/_layout.html" %}
+{% from "shared/_macros.html" import hero_section, automation_card, empty_state %}
+
+{% block title %}All Automations | JAWA{% endblock %}
+
+{% block content %}
+{{ hero_section(
+    title="All Automations",
+    subtitle="Manage all webhooks and timed automations",
+    create_url="/automations/jamfpro/new",
+    create_label="Create Webhook",
+    secondary_url="/automations/cron/new",
+    secondary_label="Create Timed Job"
+) }}
+
+<div class="container">
+    <div class="page-sub-nav">
+        <a href="/automations" class="active">All</a>
+        <a href="/automations/jamfpro">Jamf Pro</a>
+        <a href="/automations/okta">Okta</a>
+        <a href="/automations/custom">Custom</a>
+        <a href="/automations/cron">Cron</a>
+    </div>
+
+    {% set ns = namespace(has_any=false) %}
+    {% for tag, data in categorized.items() %}
+        {% if data.get('items', []) %}
+            {% set ns.has_any = true %}
+        {% endif %}
+    {% endfor %}
+
+    {% if not ns.has_any %}
+        {{ empty_state("No automations to display.", create_url="/automations/jamfpro/new") }}
+    {% else %}
+        {% for tag, data in categorized.items() %}
+            {% if data.get('items', []) %}
+            <div class="section-header {% if not loop.first %}mt-4{% endif %}">
+                <h3>{{ data.handler.display_name }}</h3>
+                <a href="/automations/{{ tag }}" style="font-size: 0.85rem; color: var(--color-primary);">View all</a>
+            </div>
+            <div class="row dash-list justify-content-center" style="margin-right: 0; margin-left: 0">
+                {% for item in data.get('items', []) %}
+                    {{ automation_card(item, data.handler, loop.index, tag) }}
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}

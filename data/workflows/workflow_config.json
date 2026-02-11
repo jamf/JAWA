@@ -1,0 +1,304 @@
+[
+    {
+        "slug": "device-naming",
+        "title": "Device Naming by Asset Tag",
+        "description": "Automatically rename mobile devices using their Inventory Preload asset tag when they enroll.",
+        "category": "provisioning",
+        "trigger_type": "webhook",
+        "trigger_event": "MobileDeviceEnrolled",
+        "script_file": "device_naming.py",
+        "notebook_slug": "device-naming",
+        "api_privileges": [
+            "Read Mobile Devices",
+            "Send Mobile Device Set Device Name Command"
+        ],
+        "config_params": [
+            {
+                "key": "server_url",
+                "label": "Jamf Pro URL",
+                "placeholder": "https://example.jamfcloud.com",
+                "type": "text"
+            },
+            {
+                "key": "client_id",
+                "label": "OAuth Client ID",
+                "placeholder": "your_client_id",
+                "type": "text"
+            },
+            {
+                "key": "client_secret",
+                "label": "OAuth Client Secret",
+                "placeholder": "your_client_secret",
+                "type": "password"
+            }
+        ],
+        "exit_codes": [
+            {"code": 0, "meaning": "Success — device renamed"},
+            {"code": 1, "meaning": "Invalid webhook JSON"},
+            {"code": 2, "meaning": "Could not retrieve device record"},
+            {"code": 3, "meaning": "No asset tag found"},
+            {"code": 4, "meaning": "Rename command failed"},
+            {"code": 5, "meaning": "Device has room assignment (skipped)"}
+        ],
+        "tags": ["enrollment", "mobile", "naming", "asset-tag"],
+        "order": 1
+    },
+    {
+        "slug": "smart-group-slack",
+        "title": "Smart Group Slack Notification",
+        "description": "Send a Slack message when devices are added to a smart group.",
+        "category": "observability",
+        "trigger_type": "webhook",
+        "trigger_event": "SmartGroupComputerMembershipChange",
+        "script_file": "smart_group_slack.py",
+        "notebook_slug": "smart-group-actions",
+        "api_privileges": [],
+        "config_params": [
+            {
+                "key": "SLACK_WEBHOOK_URL",
+                "label": "Slack Webhook URL",
+                "placeholder": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+                "type": "text"
+            }
+        ],
+        "exit_codes": [
+            {"code": 0, "meaning": "Success — notification sent"},
+            {"code": 12, "meaning": "No devices entered the group"}
+        ],
+        "tags": ["smart-group", "slack", "notification"],
+        "order": 2
+    },
+    {
+        "slug": "smart-group-appletv",
+        "title": "Apple TV Restart on Smart Group",
+        "description": "Automatically restart Apple TV devices and update inventory when they join a smart group.",
+        "category": "provisioning",
+        "trigger_type": "webhook",
+        "trigger_event": "SmartGroupMobileDeviceMembershipChange",
+        "script_file": "smart_group_appletv.py",
+        "notebook_slug": "smart-group-actions",
+        "api_privileges": [
+            "Send Mobile Device Restart Device Command",
+            "Send Mobile Device Update Inventory Command"
+        ],
+        "config_params": [
+            {
+                "key": "server_url",
+                "label": "Jamf Pro URL",
+                "placeholder": "https://example.jamfcloud.com",
+                "type": "text"
+            },
+            {
+                "key": "client_id",
+                "label": "OAuth Client ID",
+                "placeholder": "your_client_id",
+                "type": "text"
+            },
+            {
+                "key": "client_secret",
+                "label": "OAuth Client Secret",
+                "placeholder": "your_client_secret",
+                "type": "password"
+            }
+        ],
+        "exit_codes": [
+            {"code": 0, "meaning": "Success — devices restarted"},
+            {"code": 12, "meaning": "No devices entered the group"}
+        ],
+        "tags": ["smart-group", "apple-tv", "restart", "mobile"],
+        "order": 3
+    },
+    {
+        "slug": "return-to-service",
+        "title": "Return to Service",
+        "description": "Erase and re-enroll mobile devices with WiFi profile when they enter a smart group, enabling zero-touch device recycling.",
+        "category": "provisioning",
+        "trigger_type": "webhook",
+        "trigger_event": "SmartGroupMobileDeviceMembershipChange",
+        "script_file": "return_to_service.py",
+        "notebook_slug": "return-to-service",
+        "api_privileges": [
+            "Read Mobile Devices",
+            "Update Mobile Devices",
+            "Send Mobile Device Erase Device Command"
+        ],
+        "config_params": [
+            {
+                "key": "server_url",
+                "label": "Jamf Pro URL",
+                "placeholder": "https://example.jamfcloud.com",
+                "type": "text"
+            },
+            {
+                "key": "client_id",
+                "label": "OAuth Client ID",
+                "placeholder": "your_client_id",
+                "type": "text"
+            },
+            {
+                "key": "client_secret",
+                "label": "OAuth Client Secret",
+                "placeholder": "your_client_secret",
+                "type": "password"
+            },
+            {
+                "key": "wifi_ssid",
+                "label": "WiFi SSID",
+                "placeholder": "Your-WiFi-SSID",
+                "type": "text"
+            }
+        ],
+        "exit_codes": [
+            {"code": 0, "meaning": "Success — erase with RtS sent"},
+            {"code": 12, "meaning": "No devices entered the group"}
+        ],
+        "tags": ["smart-group", "mobile", "erase", "return-to-service", "wipe"],
+        "order": 4
+    },
+    {
+        "slug": "enrollment-pipeline",
+        "title": "Enrollment Pipeline",
+        "description": "Multi-stage enrollment workflow that matches devices to a CSV assignment list, updates records, and provisions automatically.",
+        "category": "provisioning",
+        "trigger_type": "webhook",
+        "trigger_event": "MobileDeviceEnrolled / ComputerAdded",
+        "script_file": "enrollment_pipeline.py",
+        "notebook_slug": "enrollment-pipeline",
+        "api_privileges": [
+            "Read Mobile Devices",
+            "Update Mobile Devices",
+            "Send Mobile Device Set Device Name Command",
+            "Send Mobile Device Erase Device Command"
+        ],
+        "config_params": [
+            {
+                "key": "server_url",
+                "label": "Jamf Pro URL",
+                "placeholder": "https://example.jamfcloud.com",
+                "type": "text"
+            },
+            {
+                "key": "client_id",
+                "label": "OAuth Client ID",
+                "placeholder": "your_client_id",
+                "type": "text"
+            },
+            {
+                "key": "client_secret",
+                "label": "OAuth Client Secret",
+                "placeholder": "your_client_secret",
+                "type": "password"
+            },
+            {
+                "key": "CSV_FILE",
+                "label": "CSV Assignment File Path",
+                "placeholder": "/usr/local/JAWA/resources/files/DeviceAssignments.csv",
+                "type": "text"
+            }
+        ],
+        "exit_codes": [
+            {"code": 0, "meaning": "Success — pipeline completed"},
+            {"code": 12, "meaning": "No devices entered the group"}
+        ],
+        "tags": ["enrollment", "mobile", "pipeline", "csv", "provisioning"],
+        "order": 5
+    },
+    {
+        "slug": "event-tracker-sqlite",
+        "title": "Event Tracker (SQLite)",
+        "description": "Log webhook check-in events to a SQLite database with configurable cooldown to prevent duplicate processing.",
+        "category": "observability",
+        "trigger_type": "webhook",
+        "trigger_event": "ComputerCheckIn",
+        "script_file": "event_tracker_sqlite.py",
+        "notebook_slug": "event-tracking",
+        "api_privileges": [],
+        "config_params": [
+            {
+                "key": "DB_PATH",
+                "label": "SQLite Database Path",
+                "placeholder": "placeholder_value",
+                "type": "text"
+            },
+            {
+                "key": "COOLDOWN_HOURS",
+                "label": "Cooldown Hours",
+                "placeholder": "12",
+                "type": "number"
+            }
+        ],
+        "exit_codes": [
+            {"code": 0, "meaning": "Success — event recorded or within cooldown"},
+            {"code": 1, "meaning": "Invalid webhook JSON"},
+            {"code": 2, "meaning": "No device ID found in event"}
+        ],
+        "tags": ["check-in", "logging", "sqlite", "cooldown"],
+        "order": 6
+    },
+    {
+        "slug": "teams-notification",
+        "title": "Teams Notification",
+        "description": "Send Microsoft Teams Adaptive Card notifications for any Jamf Pro webhook event.",
+        "category": "observability",
+        "trigger_type": "webhook",
+        "trigger_event": "Any Event",
+        "script_file": "teams_notification.py",
+        "notebook_slug": "event-tracking",
+        "api_privileges": [],
+        "config_params": [
+            {
+                "key": "TEAMS_WEBHOOK_URL",
+                "label": "Teams Webhook URL",
+                "placeholder": "placeholder_value",
+                "type": "text"
+            }
+        ],
+        "exit_codes": [
+            {"code": 0, "meaning": "Success — notification sent"},
+            {"code": 1, "meaning": "Invalid webhook JSON"},
+            {"code": 3, "meaning": "Failed to send notification"}
+        ],
+        "tags": ["teams", "notification", "adaptive-card"],
+        "order": 7
+    },
+    {
+        "slug": "ea-update",
+        "title": "Extension Attribute Update",
+        "description": "Update a mobile device extension attribute from webhook events, supporting both standard Jamf Pro and custom JSON formats.",
+        "category": "extensions",
+        "trigger_type": "webhook",
+        "trigger_event": "ComputerInventoryCompleted",
+        "script_file": "ea_update.py",
+        "notebook_slug": "extension-attributes",
+        "api_privileges": [
+            "Read Mobile Devices",
+            "Update Mobile Devices"
+        ],
+        "config_params": [
+            {
+                "key": "server_url",
+                "label": "Jamf Pro URL",
+                "placeholder": "https://example.jamfcloud.com",
+                "type": "text"
+            },
+            {
+                "key": "client_id",
+                "label": "OAuth Client ID",
+                "placeholder": "your_client_id",
+                "type": "text"
+            },
+            {
+                "key": "client_secret",
+                "label": "OAuth Client Secret",
+                "placeholder": "your_client_secret",
+                "type": "password"
+            }
+        ],
+        "exit_codes": [
+            {"code": 0, "meaning": "Success — EA updated"},
+            {"code": 1, "meaning": "Invalid webhook JSON"}
+        ],
+        "tags": ["extension-attribute", "mobile", "classic-api"],
+        "order": 8
+    }
+]

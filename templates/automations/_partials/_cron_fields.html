@@ -1,0 +1,72 @@
+{% from "shared/_macros.html" import description_field, script_upload %}
+
+<input type="text" class="form-control text-center" placeholder="Name of Timed Job (cron task)" name="cron_name"
+       {% if not edit_mode %}required{% endif %} autofocus pattern="[^' ']+"
+       value="{{ cron_info.name if cron_info else '' }}"
+       oninvalid="this.setCustomValidity('Single-string name required. (i.e. single_string or string)')">
+
+{{ description_field(cron_info.description if cron_info else '') }}
+
+<label class="form-check-label text-center" for="frequency">Frequency:</label>
+<select name="frequency" id="frequency" class="form-control text-center"
+        onchange="showFrequencyFields(this.value)">
+    <option value="">{{ '-- Keep current --' if edit_mode else '' }}</option>
+    <option value="everyhour">Every Hour</option>
+    <option value="everyday">Every Day</option>
+    <option value="everyweek">Every Week</option>
+    <option value="everymonth">Every Month</option>
+    <option value="custom">Custom</option>
+</select>
+
+<div id="freq-everyday" style="display:none">
+    <label for="daytime">At what time?</label>
+    <select name="daytime" id="daytime">
+        <option value=""></option>
+        {% for hour in hours %}
+            <option value="{{ hour.id }}">{{ hour.value }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+<div id="freq-everyweek" style="display:none">
+    <label for="weekday">On what day?</label>
+    <select name="weekday" id="weekday">
+        <option value=""></option>
+        {% for day in days %}
+            <option value="{{ day.cron }}">{{ day.value }}</option>
+        {% endfor %}
+    </select>
+    <label for="weektime">At what time?</label>
+    <select name="weektime" id="weektime">
+        <option value=""></option>
+        {% for hour in hours %}
+            <option value="{{ hour.id }}">{{ hour.value }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+<div id="freq-everymonth" style="display:none">
+    <label for="monthday">On what day of the month?</label>
+    <select name="monthday" id="monthday">
+        <option value=""></option>
+        {% for d in range(1, 32) %}
+            <option value="{{ d }}">{{ d }}</option>
+        {% endfor %}
+    </select>
+    <label for="monthtime">At what time?</label>
+    <select name="monthtime" id="monthtime">
+        <option value=""></option>
+        {% for hour in hours %}
+            <option value="{{ hour.id }}">{{ hour.value }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+<div id="freq-custom" style="display:none">
+    <label for="customfreq">Cron expression (<a href="https://crontab.guru" target="_blank">example</a>):</label>
+    <input type="text" name="customfreq" id="customfreq"
+           pattern="^((((\d+,)+\d+|(\d+(\/|-|#)\d+)|\d+L?|\*(\/\d+)?|L(-\d+)?|\?|[A-Z]{3}(-[A-Z]{3})?) ?){5,7})$"
+           title="Use a valid cron expression.">
+</div>
+
+{{ script_upload("script", required=not edit_mode) }}

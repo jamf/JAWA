@@ -1,6 +1,6 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {###}
-{## Copyright (c) 2022 Jamf.  All rights reserved.#}
+{## Copyright (c) 2026 Jamf.  All rights reserved.#}
 {###}
 {##       Redistribution and use in source and binary forms, with or without#}
 {##       modification, are permitted provided that the following conditions are met:#}
@@ -29,13 +29,12 @@
 {% extends "shared/_layout.html" %}
 {% block title %}JAWA Login{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-center">
-<div class="alert login-form-container overflow-auto mx-auto my-auto">
+<div class="login-form-container overflow-auto mx-auto">
 
     <form action="/login" class="table-view" method="post">
         <div class="d-flex justify-content-center">
             <div style="max-width: 90%">
-                <img src="{{ url_for('static', filename='img/jawa_icon.png') }}" class="img-fluid"></div>
+                <img src="{{ url_for('static', filename='img/jawa_icon.png') }}" class="img-fluid" alt="JAWA"></div>
         </div>
         <h1 class="d-flex justify-content-center">{% if app_name %}{{ app_name }}{% else %}{% endif %}</h1>
         {% if error_message %}
@@ -50,21 +49,25 @@
         {% endif %}
         {% if jsslock %}
             {% if jps_url2 %}
+                <label for="active_url" class="visually-hidden">Jamf Pro Server</label>
                 <select class="form-control text-center" name="active_url" id="active_url">
                     <option value="{{ jps_url }}">{{ jps_url }}</option>
                     <option value="{{ jps_url2 }}">{{ jps_url2 }}</option>
                 </select>
             {% endif %}
         {% else %}
-            <input name="url" type="url" placeholder="Jamf Pro URL" pattern="https?://.+" title="Use https://" required
+            <label for="login-url" class="visually-hidden">Jamf Pro URL</label>
+            <input id="login-url" name="url" type="url" placeholder="Jamf Pro URL" pattern="https?://.+" title="Use https://" required
                    class="form-control text-center" autofocus>
         {% endif %}
-        <input name="username" type="text" placeholder="Username" required class="form-control text-center" autofocus>
-        <input name="password" type="password" placeholder="Password" required class="form-control text-center">
+        <label for="login-username" class="visually-hidden">Username</label>
+        <input id="login-username" name="username" type="text" placeholder="Username" required class="form-control text-center" autofocus>
+        <label for="login-password" class="visually-hidden">Password</label>
+        <input id="login-password" name="password" type="password" placeholder="Password" required class="form-control text-center">
 
         <p>
         <div class="d-flex justify-content-center">
-            <input class="btn btn-jawa" type=submit value=Login>
+            <input class="btn btn-jawa" type="submit" value="Login">
         </div>
         </p>
         <p class="text-center">Please read the <a href="https://github.com/jamf/jawa/blob/main/README.md"

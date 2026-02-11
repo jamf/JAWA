@@ -1,0 +1,64 @@
+{% extends "shared/_layout.html" %}
+{% block title %}Enable {{ workflow.title }} - JAWA{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 750px; padding-top: 2rem;">
+    <div class="mb-3">
+        <a href="/templates/{{ workflow.slug }}" style="color: var(--color-primary); font-size: 0.88rem;">&larr; Back to {{ workflow.title }}</a>
+    </div>
+
+    <h2 style="font-size: 1.6rem; text-align: left; letter-spacing: -0.5px; margin-top: 0.5rem;">Enable Template</h2>
+    <p style="color: var(--color-text-secondary); font-size: 0.92rem;">
+        Configure and install <strong>{{ workflow.title }}</strong> as a webhook automation.
+    </p>
+
+    <div class="form-section mt-4">
+        <form method="post" action="/templates/{{ workflow.slug }}/enable">
+            <div class="mb-3">
+                <label for="webhook-name" class="form-label" style="font-weight: 500;">Webhook Name</label>
+                <input type="text" name="webhook_name" id="webhook-name" class="form-control"
+                       value="{{ workflow.title }}" required>
+            </div>
+
+            {% if credentials %}
+            <div class="mb-4">
+                <label for="credential-set" class="form-label" style="font-weight: 500;">Credential Set</label>
+                <select name="credential_set" id="credential-set" class="form-control">
+                    <option value="">-- None (configure manually below) --</option>
+                    {% for cred in credentials %}
+                    <option value="{{ loop.index0 }}">{{ cred.name }} ({{ cred.server_url }})</option>
+                    {% endfor %}
+                </select>
+                <div class="form-text" style="color: var(--color-text-muted); font-size: 0.82rem;">
+                    Select a saved credential set to auto-fill server URL, client ID, and client secret.
+                </div>
+            </div>
+            {% else %}
+            <div class="mb-4" style="font-size: 0.85rem; color: var(--color-text-muted);">
+                No saved credential sets. <a href="/setup/credentials">Add one in Setup</a> or configure values below.
+            </div>
+            {% endif %}
+
+            {% if workflow.config_params %}
+            <h6 style="font-weight: 600; font-size: 0.92rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">Template Configuration</h6>
+            {% for param in workflow.config_params %}
+            <div class="mb-3">
+                <label for="param-{{ param.key }}" class="form-label" style="font-weight: 500; font-size: 0.88rem;">{{ param.label }}</label>
+                <input type="{{ param.type or 'text' }}" name="{{ param.key }}" id="param-{{ param.key }}"
+                       class="form-control" placeholder="{{ param.placeholder }}">
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <div class="d-flex justify-content-center mt-4">
+                <button type="submit" class="btn btn-jawa">Enable Template</button>
+            </div>
+        </form>
+    </div>
+
+    {% if workflow.trigger_event %}
+    <div class="mt-3 mb-5" style="font-size: 0.82rem; color: var(--color-text-muted); text-align: center;">
+        This template listens for: <strong>{{ workflow.trigger_event }}</strong>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

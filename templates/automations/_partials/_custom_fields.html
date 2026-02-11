@@ -1,0 +1,14 @@
+{% from "shared/_macros.html" import description_field, script_upload, auth_fields %}
+
+<input name="custom_name" type="text" pattern="[^' ']+" placeholder="New Webhook Name (no spaces)"
+       {% if not edit_mode %}required{% endif %}
+       title="No spaces, please." class="form-control text-center"
+       value="{{ webhook_info[0].name if webhook_info else '' }}" autofocus>
+
+{% if error %}
+    <div class="alert-danger text-center">{{ error }}</div>
+{% endif %}
+
+{{ description_field(webhook_info[0].description if webhook_info else '') }}
+{{ script_upload("new_file", required=not edit_mode) }}
+{{ auth_fields(show_basic=true, show_custom=true, show_output=true, webhook_info=webhook_info) }}

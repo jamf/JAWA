@@ -1,0 +1,86 @@
+{% extends "shared/_layout.html" %}
+
+{% block title %}New {{ handler.display_name }} | JAWA{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 5rem;">
+    <div class="page-sub-nav">
+        <a href="/automations/{{ auto_type }}">{{ handler.display_name }}</a>
+        <a href="/automations/{{ auto_type }}/new" class="active">Create</a>
+    </div>
+    <div class="form-container">
+        <form method="POST" action="/automations/{{ auto_type }}/new"
+              class="form-section overflow-auto" enctype="multipart/form-data">
+            <h1>New {{ handler.display_name }}
+                {% if auto_type == 'cron' %}Job{% else %}Webhook{% endif %}</h1>
+
+            {% if auto_type == 'jamfpro' %}
+                {% include "automations/_partials/_jamf_fields.html" %}
+            {% elif auto_type == 'okta' %}
+                {% include "automations/_partials/_okta_fields.html" %}
+            {% elif auto_type == 'custom' %}
+                {% include "automations/_partials/_custom_fields.html" %}
+            {% elif auto_type == 'cron' %}
+                {% include "automations/_partials/_cron_fields.html" %}
+            {% endif %}
+
+            <div class="d-flex justify-content-center">
+                <button type="submit" class="btn btn-jawa"
+                        style="margin: 5px; padding: 5px; width: 150px">Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+<script>
+function toggleAuthField(divId) {
+    var el = document.getElementById(divId);
+    if (el) {
+        el.style.display = el.style.display === 'none' ? 'inline-block' : 'none';
+    }
+}
+
+function showSmartGroupNote(event) {
+    var note = document.getElementById('smartGroupNote');
+    if (note) {
+        var smartGroupEvents = [
+            'SmartGroupComputerMembershipChange',
+            'SmartGroupMobileDeviceMembershipChange',
+            'SmartGroupUserMembershipChange'
+        ];
+        note.style.display = smartGroupEvents.includes(event) ? 'inline-block' : 'none';
+    }
+}
+
+function showFrequencyFields(val) {
+    var ids = ['freq-everyday', 'freq-everyweek', 'freq-everymonth', 'freq-custom'];
+    ids.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    var mapping = {
+        'everyday': 'freq-everyday',
+        'everyweek': 'freq-everyweek',
+        'everymonth': 'freq-everymonth',
+        'custom': 'freq-custom'
+    };
+    if (mapping[val]) {
+        var target = document.getElementById(mapping[val]);
+        if (target) target.style.display = 'inline-block';
+    }
+}
+
+document.querySelectorAll('input[type="file"]').forEach(function(input) {
+    input.addEventListener('change', function(e) {
+        var label = this.closest('.custom-file')
+            ? this.closest('.custom-file').querySelector('.custom-file-label')
+            : null;
+        if (label && e.target.files[0]) {
+            label.textContent = e.target.files[0].name;
+        }
+    });
+});
+</script>
+{% endblock %}

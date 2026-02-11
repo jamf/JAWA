@@ -1,0 +1,19 @@
+{% extends "shared/_layout.html" %}
+{% from "shared/_macros.html" import hero_section, delete_confirmation %}
+
+{% block title %}Delete {{ automation_name }} | JAWA{% endblock %}
+
+{% block content %}
+{{ hero_section(
+    title="Delete " ~ handler.display_name,
+    subtitle="Confirm deletion of " ~ automation_name
+) }}
+
+<div class="container">
+    {{ delete_confirmation(
+        automation_name,
+        handler.display_name,
+        "/automations/" ~ auto_type ~ "/" ~ automation_name ~ "/delete"
+    ) }}
+</div>
+{% endblock %}

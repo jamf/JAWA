@@ -1,0 +1,84 @@
+{% extends "shared/_layout.html" %}
+{% block title %}{{ workflow.title }} - JAWA{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 1100px; padding-top: 2rem;">
+    <div class="mb-3">
+        <a href="/templates" style="color: var(--color-primary); font-size: 0.88rem;">&larr; Back to Catalog</a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <span class="badge badge-{{ workflow.category }} mb-2">{{ workflow.category }}</span>
+            <h2 style="font-size: 1.8rem; text-align: left; letter-spacing: -1px; margin-top: 0.5rem;">{{ workflow.title }}</h2>
+            <p style="color: var(--color-text-secondary); font-size: 0.95rem;">{{ workflow.description }}</p>
+
+            {% if workflow.exit_codes %}
+            <h5 style="font-size: 1rem; font-weight: 600; margin-top: 2rem;">Exit Codes</h5>
+            <table class="hippocrates" style="max-width: 600px;">
+                <thead>
+                    <tr><th>Code</th><th>Meaning</th></tr>
+                </thead>
+                <tbody>
+                    {% for ec in workflow.exit_codes %}
+                    <tr><td>{{ ec.code }}</td><td>{{ ec.meaning }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+
+            <h5 style="font-size: 1rem; font-weight: 600; margin-top: 2rem;">Script Preview</h5>
+            <div class="script-preview">
+                <pre><code class="language-python">{{ script_content }}</code></pre>
+            </div>
+
+            <div class="mt-3 mb-5 d-flex gap-2">
+                <a href="/templates/{{ workflow.slug }}/enable" class="btn btn-jawa">Enable Template</a>
+                <a href="/templates/{{ workflow.slug }}/script" class="btn btn-outline-secondary" style="border-radius: var(--radius-sm);">Download Script</a>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="workflow-detail-sidebar">
+                <dl>
+                    <dt>Trigger Event</dt>
+                    <dd>{{ workflow.trigger_event }}</dd>
+
+                    <dt>Script File</dt>
+                    <dd><code>{{ workflow.script_file }}</code></dd>
+
+                    {% if workflow.api_privileges %}
+                    <dt>API Privileges</dt>
+                    <dd>
+                        <ul style="padding-left: 1.2rem; margin: 0;">
+                            {% for priv in workflow.api_privileges %}
+                            <li>{{ priv }}</li>
+                            {% endfor %}
+                        </ul>
+                    </dd>
+                    {% endif %}
+
+                    {% if workflow.config_params %}
+                    <dt>Configuration</dt>
+                    <dd>
+                        <ul style="padding-left: 1.2rem; margin: 0;">
+                            {% for param in workflow.config_params %}
+                            <li>{{ param.label }}</li>
+                            {% endfor %}
+                        </ul>
+                    </dd>
+                    {% endif %}
+
+                    {% if workflow.tags %}
+                    <dt>Tags</dt>
+                    <dd>
+                        {% for tag in workflow.tags %}
+                        <span class="badge" style="background-color: var(--color-surface-raised); color: var(--color-text-secondary); font-size: 0.7rem; margin-right: 0.25rem;">{{ tag }}</span>
+                        {% endfor %}
+                    </dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

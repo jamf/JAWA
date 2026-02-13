@@ -70,3 +70,37 @@ def setup_child_logger(
 
 
 logthis = setup_logger(logger_name, f"{logger_name}.log")
+
+
+def is_debug_enabled() -> bool:
+    """Check if DEBUG logging is currently enabled."""
+    logger = logging.getLogger(logger_name)
+    return logger.level == logging.DEBUG
+
+
+def toggle_debug() -> str:
+    """
+    Toggle between DEBUG and INFO log levels.
+
+    Returns:
+        String indicating the new level ("DEBUG" or "INFO")
+    """
+    logger = logging.getLogger(logger_name)
+
+    if logger.level == logging.DEBUG:
+        # Switch to INFO
+        new_level = logging.INFO
+        level_name = "INFO"
+    else:
+        # Switch to DEBUG
+        new_level = logging.DEBUG
+        level_name = "DEBUG"
+
+    logger.setLevel(new_level)
+
+    # Also update all handlers
+    for handler in logger.handlers:
+        handler.setLevel(new_level)
+
+    logger.info(f"Log level changed to {level_name}")
+    return level_name

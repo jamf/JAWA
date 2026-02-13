@@ -47,7 +47,7 @@ def _get_crontab() -> CronTab:
     try:
         return CronTab(user=True)
     except IOError as err:
-        logthis.info(
+        logthis.error(
             f"Error accessing crontab for {getpass.getuser()} - {err}"
         )
         raise AutomationError("Crontab Error", str(err))

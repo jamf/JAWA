@@ -96,7 +96,7 @@ def files() -> Union[Response, Tuple[str, int]]:
                 f"[{session.get('url')}] {session.get('username')} downloading file: {target_file}."
             )
             if target_file_dir != files_dir:
-                logthis.info(
+                logthis.warning(
                     f"WARNING: [{session.get('url')}] {session.get('username')} attempted to download a file from a forbidden path: {target_file_path}."
                 )
                 return (
@@ -176,7 +176,7 @@ def delete_file() -> Union[Response, Tuple[str, int]]:
         )
 
     if target_file_dir != files_dir:
-        logthis.info(
+        logthis.warning(
             f"WARNING: [{session.get('url')}] {session.get('username')} attempted to delete a file from a forbidden path: {target_file_path}."
         )
         return (
@@ -187,12 +187,28 @@ def delete_file() -> Union[Response, Tuple[str, int]]:
         f"[{session.get('url')}] {session.get('username')} deleting file: {target_file}."
     )
     if os.path.exists(os.path.join(files_dir, target_file)):
-        os.remove(os.path.join(files_dir, target_file))
-        logthis.info(
-            f"[{session.get('url')}] {session.get('username')} successfully deleted the Resource file: {target_file}."
-        )
-        return redirect(url_for("resources_view.files"))
+        try:
+            os.remove(os.path.join(files_dir, target_file))
+            logthis.info(
+                f"[{session.get('url')}] {session.get('username')} successfully deleted the Resource file: {target_file}."
+            )
+            return redirect(url_for("resources_view.files"))
+        except Exception as err:
+            logthis.error(
+                f"[{session.get('url')}] {session.get('username')} failed to delete Resource file {target_file}: {err}"
+            )
+            error = "Error deleting file."
+            error_message = f"Permission denied or file in use: {target_file}. {err}"
+            return render_template(
+                "error.html",
+                error=error,
+                error_message=error_message,
+                username=str(escape(session["username"])),
+            )
     else:
+        logthis.error(
+            f"[{session.get('url')}] {session.get('username')} attempted to delete non-existent file: {target_file}"
+        )
         error = "Error deleting file."
         error_message = f"File does not exist {target_file}."
         return render_template(

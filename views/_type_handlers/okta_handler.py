@@ -116,19 +116,53 @@ class OktaHandler(AutomationHandler):
         }
 
         # Create hook in Okta
-        resp = requests.post(
-            f"{okta_server}/api/v1/eventHooks",
-            headers={
-                "Accept": "application/json",
-                "Authorization": f"SSWS {okta_token}",
-                "Content-Type": "application/json",
-            },
-            data=json.dumps(payload, indent=4),
-        )
-        response_json = resp.json()
+        try:
+            resp = requests.post(
+                f"{okta_server}/api/v1/eventHooks",
+                headers={
+                    "Accept": "application/json",
+                    "Authorization": f"SSWS {okta_token}",
+                    "Content-Type": "application/json",
+                },
+                data=json.dumps(payload, indent=4),
+                timeout=30,
+            )
+        except requests.exceptions.Timeout as err:
+            logthis.error(f"Timeout creating Okta webhook {okta_name}: {err}")
+            raise AutomationError(
+                "Connection Timeout",
+                f"Request to Okta server timed out after 30 seconds. {err}",
+            )
+        except requests.exceptions.ConnectionError as err:
+            logthis.error(f"Connection error creating Okta webhook {okta_name}: {err}")
+            raise AutomationError(
+                "Connection Error",
+                f"Could not connect to Okta server. Check network connectivity. {err}",
+            )
+        except Exception as err:
+            logthis.error(f"Unexpected error creating Okta webhook {okta_name}: {err}")
+            raise AutomationError(
+                "API Error", f"Failed to create webhook in Okta. {err}"
+            )
+
+        try:
+            response_json = resp.json()
+        except json.JSONDecodeError as err:
+            logthis.error(
+                f"Invalid JSON response from Okta for webhook {okta_name}: {err}"
+            )
+            raise AutomationError(
+                "API Error",
+                f"Okta returned invalid JSON response. Status: {resp.status_code}",
+            )
+
         okta_id = response_json.get("id")
 
         if not okta_id:
+            logthis.error(
+                f"Failed to create Okta webhook {okta_name}. "
+                f"Response: {response_json}"
+            )
             raise AutomationError(
                 "Okta Error",
                 "Failed to create the event hook in Okta. "
@@ -149,12 +183,38 @@ class OktaHandler(AutomationHandler):
         }
 
         # Verify/activate the hook
-        verify_resp = requests.post(
-            f"{okta_server}/api/v1/eventHooks/{okta_id}/lifecycle/verify",
-            headers={"Authorization": f"SSWS {okta_token}"},
-        )
-        verification = verify_resp.json()
+        try:
+            verify_resp = requests.post(
+                f"{okta_server}/api/v1/eventHooks/{okta_id}/lifecycle/verify",
+                headers={"Authorization": f"SSWS {okta_token}"},
+                timeout=30,
+            )
+            verification = verify_resp.json()
+        except requests.exceptions.Timeout as err:
+            logthis.error(f"Timeout verifying Okta webhook {okta_name}: {err}")
+            raise AutomationError(
+                "Connection Timeout",
+                f"Verification request timed out after 30 seconds. {err}",
+            )
+        except requests.exceptions.ConnectionError as err:
+            logthis.error(f"Connection error verifying Okta webhook {okta_name}: {err}")
+            raise AutomationError(
+                "Connection Error",
+                f"Could not connect to Okta for verification. {err}",
+            )
+        except json.JSONDecodeError as err:
+            logthis.error(f"Invalid verification response for webhook {okta_name}: {err}")
+            raise AutomationError(
+                "API Error", f"Okta returned invalid verification response. {err}"
+            )
+        except Exception as err:
+            logthis.error(f"Unexpected error verifying Okta webhook {okta_name}: {err}")
+            raise AutomationError("API Error", f"Failed to verify webhook. {err}")
+
         if "errorCode" in verification:
+            logthis.warning(
+                f"Okta webhook verification failed for {okta_name}: {verification}"
+            )
             raise AutomationError(
                 "Event Verification Error",
                 "Okta was unable to verify the webhook. "
@@ -187,16 +247,36 @@ class OktaHandler(AutomationHandler):
             okta_id = automation.get("okta_id", "")
             okta_token = automation.get("okta_token", "")
             # Deactivate then delete
-            requests.post(
+            deactivate_resp = requests.post(
                 f"{okta_url}/api/v1/eventHooks/{okta_id}/lifecycle/deactivate",
                 headers={"Authorization": f"SSWS {okta_token}"},
+                timeout=30,
             )
-            requests.delete(
+            if deactivate_resp.status_code >= 400:
+                logthis.error(
+                    f"Error deactivating Okta webhook {automation.get('name')}: "
+                    f"HTTP {deactivate_resp.status_code}"
+                )
+
+            delete_resp = requests.delete(
                 f"{okta_url}/api/v1/eventHooks/{okta_id}",
                 headers={"Authorization": f"SSWS {okta_token}"},
+                timeout=30,
             )
+            if delete_resp.status_code >= 400:
+                logthis.error(
+                    f"Error deleting Okta webhook {automation.get('name')}: "
+                    f"HTTP {delete_resp.status_code}"
+                )
         except requests.exceptions.MissingSchema as err:
+            logthis.error(
+                f"Invalid Okta URL for webhook {automation.get('name')}: {err}"
+            )
             return str(err)
+        except Exception as err:
+            logthis.error(
+                f"Failed to delete Okta webhook {automation.get('name')}: {err}"
+            )
         retire_script(automation.get("script", ""))
         return None
 

@@ -30,6 +30,42 @@
 
 {% block additional_css %}
 <style>
+    .btn-hero-debug {
+        padding: 0.55rem 1.1rem;
+        border: 1.5px solid rgba(138,149,163,0.3);
+        background: rgba(138,149,163,0.08);
+        color: #8a95a3;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        border-radius: var(--radius-pill);
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .btn-hero-debug:hover {
+        border-color: #8a95a3;
+        background: rgba(138,149,163,0.15);
+        transform: translateY(-1px);
+    }
+    .btn-hero-debug.btn-debug-active {
+        border-color: #89d185;
+        background: rgba(137,209,133,0.12);
+        color: #89d185;
+        box-shadow: 0 0 12px rgba(137,209,133,0.3);
+    }
+    .btn-hero-debug.btn-debug-active:hover {
+        background: rgba(137,209,133,0.2);
+        box-shadow: 0 0 16px rgba(137,209,133,0.4);
+    }
+    .debug-indicator {
+        display: inline-block;
+        animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
     .log-toolbar {
         display: flex;
         gap: 0.5rem;
@@ -148,6 +184,15 @@
         <div class="hero-cta">
             <a href="/log/download" class="btn btn-hero-primary">Download Log</a>
             <a href="{{ url_for('resources_view.files') }}" class="btn btn-hero-secondary">Files</a>
+            <form method="POST" action="{{ url_for('log_view.toggle_debug') }}" style="display: inline;">
+                <button type="submit" class="btn btn-hero-debug {% if debug_enabled %}btn-debug-active{% endif %}">
+                    {% if debug_enabled %}
+                    <span class="debug-indicator">●</span> DEBUG ON
+                    {% else %}
+                    DEBUG OFF
+                    {% endif %}
+                </button>
+            </form>
         </div>
     </div>
 </div>

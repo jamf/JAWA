@@ -137,8 +137,12 @@ def _register_webhook(entry: dict) -> None:
     """Append a webhook entry and save to disk."""
     webhooks = _load_webhooks()
     webhooks.append(entry)
-    with open(WEBHOOKS_FILE, "w", encoding="utf-8") as f:
-        json.dump(webhooks, f, indent=2)
+    try:
+        with open(WEBHOOKS_FILE, "w", encoding="utf-8") as f:
+            json.dump(webhooks, f, indent=2)
+    except (IOError, OSError) as err:
+        logthis.error(f"Failed to save webhook to {WEBHOOKS_FILE}: {err}")
+        raise
 
 
 def _apply_credentials(

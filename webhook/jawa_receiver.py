@@ -87,16 +87,31 @@ def run_script(webhook_data: JSONType, webhook_name: str) -> Optional[bytes]:
 
 def script_results(webhook_data: JSONType, each_webhook: Dict) -> bytes:
     webhook_data = json.dumps(webhook_data)
-    proc = subprocess.Popen(
-        [each_webhook["script"], f"{webhook_data}"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    )
-    output = proc.stdout.read()
-    for each_line in output.decode().split("\n"):
-        if each_line:
-            logthis.info(f"{each_webhook.get('name')} - {each_line}")
-    return output
+    try:
+        proc = subprocess.Popen(
+            [each_webhook["script"], f"{webhook_data}"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        output = proc.stdout.read()
+        return_code = proc.wait()
+
+        for each_line in output.decode().split("\n"):
+            if each_line:
+                logthis.info(f"{each_webhook.get('name')} - {each_line}")
+
+        if return_code != 0:
+            logthis.error(
+                f"Script execution failed for {each_webhook.get('name')} "
+                f"with exit code {return_code}"
+            )
+
+        return output
+    except Exception as err:
+        logthis.error(
+            f"Error executing script for webhook {each_webhook.get('name')}: {err}"
+        )
+        return str(err).encode()
 
 
 def custom_output_options(
@@ -124,18 +139,18 @@ def webhook_handler(
     try:
         webhook_data = request.get_json()
     except Exception as err:
-        logthis.debug(
+        logthis.warning(
             f"Error loading JSON ({err}). Trying to load from form payload."
         )
         webhook_data = json.loads(request.form.get("payload"))
     if not webhook_data:
-        logthis.info(
+        logthis.warning(
             f"418.  Error processing /hooks/{webhook_name} - no data provided. I'm a teapot."
         )
         return "418 - I'm a teapot.", 418
     logthis.debug(f"{webhook_name} payload: {webhook_data}")
     if request.method != "POST":
-        logthis.info(
+        logthis.warning(
             f"Invalid request, {request.method} for /hooks/{webhook_name}."
         )
         return (
@@ -170,7 +185,7 @@ def webhook_handler(
                 "result": "valid webhook received",
             }
     else:
-        logthis.info(
+        logthis.warning(
             f"401 - Incorrect authentication provided for /hooks/{webhook_name}."
         )
         return (

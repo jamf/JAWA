@@ -85,7 +85,11 @@ def log_home() -> Union[Response, str]:
     logthis.debug(
         f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}"
     )
-    return render_template(LOG_TEMPLATE, log=_read_recent_logs())
+    return render_template(
+        LOG_TEMPLATE,
+        log=_read_recent_logs(),
+        debug_enabled=logger.is_debug_enabled(),
+    )
 
 
 @blueprint.route("/log/view", methods=["GET"])
@@ -101,7 +105,11 @@ def log_view() -> Union[Response, str]:
     logthis.debug(
         f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}"
     )
-    return render_template(LOG_TEMPLATE, log=_read_recent_logs())
+    return render_template(
+        LOG_TEMPLATE,
+        log=_read_recent_logs(),
+        debug_enabled=logger.is_debug_enabled(),
+    )
 
 
 @blueprint.route("/log/live.html", methods=["GET"])
@@ -177,3 +185,25 @@ def download_logs() -> Response:
         as_attachment=True,
         download_name=f"{datetime.now()}-jawa.log",
     )
+
+
+@blueprint.route("/log/toggle-debug", methods=["POST"])
+def toggle_debug() -> Response:
+    """Toggle DEBUG logging on/off."""
+    if "username" not in session:
+        return redirect(
+            url_for(
+                LOGOUT_ENDPOINT,
+                error_title=ERROR_TITLE,
+                error_message=ERROR_MSG_SIGN_IN,
+            )
+        )
+
+    new_level = logger.toggle_debug()
+
+    logthis.info(
+        f"[{session.get('url')}] {session.get('username')} "
+        f"toggled debug logging to {new_level}"
+    )
+
+    return redirect(url_for("log_view.log_home"))

@@ -125,15 +125,15 @@ def _verify_jamf_access() -> Union[Response, None]:
         )
         resp.raise_for_status()
     except requests.exceptions.HTTPError as err:
-        logthis.info(f"Error occurred: {err}")
+        logthis.error(f"Error occurred: {err}")
         return _login_error(
             "Login error", "check account credentials and privileges"
         )
     except requests.exceptions.ConnectTimeout as err:
-        logthis.info(f"Error occurred: {err}")
+        logthis.error(f"Error occurred: {err}")
         return _login_error("Connection Timeout", err)
     except requests.exceptions.ConnectionError as err:
-        logthis.info(f"Error occurred: {err}")
+        logthis.error(f"Error occurred: {err}")
         return _login_error("HTTP Error", err)
     return None
 

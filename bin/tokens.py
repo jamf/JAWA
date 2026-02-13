@@ -46,7 +46,7 @@ def get_token() -> Optional[Response]:
         session["token"] = data.get("token")
         session["expires"] = data.get("expires")
     except Exception as err:
-        logthis.info(
+        logthis.error(
             f"[{session.get('url')}] Could not get a token using session credentials: {err}.  Logging out."
         )
         return redirect(
@@ -67,7 +67,7 @@ def validate_token(expires: str) -> bool:
     if time_to_expire > timedelta(0):
         return True
     else:
-        logthis.info(
+        logthis.warning(
             f"[{session.get('url')}] API token expired ({time_to_expire}). Attempting to fetch new token..."
         )
         return False
@@ -82,7 +82,7 @@ def invalidate_token() -> None:
             headers={"Authorization": f"Bearer {session.get('token')}"},
         )
     except Exception as err:
-        logthis.info(
+        logthis.error(
             f"[{session.get('url')}] Error accessing Jamf Pro API endpoint for token invalidation. {err}"
         )
         return

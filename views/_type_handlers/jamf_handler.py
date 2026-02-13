@@ -224,23 +224,62 @@ class JamfHandler(AutomationHandler):
             f"{webhook_name}."
         )
 
-        resp = requests.post(
-            full_url,
-            headers={
-                "Content-Type": XML,
-                "Authorization": f"Bearer {session_data['token']}",
-                "User-Agent": USER_AGENT_STRING,
-            },
-            data=xml_data,
-            verify=VERIFY_SSL,
-        )
+        try:
+            resp = requests.post(
+                full_url,
+                headers={
+                    "Content-Type": XML,
+                    "Authorization": f"Bearer {session_data['token']}",
+                    "User-Agent": USER_AGENT_STRING,
+                },
+                data=xml_data,
+                verify=VERIFY_SSL,
+                timeout=30,
+            )
+        except requests.exceptions.Timeout as err:
+            logthis.error(
+                f"Timeout creating Jamf webhook {webhook_name}: {err}"
+            )
+            raise AutomationError(
+                "Connection Timeout",
+                f"Request to Jamf Pro server timed out after 30 seconds. {err}",
+            )
+        except requests.exceptions.ConnectionError as err:
+            logthis.error(
+                f"Connection error creating Jamf webhook {webhook_name}: {err}"
+            )
+            raise AutomationError(
+                "Connection Error",
+                f"Could not connect to Jamf Pro server. Check network connectivity. {err}",
+            )
+        except Exception as err:
+            logthis.error(
+                f"Unexpected error creating Jamf webhook {webhook_name}: {err}"
+            )
+            raise AutomationError(
+                "API Error", f"Failed to create webhook in Jamf Pro. {err}"
+            )
+
         logthis.info(f"[{resp.status_code}]  {resp.text}")
 
         if resp.status_code == 409:
+            logthis.error(
+                f"Duplicate webhook name {webhook_name} in Jamf Pro (status 409)"
+            )
             raise AutomationError(
                 "Duplicate",
                 f'The webhook name "{webhook_name}" already exists in '
                 f"your Jamf Pro Server.",
+            )
+        elif resp.status_code >= 400:
+            logthis.error(
+                f"Jamf API error creating webhook {webhook_name}: "
+                f"HTTP {resp.status_code} - {resp.text}"
+            )
+            raise AutomationError(
+                "API Error",
+                f"Jamf Pro returned HTTP {resp.status_code}. "
+                f"Check permissions and server configuration.",
             )
 
         result = re.search("<id>(.*)</id>", resp.text)
@@ -345,8 +384,23 @@ class JamfHandler(AutomationHandler):
                 },
                 data=xml_data,
                 verify=VERIFY_SSL,
+                timeout=30,
+            )
+        except requests.exceptions.Timeout as err:
+            logthis.error(f"Timeout editing Jamf webhook {new_name}: {err}")
+            raise AutomationError(
+                "Connection Timeout",
+                f"Request to Jamf Pro server timed out after 30 seconds. {err}",
+            )
+        except requests.exceptions.ConnectionError as err:
+            logthis.error(f"Connection error editing Jamf webhook {new_name}: {err}")
+            raise AutomationError(
+                "Connection Error",
+                f"The request could not be sent to your Jamf Pro server, "
+                f"check your network connection. Details: {err}",
             )
         except Exception as err:
+            logthis.error(f"Unexpected error editing Jamf webhook {new_name}: {err}")
             raise AutomationError(
                 "Connection Error",
                 f"The request could not be sent to your Jamf Pro server, "
@@ -354,17 +408,34 @@ class JamfHandler(AutomationHandler):
             )
 
         if resp.status_code == 409:
+            logthis.error(
+                f"Duplicate webhook name {new_name} in Jamf Pro (status 409)"
+            )
             raise AutomationError(
                 "Duplicate",
                 f'The webhook name "{new_name}" already exists in '
                 f"your Jamf Pro Server.",
             )
         elif resp.status_code == 401:
+            logthis.error(
+                f"Insufficient privileges for {session_data.get('username')} "
+                f"to edit webhook {new_name} (status 401)"
+            )
             raise AutomationError(
                 "Insufficient privileges",
                 f"{session_data.get('username')} doesn't have privileges "
                 f"to update webhooks. Check your account privileges in "
                 f"Jamf Pro Settings.",
+            )
+        elif resp.status_code >= 400:
+            logthis.error(
+                f"Jamf API error editing webhook {new_name}: "
+                f"HTTP {resp.status_code} - {resp.text}"
+            )
+            raise AutomationError(
+                "API Error",
+                f"Jamf Pro returned HTTP {resp.status_code}. "
+                f"Check permissions and server configuration.",
             )
 
         # Save updated list
@@ -403,15 +474,26 @@ class JamfHandler(AutomationHandler):
             f"{session_data['url']}/JSSResource/webhooks/name/"
             f"{automation['name']}"
         )
-        requests.put(
-            full_url,
-            headers={
-                "Content-Type": XML,
-                "Authorization": f"Bearer {session_data['token']}",
-                "User-Agent": USER_AGENT_STRING,
-            },
-            data=data,
-        )
+        try:
+            resp = requests.put(
+                full_url,
+                headers={
+                    "Content-Type": XML,
+                    "Authorization": f"Bearer {session_data['token']}",
+                    "User-Agent": USER_AGENT_STRING,
+                },
+                data=data,
+                timeout=30,
+            )
+            if resp.status_code >= 400:
+                logthis.error(
+                    f"Error disabling Jamf webhook {automation['name']}: "
+                    f"HTTP {resp.status_code}"
+                )
+        except Exception as err:
+            logthis.error(
+                f"Failed to disable Jamf webhook {automation['name']}: {err}"
+            )
         retire_script(automation.get("script", ""))
         return None
 

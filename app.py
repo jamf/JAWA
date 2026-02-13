@@ -71,13 +71,19 @@ register_static_cache_bust(app)
 def main() -> None:
     base_dir = os.path.dirname(__file__)
     logthis.info(f"JAWA initializing...\n Sandcrawler home:  {base_dir}")
-    environment_setup(base_dir)
-    register_blueprints()
-    app.secret_key = str(uuid.uuid4())
-    app.permanent_session_lifetime = timedelta(minutes=15)
-    serve(
-        app, url_scheme="https", host="0.0.0.0", port=8000, threads=15
-    )  # Serve me the sky with a big slice of lemon
+    try:
+        environment_setup(base_dir)
+        register_blueprints()
+        app.secret_key = str(uuid.uuid4())
+        app.permanent_session_lifetime = timedelta(minutes=15)
+        serve(
+            app, url_scheme="https", host="0.0.0.0", port=8000, threads=15
+        )  # Serve me the sky with a big slice of lemon
+    except Exception as err:
+        logthis.critical(
+            f"JAWA failed to start: {err}. Check port availability."
+        )
+        raise
 
 
 def environment_setup(project_dir: str) -> None:
@@ -401,7 +407,7 @@ def error() -> Union[Response, str]:
         error_message = escape(error_message)
     if "username" not in session:
         return redirect(url_for("home_view.logout"))
-    logthis.info(
+    logthis.warning(
         f"[{session.get('url')}] {session.get('username').title()} was a victim of a series of accidents, as are we all. (/error)"
     )
     return render_template(

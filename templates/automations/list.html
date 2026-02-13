@@ -14,12 +14,12 @@
 ) }}
 
 <div class="container">
-    <div class="page-sub-nav">
-        <a href="/automations">All</a>
-        <a href="/automations/jamfpro" {% if auto_type == 'jamfpro' %}class="active"{% endif %}>Jamf Pro</a>
-        <a href="/automations/okta" {% if auto_type == 'okta' %}class="active"{% endif %}>Okta</a>
-        <a href="/automations/custom" {% if auto_type == 'custom' %}class="active"{% endif %}>Custom</a>
-        <a href="/automations/cron" {% if auto_type == 'cron' %}class="active"{% endif %}>Cron</a>
+    <div class="text-left mb-4">
+        <a href="/automations" class="filter-btn">All</a>
+        <a href="/automations/jamfpro" class="filter-btn {% if auto_type == 'jamfpro' %}active{% endif %}">Jamf Pro</a>
+        <a href="/automations/okta" class="filter-btn {% if auto_type == 'okta' %}active{% endif %}">Okta</a>
+        <a href="/automations/custom" class="filter-btn {% if auto_type == 'custom' %}active{% endif %}">Custom</a>
+        <a href="/automations/cron" class="filter-btn {% if auto_type == 'cron' %}active{% endif %}">Cron</a>
     </div>
 
     {% if not items %}

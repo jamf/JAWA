@@ -6,14 +6,14 @@
 {% block content %}
 {{ hero_section(
     title="Delete " ~ handler.display_name,
-    subtitle="Confirm deletion of " ~ automation_name
+    subtitle="Confirm deletion of automation",
+    secondary_url="/automations/" ~ auto_type,
+    secondary_label="Back to " ~ handler.display_name
 ) }}
 
-<div class="container">
-    {{ delete_confirmation(
-        automation_name,
-        handler.display_name,
-        "/automations/" ~ auto_type ~ "/" ~ automation_name ~ "/delete"
-    ) }}
-</div>
+{{ delete_confirmation(
+    automation_name,
+    handler.display_name,
+    "/automations/" ~ auto_type ~ "/" ~ automation_name ~ "/delete"
+) }}
 {% endblock %}

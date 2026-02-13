@@ -2,39 +2,98 @@
 
 {% block title %}New {{ handler.display_name }} | JAWA{% endblock %}
 
+{% block additional_css %}
+<style>
+    .form-page-container {
+        max-width: 700px;
+        margin: 2rem auto;
+        padding: 0 1rem 2rem;
+    }
+    .form-card {
+        background: var(--color-surface-raised);
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        padding: 2.5rem;
+        box-shadow: 0 2px 12px rgba(106, 47, 48, 0.06);
+    }
+    .form-card h1 {
+        color: var(--color-text);
+        font-size: 1.75rem;
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--color-border);
+    }
+    .form-card .form-control {
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+    .form-card textarea.form-control {
+        resize: vertical;
+        min-height: 80px;
+    }
+    .form-actions {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--color-border);
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+    }
+    .btn-form-primary {
+        background: var(--color-primary);
+        border: 1px solid var(--color-primary);
+        color: white;
+        padding: 0.65rem 2rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .btn-form-primary:hover {
+        background: var(--color-primary-hover);
+        border-color: var(--color-primary-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(60, 106, 167, 0.25);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="hero-section">
     <div class="container">
         <h2>New {{ handler.display_name }} {% if auto_type == 'cron' %}Job{% else %}Webhook{% endif %}</h2>
         <p>Configure and create a new automation.</p>
+        <div class="hero-cta">
+            <a href="/automations/{{ auto_type }}" class="btn btn-hero-secondary">
+                ← Back to {{ handler.display_name }}
+            </a>
+        </div>
     </div>
 </div>
-<div class="container">
-    <div class="page-sub-nav">
-        <a href="/automations/{{ auto_type }}">{{ handler.display_name }}</a>
-        <a href="/automations/{{ auto_type }}/new" class="active">Create</a>
-    </div>
-    <div class="form-container">
-        <form method="POST" action="/automations/{{ auto_type }}/new"
-              class="form-section overflow-auto" enctype="multipart/form-data">
-            <h1>New {{ handler.display_name }}
-                {% if auto_type == 'cron' %}Job{% else %}Webhook{% endif %}</h1>
 
-            {% if auto_type == 'jamfpro' %}
-                {% include "automations/_partials/_jamf_fields.html" %}
-            {% elif auto_type == 'okta' %}
-                {% include "automations/_partials/_okta_fields.html" %}
-            {% elif auto_type == 'custom' %}
-                {% include "automations/_partials/_custom_fields.html" %}
-            {% elif auto_type == 'cron' %}
-                {% include "automations/_partials/_cron_fields.html" %}
-            {% endif %}
+<div class="form-page-container">
+    <form method="POST" action="/automations/{{ auto_type }}/new"
+          class="form-card" enctype="multipart/form-data">
+        <h1>New {{ handler.display_name }}
+            {% if auto_type == 'cron' %}Job{% else %}Webhook{% endif %}</h1>
 
-            <div class="d-flex justify-content-center">
-                <button type="submit" class="btn btn-jawa btn-action">Create</button>
-            </div>
-        </form>
-    </div>
+        {% if auto_type == 'jamfpro' %}
+            {% include "automations/_partials/_jamf_fields.html" %}
+        {% elif auto_type == 'okta' %}
+            {% include "automations/_partials/_okta_fields.html" %}
+        {% elif auto_type == 'custom' %}
+            {% include "automations/_partials/_custom_fields.html" %}
+        {% elif auto_type == 'cron' %}
+            {% include "automations/_partials/_cron_fields.html" %}
+        {% endif %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn-form-primary">Create Automation</button>
+        </div>
+    </form>
 </div>
 {% endblock %}
 

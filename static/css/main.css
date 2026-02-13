@@ -103,7 +103,7 @@ header h1.logo:hover {
  * Centering the body content
  */
 .container {
-    max-width: 1100px;
+    max-width: 1400px;
     margin: 0 auto;
     padding-left: 1rem;
     padding-right: 1rem;
@@ -895,7 +895,7 @@ code {
 /* ===== Page Sub-Navigation (pill-style) ===== */
 .page-sub-nav {
     display: flex;
-    justify-content: center;
+    justify-content: left;
     gap: 0.5rem;
     flex-wrap: wrap;
     padding: 0.75rem 0;
@@ -937,7 +937,10 @@ code {
     margin-bottom: 2rem;
     position: relative;
     overflow: hidden;
-    text-align: center;
+}
+
+.hero-section .container {
+    max-width: 1400px;
 }
 
 .hero-section::before {
@@ -957,7 +960,7 @@ code {
     letter-spacing: -1px;
     margin: 0 0 0.5rem;
     color: #fff;
-    text-align: center;
+    text-align: left;
     position: relative;
 }
 
@@ -965,13 +968,13 @@ code {
     color: rgba(255, 255, 255, 0.85);
     font-size: 1.05rem;
     margin: 0;
-    text-align: center;
+    text-align: left;
     position: relative;
 }
 
 .hero-cta {
     display: flex;
-    justify-content: center;
+    justify-content: left;
     gap: 0.75rem;
     margin-top: 1.25rem;
     position: relative;
@@ -1170,6 +1173,8 @@ a.btn-hero-secondary:visited {
     color: var(--color-text-secondary);
     cursor: pointer;
     transition: all 0.15s ease;
+    text-decoration: none;
+    display: inline-block;
 }
 
 .filter-btn:hover,
@@ -1177,6 +1182,15 @@ a.btn-hero-secondary:visited {
     background: var(--color-primary);
     color: #fff;
     border-color: var(--color-primary);
+}
+
+.filter-btn:visited {
+    color: var(--color-text-secondary);
+}
+
+.filter-btn:visited:hover,
+.filter-btn:visited.active {
+    color: #fff;
 }
 
 /* ===== Navbar Search ===== */

@@ -14,12 +14,12 @@
 ) }}
 
 <div class="container">
-    <div class="page-sub-nav">
-        <a href="/automations" class="active">All</a>
-        <a href="/automations/jamfpro">Jamf Pro</a>
-        <a href="/automations/okta">Okta</a>
-        <a href="/automations/custom">Custom</a>
-        <a href="/automations/cron">Cron</a>
+    <div class="text-left mb-4">
+        <a href="/automations" class="filter-btn active">All</a>
+        <a href="/automations/jamfpro" class="filter-btn">Jamf Pro</a>
+        <a href="/automations/okta" class="filter-btn">Okta</a>
+        <a href="/automations/custom" class="filter-btn">Custom</a>
+        <a href="/automations/cron" class="filter-btn">Cron</a>
     </div>
 
     {% set ns = namespace(has_any=false) %}

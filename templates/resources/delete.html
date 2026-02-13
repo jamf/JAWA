@@ -25,28 +25,146 @@
 {##       SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.#}
 {###}
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
+
 {% extends "shared/_layout.html" %}
 {% from "shared/_macros.html" import hero_section %}
-{% block title %}Confirm Delete{% endblock %}
+
+{% block title %}Delete File | JAWA{% endblock %}
+
+{% block additional_css %}
+<style>
+    .delete-container {
+        min-height: calc(100vh - 300px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+    }
+    .delete-card {
+        background: var(--color-surface-raised);
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        padding: 2.5rem;
+        max-width: 550px;
+        width: 100%;
+        box-shadow: 0 4px 20px rgba(106, 47, 48, 0.08);
+    }
+    .delete-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 1.5rem;
+        background: rgba(229, 192, 123, 0.12);
+        border: 2px solid rgba(229, 192, 123, 0.3);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #c17d11;
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    .delete-title {
+        color: var(--color-text);
+        font-size: 1.5rem;
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    .delete-item-name {
+        background: var(--color-surface-hover);
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin: 1.5rem 0;
+        text-align: center;
+        font-family: var(--font-mono);
+        font-weight: 600;
+        color: var(--color-text);
+        word-break: break-word;
+    }
+    .delete-warning {
+        color: var(--color-text-secondary);
+        font-size: 0.95rem;
+        line-height: 1.5;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .delete-warning strong {
+        color: #c17d11;
+    }
+    .delete-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .btn-delete-cancel {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        color: var(--color-text);
+        padding: 0.6rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .btn-delete-cancel:hover {
+        background: var(--color-surface-hover);
+        border-color: var(--color-text-secondary);
+        color: var(--color-text);
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+    .btn-delete-confirm {
+        background: #d63447;
+        border: 1px solid #d63447;
+        color: white;
+        padding: 0.6rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .btn-delete-confirm:hover {
+        background: #b8293a;
+        border-color: #b8293a;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(214, 52, 71, 0.3);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 {{ hero_section(
     title="Delete Resource File",
-    subtitle="Confirm deletion of " ~ (target_file or "file"),
+    subtitle="Confirm deletion of file",
     secondary_url="/resources/files",
     secondary_label="Back to Files"
 ) }}
-<div class="container content-narrow">
-    <div class="confirm-delete-box">
-        <div class="alert alert-warning text-center mb-3" role="alert">
-            <strong>{{ target_file }}</strong><br>
-            Deleting a file is a permanent action.
+
+<div class="delete-container">
+    <div class="delete-card">
+        <div class="delete-icon">⚠</div>
+        <h1 class="delete-title">Delete File?</h1>
+
+        <div class="delete-item-name">
+            {{ target_file }}
         </div>
-        {#                Don't you call me a mindless philosopher!     #}
-        {#                    ~ C-3PO, a Star War                       #}
+
+        <div class="delete-warning">
+            <strong>This action cannot be undone.</strong><br>
+            This will permanently delete this file from the resources directory.
+        </div>
+
         <form action="#" method="POST" enctype="multipart/form-data">
-            <div class="d-flex justify-content-center gap-2">
-                <a href="/resources/files" class="btn btn-secondary btn-action">Cancel</a>
-                <button type="submit" class="btn btn-danger btn-action">Delete</button>
+            <div class="delete-actions">
+                <a href="/resources/files" class="btn-delete-cancel">
+                    Cancel
+                </a>
+                <button type="submit" class="btn-delete-confirm">
+                    Delete File
+                </button>
             </div>
         </form>
     </div>

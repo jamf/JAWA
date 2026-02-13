@@ -10,11 +10,11 @@
 ) }}
 
 <div class="container">
-    <div class="page-sub-nav">
-        <a href="/automations/{{ auto_type }}">{{ handler.display_name }}</a>
-        <a href="/automations/{{ auto_type }}/{{ automation.name }}" class="active">Detail</a>
+    <div class="text-center mb-4">
+        <a href="/automations/{{ auto_type }}" class="filter-btn">{{ handler.display_name }}</a>
+        <a href="/automations/{{ auto_type }}/{{ automation.name }}" class="filter-btn active">Detail</a>
         {% if handler.supports_edit %}
-        <a href="/automations/{{ auto_type }}/{{ automation.name }}/edit">Edit</a>
+        <a href="/automations/{{ auto_type }}/{{ automation.name }}/edit" class="filter-btn">Edit</a>
         {% endif %}
     </div>
 

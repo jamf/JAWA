@@ -26,7 +26,31 @@
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-from flask import session
+import hashlib
+import os
+
+from flask import Flask, session
+
+
+def _compute_static_hash(static_folder: str) -> str:
+    """Return a short MD5 hex digest of the max mtime across all static files."""
+    max_mtime = 0.0
+    for root, _dirs, files in os.walk(static_folder):
+        for fname in files:
+            mtime = os.path.getmtime(os.path.join(root, fname))
+            if mtime > max_mtime:
+                max_mtime = mtime
+    return hashlib.md5(str(max_mtime).encode()).hexdigest()[:10]
+
+
+def register_static_cache_bust(app: Flask) -> None:
+    """Append ``?v=<hash>`` to every ``url_for('static', ...)`` URL."""
+    static_hash = _compute_static_hash(app.static_folder)
+
+    @app.url_defaults
+    def _add_static_hash(endpoint: str, values: dict) -> None:
+        if endpoint == "static":
+            values["v"] = static_hash
 
 
 def inject_common_vars() -> dict:

@@ -18,7 +18,7 @@
         {% endif %}
     </div>
 
-    <div class="form-section" style="max-width: 700px; margin: 0 auto;">
+    <div class="form-section">
         <div class="d-flex align-items-center mb-3">
             <span class="badge {{ handler.badge_class }} me-2">{{ handler.display_name }}</span>
             <h4 class="mb-0">{{ automation.name }}</h4>
@@ -29,17 +29,17 @@
         {% endfor %}
 
         {% if automation.jamf_id and auto_type == 'jamfpro' %}
-        <div class="overflow-auto log-frame text-break" style="max-width: 100%; max-height: 10vh">
+        <div class="overflow-auto text-break" style="max-height: 10vh">
             <b>View in Jamf</b>: <a href="{{ session_url }}/webhooks.html?id={{ automation.jamf_id }}" target="_blank">Open in Jamf Pro</a>
         </div>
         {% endif %}
 
         <div class="d-flex justify-content-center mt-4 gap-2">
-            <a href="/automations/{{ auto_type }}" class="btn btn-secondary" style="border-radius: 1rem;">Back</a>
+            <a href="/automations/{{ auto_type }}" class="btn btn-secondary btn-action">Back</a>
             {% if handler.supports_edit %}
-            <a href="/automations/{{ auto_type }}/{{ automation.name }}/edit" class="btn btn-jawa">Edit</a>
+            <a href="/automations/{{ auto_type }}/{{ automation.name }}/edit" class="btn btn-jawa btn-action">Edit</a>
             {% endif %}
-            <a href="/automations/{{ auto_type }}/{{ automation.name }}/delete" class="btn btn-danger">Delete</a>
+            <a href="/automations/{{ auto_type }}/{{ automation.name }}/delete" class="btn btn-danger btn-action">Delete</a>
         </div>
     </div>
 </div>

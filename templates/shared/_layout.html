@@ -43,7 +43,7 @@
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     {% block additional_css %}
     {% endblock %}
-    <link rel="apple-touch-icon" href="./static/img/jawa_icon.png">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/jawa_icon.png') }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='img/jawa_icon.png') }}">
 
     <meta name="theme-color" content="#6A2F30">
@@ -56,7 +56,7 @@
     <nav class="navbar fixed-top navbar-dark navbar-expand-md">
         <div class="container-fluid">
             <a class="navbar-brand" href="/dashboard">
-                <img src="/static/img/jawa_icon.png" alt="JAWA"/></a>
+                <img src="{{ url_for('static', filename='img/jawa_icon.png') }}" alt="JAWA"/></a>
             <button class="navbar-toggler navbar-toggle overflow-auto" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarSupportedContent"
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">

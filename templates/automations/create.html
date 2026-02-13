@@ -3,7 +3,13 @@
 {% block title %}New {{ handler.display_name }} | JAWA{% endblock %}
 
 {% block content %}
-<div class="container" style="padding-top: 5rem;">
+<div class="hero-section">
+    <div class="container">
+        <h2>New {{ handler.display_name }} {% if auto_type == 'cron' %}Job{% else %}Webhook{% endif %}</h2>
+        <p>Configure and create a new automation.</p>
+    </div>
+</div>
+<div class="container">
     <div class="page-sub-nav">
         <a href="/automations/{{ auto_type }}">{{ handler.display_name }}</a>
         <a href="/automations/{{ auto_type }}/new" class="active">Create</a>
@@ -25,8 +31,7 @@
             {% endif %}
 
             <div class="d-flex justify-content-center">
-                <button type="submit" class="btn btn-jawa"
-                        style="margin: 5px; padding: 5px; width: 150px">Create</button>
+                <button type="submit" class="btn btn-jawa btn-action">Create</button>
             </div>
         </form>
     </div>

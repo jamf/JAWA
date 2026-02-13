@@ -43,8 +43,7 @@
 <div class="container">
     <div class="form-container">
 
-    <form method="post" action="/cleanup" class="form-section overflow-auto" enctype="multipart/form-data"
-          style="max-height: 66vh; max-width: 66vh">
+    <form method="post" action="/cleanup" class="form-section overflow-auto" enctype="multipart/form-data">
         <h1 class="text-center">Cleanup</h1>
 {#        <p class="text-center">- Click "Clean Up!" to remove all old scripts.#}
 {#        - Old scripts are scripts kept as an archive file with the extension ".old".</br>#}
@@ -65,11 +64,9 @@
 
             </p>
         {% endfor %}
-        <div class="col-xs-12 button-holder">
-                        <div class="ajax-button">
-                            <input class="btn btn-jawa" type="submit" value="Clean Up!"/>
-                        </div>
-                    </div>
+        <div class="d-flex justify-content-center mt-3">
+            <input class="btn btn-jawa btn-action" type="submit" value="Clean Up!"/>
+        </div>
 
     </form>
 </div>

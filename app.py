@@ -46,7 +46,7 @@ from waitress import serve
 from typing import Any, Dict, Union
 
 from bin import logger
-from bin.context_processors import inject_common_vars
+from bin.context_processors import inject_common_vars, register_static_cache_bust
 from bin.view_modifiers import response
 from views.home_view import load_home
 
@@ -65,6 +65,7 @@ def func() -> None:
 
 
 app.context_processor(inject_common_vars)
+register_static_cache_bust(app)
 
 
 def main() -> None:

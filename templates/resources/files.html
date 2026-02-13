@@ -39,9 +39,9 @@
 </div>
 <div class="container">
     <div class="form-container">
-        <div class="form-section" style="max-width: fit-content">
-            <div class="overflow-auto pre-scrollable" style="max-width: 100vw">
-            <h4 class="d-flex justify-content-center alert-jawa" style="max-width: 100vw">Upload a file</h4>
+        <div class="form-section">
+            <div class="overflow-auto pre-scrollable">
+            <h4 class="text-center mb-3">Upload a file</h4>
             <p>Files directory:
             <pre><code>{{ files_repo }}/</code></pre>
             </p>
@@ -51,8 +51,7 @@
                            formenctype="multipart/form-data" id="file-upload"/>
                 </div>
                 <div class="d-flex justify-content-center">
-                    <input type="submit" id="file-submit" class="btn btn-jawa" value="Upload" disabled
-                           style="margin: 5px; padding: 5px; width: 150px"/>
+                    <input type="submit" id="file-submit" class="btn btn-jawa btn-action" value="Upload" disabled/>
                 </div>
             </form>
         </div>
@@ -64,10 +63,9 @@
         {% endif %}
     {% if files %}
         <form class="files-form overflow-auto">
-
-            <h4 class="d-flex justify-content-center alert-jawa">Uploaded files</h4>
+            <h4 class="text-center mb-3">Uploaded files</h4>
             <div class="btn-padded">
-                <table id="files_table" class="table" style="max-width: 100vw">
+                <table id="files_table" class="table">
                     <tr>
                         <th>Name</th>
                         <th>Date Modified</th>
@@ -82,11 +80,11 @@
                 </table>
             </div>
             <div class="d-flex justify-content-center">
-                <button type=submit name="button_choice" value="Download"
-                        class="btn btn-jawa button-align alert-jawa" style="margin: 5px; padding: 5px; width: 150px">
+                <button type="submit" name="button_choice" value="Download"
+                        class="btn btn-jawa btn-action">
                     Download
                 </button>
-                <button name="button_choice" type=submit value="Delete" class="btn btn-danger button-align alert-soft">
+                <button name="button_choice" type="submit" value="Delete" class="btn btn-danger btn-action">
                     Delete
                 </button>
             </div>

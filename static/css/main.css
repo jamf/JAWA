@@ -161,14 +161,8 @@ h3 {
 }
 
 .ajax-button {
-    position: relative;
-    display: inline-block;
-    width: 100px;
-    height: 40px;
-    left: 50%;
-    top: 50%;
-    margin-left: -50px;
-    margin-top: -20px;
+    display: flex;
+    justify-content: center;
     text-align: center;
 }
 
@@ -323,7 +317,7 @@ h3 {
 
 .dash-list {
     text-align: center;
-    margin-bottom: 10vh;
+    margin-bottom: 2rem;
 }
 
 
@@ -349,7 +343,7 @@ h3 {
 .card {
     padding: 0.5rem;
     margin: 10px;
-    max-width: 260px;
+    max-width: 280px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -372,23 +366,24 @@ h3 {
 /* ===== Buttons ===== */
 .btn-jawa {
     color: #fff;
-    background-color: var(--color-navbar);
-    border-color: var(--color-navbar);
-    border-radius: var(--radius-sm);
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    border-radius: var(--radius-md);
     font-weight: 500;
-    transition: background-color 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .btn-jawa:hover {
-    background-color: var(--color-navbar-dark);
-    border-color: var(--color-navbar-dark);
+    background-color: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
     color: #fff;
 }
 
 .btn-jawa:disabled {
-    background: unset;
-    border: unset;
-    color: transparent;
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+    opacity: 0.5;
 }
 
 a.btn-jawa,
@@ -399,22 +394,47 @@ a.btn-jawa:visited {
 
 .alert-jawa {
     color: #FFFFFF;
-    background-color: var(--color-navbar);
-    border-color: #c3e6cb;
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
     border-radius: 1rem;
     padding-top: 0.2rem;
     padding-bottom: 0.2rem;
 }
 
 .btn-danger {
-    margin: 5px;
-    padding: 5px;
-    width: 150px;
-    border-radius: 1rem;
+    background-color: #c0392b;
+    border-color: #c0392b;
+    border-radius: var(--radius-md);
+    color: #fff;
+    font-weight: 500;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-danger:hover {
+    background-color: #a93226;
+    border-color: #a93226;
+    color: #fff;
 }
 
 .btn-secondary {
-    border-radius: 1rem;
+    background-color: var(--color-surface-hover);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-weight: 500;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-secondary:hover {
+    background-color: var(--color-border);
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+
+a.btn-secondary,
+a.btn-secondary:visited {
+    color: var(--color-text);
+    text-decoration: none;
 }
 
 .card-img {
@@ -447,7 +467,7 @@ a.btn-jawa:visited {
 }
 
 .btn-group-sm .btn {
-    border-radius: 0.5rem;
+    border-radius: var(--radius-sm);
 }
 
 /* ===== Navbar (from nav.css) ===== */
@@ -636,7 +656,7 @@ footer a {
 }
 
 .log-frame {
-    max-height: 65vh;
+    max-height: 60vh;
 }
 
 .log-form {
@@ -708,7 +728,7 @@ footer a {
 .log-container {
     padding: 10px;
     max-width: 100vw;
-    margin-bottom: -30px;
+    margin-bottom: 1rem;
 }
 
 .login-form-container {
@@ -750,7 +770,7 @@ form.table-view {
 form.files-form {
     margin: auto;
     max-height: 45vh;
-    max-width: fit-content;
+    max-width: 800px;
     background-color: var(--color-surface);
     color: var(--color-text);
     border: 1px solid var(--color-border);
@@ -837,6 +857,20 @@ form.files-form {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     padding: 2rem;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.content-narrow {
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.btn-action {
+    min-width: 120px;
+    padding: 0.45rem 1.25rem;
 }
 
 /* ===== Code / Script Previews ===== */
@@ -900,7 +934,7 @@ code {
     margin-bottom: 2rem;
     position: relative;
     overflow: hidden;
-    text-align: left;
+    text-align: center;
 }
 
 .hero-section::before {
@@ -920,7 +954,7 @@ code {
     letter-spacing: -1px;
     margin: 0 0 0.5rem;
     color: #fff;
-    text-align: left;
+    text-align: center;
     position: relative;
 }
 
@@ -928,12 +962,13 @@ code {
     color: rgba(255, 255, 255, 0.85);
     font-size: 1.05rem;
     margin: 0;
-    text-align: left;
+    text-align: center;
     position: relative;
 }
 
 .hero-cta {
     display: flex;
+    justify-content: center;
     gap: 0.75rem;
     margin-top: 1.25rem;
     position: relative;
@@ -1180,7 +1215,8 @@ a.btn-hero-secondary:visited {
     display: none;
 }
 
-.search-result-item {
+.search-result-item,
+.search-result-item:visited {
     display: block;
     padding: 0.5rem 0.75rem;
     font-size: 0.85rem;
@@ -1192,6 +1228,7 @@ a.btn-hero-secondary:visited {
 
 .search-result-item:hover {
     background: var(--color-surface);
+    color: var(--color-text);
 }
 
 .search-result-title {
@@ -1224,4 +1261,20 @@ a.btn-hero-secondary:visited {
 
 .navbar .dropdown-menu .dropdown-divider {
     border-color: var(--color-border);
+}
+
+/* ===== Session Timeout Warning ===== */
+.session-countdown-seconds {
+    display: inline-block;
+    font-size: 2.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-navbar);
+    line-height: 1;
+}
+
+#sessionTimeoutModal .modal-content {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-lg);
 }

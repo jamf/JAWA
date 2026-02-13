@@ -24,7 +24,7 @@
 {% macro automation_card(item, handler, loop_index, auto_type, session_url="") %}
 <div class="card col-md-6 col-lg-3 webhooks-list container-bg border-info d-flex flex-column">
     <span class="badge {{ handler.badge_class }} mb-2">{{ handler.display_name }}</span>
-    <img src="/static/img/{{ handler.icon }}" class="card-img mx-auto" alt="{{ handler.display_name }}">
+    <img src="{{ url_for('static', filename='img/' ~ handler.icon) }}" class="card-img mx-auto" alt="{{ handler.display_name }}">
     <div class="card-body flex-column d-flex webhooks-list">
         <h6 class="overflow-hidden card-title font-weight-bolder">{{ item.name }}</h6>
         <a class="btn btn-jawa text-white overflow-hidden mt-auto"
@@ -36,13 +36,13 @@
 {% endmacro %}
 
 {% macro detail_field(label, value) %}
-<div class="overflow-auto log-frame text-break" style="max-width: 100%; max-height: 10vh">
+<div class="overflow-auto text-break" style="max-height: 10vh">
     <b>{{ label }}</b>: {{ value }}
 </div>
 {% endmacro %}
 
 {% macro empty_state(message, create_url="", create_label="Create one now") %}
-<div class="form-section" style="max-width: fit-content; text-align: center; margin: 1rem auto;">
+<div class="form-section" style="text-align: center; margin: 1rem auto;">
     <div class="table-responsive">
         {{ message }}
         {% if create_url %}
@@ -57,8 +57,8 @@
     <h4>Delete {{ item_type }}: {{ item_name }}?</h4>
     <p>This action cannot be undone.</p>
     <form method="POST" action="{{ delete_url }}">
-        <a href="javascript:history.back()" class="btn btn-secondary" style="margin: 5px; padding: 5px; width: 150px;">Cancel</a>
-        <button type="submit" class="btn btn-danger">Delete</button>
+        <a href="javascript:history.back()" class="btn btn-secondary btn-action">Cancel</a>
+        <button type="submit" class="btn btn-danger btn-action">Delete</button>
     </form>
 </div>
 {% endmacro %}

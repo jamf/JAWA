@@ -3,7 +3,13 @@
 {% block title %}Edit {{ automation_name }} | JAWA{% endblock %}
 
 {% block content %}
-<div class="container" style="padding-top: 5rem;">
+<div class="hero-section">
+    <div class="container">
+        <h2>Edit {{ handler.display_name }} {% if auto_type == 'cron' %}Job{% else %}Webhook{% endif %}</h2>
+        <p>Modify settings for {{ automation_name }}.</p>
+    </div>
+</div>
+<div class="container">
     <div class="page-sub-nav">
         <a href="/automations/{{ auto_type }}">{{ handler.display_name }}</a>
         <a href="/automations/{{ auto_type }}/{{ automation_name }}">Detail</a>
@@ -26,11 +32,11 @@
 
             <div class="d-flex justify-content-center gap-2">
                 <a href="/automations/{{ auto_type }}/{{ automation_name }}"
-                   class="btn btn-secondary" style="margin: 5px; padding: 5px; width: 150px; border-radius: 1rem;">Cancel</a>
-                <button type="submit" name="button_choice" value="Save" class="btn btn-jawa"
-                        style="margin: 5px; padding: 5px; width: 150px">Save</button>
-                <button type="submit" name="button_choice" value="Delete" class="btn btn-danger"
-                        style="margin: 5px; padding: 5px; width: 150px">Delete</button>
+                   class="btn btn-secondary btn-action">Cancel</a>
+                <button type="submit" name="button_choice" value="Save"
+                        class="btn btn-jawa btn-action">Save</button>
+                <button type="submit" name="button_choice" value="Delete"
+                        class="btn btn-danger btn-action">Delete</button>
             </div>
         </form>
     </div>

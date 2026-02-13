@@ -26,36 +26,29 @@
 {###}
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {% extends "shared/_layout.html" %}
+{% from "shared/_macros.html" import hero_section %}
 {% block title %}Confirm Delete{% endblock %}
 {% block content %}
-<div class="container" style="padding-top: 5rem;">
-    <div class="page-sub-nav">
-        <a href="/resources/files">Files</a>
-        <a href="/log/home.html">Log</a>
-    </div>
-    <div class="form-container">
-        <form action="#" method="POST" class="form-section"
-              enctype="multipart/form-data">
-            <h1>Confirm Delete:</h1>
-            <div class="font-weight-bold text-center">Resource file -
-            {% if target_file %}{{ target_file }}{% endif %} </div>
-            <div class="d-flex justify-content-center">
-                <div class="confirm-delete-box">
-                    <i>Deleting a file is a permanent action.</i>
-                    <br/>
-                    Are you sure?
-                    {#                Don't you call me a mindless philosopher!     #}
-                    {#                    ~ C-3PO, a Star War                       #}
-                    {#                                                              #}
-                </div>
-                <br/>
+{{ hero_section(
+    title="Delete Resource File",
+    subtitle="Confirm deletion of " ~ (target_file or "file"),
+    secondary_url="/resources/files",
+    secondary_label="Back to Files"
+) }}
+<div class="container content-narrow">
+    <div class="confirm-delete-box">
+        <div class="alert alert-warning text-center mb-3" role="alert">
+            <strong>{{ target_file }}</strong><br>
+            Deleting a file is a permanent action.
+        </div>
+        {#                Don't you call me a mindless philosopher!     #}
+        {#                    ~ C-3PO, a Star War                       #}
+        <form action="#" method="POST" enctype="multipart/form-data">
+            <div class="d-flex justify-content-center gap-2">
+                <a href="/resources/files" class="btn btn-secondary btn-action">Cancel</a>
+                <button type="submit" class="btn btn-danger btn-action">Delete</button>
             </div>
-                <div class="d-flex dash-list justify-content-center">
-                    <button type=submit name="button_choice" value="Delete" class="btn btn-danger" style="margin: 5px">
-
-                        Delete
-
-                    </button>
-                </div>
+        </form>
     </div>
+</div>
 {% endblock %}

@@ -73,7 +73,7 @@ def main() -> None:
     environment_setup(base_dir)
     register_blueprints()
     app.secret_key = str(uuid.uuid4())
-    app.permanent_session_lifetime = timedelta(minutes=10)
+    app.permanent_session_lifetime = timedelta(minutes=15)
     serve(
         app, url_scheme="https", host="0.0.0.0", port=8000, threads=15
     )  # Serve me the sky with a big slice of lemon

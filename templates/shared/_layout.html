@@ -113,6 +113,88 @@
 <script>hljs.highlightAll();</script>
 {% if username %}
 <script src="{{ url_for('static', filename='js/search.js') }}"></script>
+
+<!-- Session Timeout Warning Modal -->
+<div class="modal fade" id="sessionTimeoutModal" tabindex="-1" aria-labelledby="sessionTimeoutLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title" id="sessionTimeoutLabel">Session Expiring</h5>
+            </div>
+            <div class="modal-body text-center pt-2">
+                <p class="mb-2">Your session will expire in</p>
+                <span class="session-countdown-seconds" id="countdownDisplay">45</span>
+                <p class="mt-2 mb-0 text-muted" style="font-size: 0.85rem;">seconds</p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center pt-0">
+                <button type="button" class="btn btn-jawa" id="staySignedInBtn">Stay Signed In</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var SESSION_DURATION = 15 * 60;
+    var WARNING_BEFORE = 45;
+    var remaining = SESSION_DURATION;
+    var warningShown = false;
+    var countdownInterval = null;
+    var modal = null;
+
+    function getModal() {
+        if (!modal) {
+            var el = document.getElementById("sessionTimeoutModal");
+            if (el) modal = new bootstrap.Modal(el);
+        }
+        return modal;
+    }
+
+    function resetTimer() {
+        remaining = SESSION_DURATION;
+        warningShown = false;
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+        var m = getModal();
+        if (m) {
+            try { m.hide(); } catch (e) {}
+        }
+    }
+
+    function showWarning() {
+        warningShown = true;
+        var display = document.getElementById("countdownDisplay");
+        if (display) display.textContent = remaining;
+        var m = getModal();
+        if (m) m.show();
+        countdownInterval = setInterval(function () {
+            remaining--;
+            if (display) display.textContent = Math.max(remaining, 0);
+            if (remaining <= 0) {
+                clearInterval(countdownInterval);
+                window.location.href = "/logout";
+            }
+        }, 1000);
+    }
+
+    setInterval(function () {
+        if (!warningShown) {
+            remaining--;
+            if (remaining <= WARNING_BEFORE) {
+                showWarning();
+            }
+        }
+    }, 1000);
+
+    document.getElementById("staySignedInBtn").addEventListener("click", function () {
+        fetch("/dashboard", {method: "GET", credentials: "same-origin"})
+            .then(function () { resetTimer(); })
+            .catch(function () { resetTimer(); });
+    });
+})();
+</script>
 {% endif %}
 {% block additional_js %}{% endblock %}
 

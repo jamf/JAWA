@@ -52,6 +52,7 @@ body {
     color: var(--color-text);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
 }
 
 a {
@@ -549,6 +550,8 @@ footer {
     color: rgba(255, 255, 255, 0.75);
     background-color: var(--color-navbar);
     font-size: 0.8rem;
+    margin-top: auto;
+    flex-shrink: 0;
 }
 
 footer a {

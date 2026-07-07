@@ -1,4 +1,6 @@
 line-length = 79
 
+exclude = ["data/workflows/scripts"]
+
 [format]
 quote-style = "double"

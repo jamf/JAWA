@@ -80,9 +80,13 @@ def test_import_rejects_traversal_filename(logged_in_client, jawa_env):
     assert resp.status_code in (302, 400)
     assert data_store.get_webhook_by_name("evil") is None
     import os
-    assert not os.path.exists(
-        os.path.join(os.path.dirname(str(jawa_env.scripts_dir)), "evil.sh")
+
+    scripts_dir = str(jawa_env.scripts_dir)
+    traversal_target = os.path.normpath(
+        os.path.join(scripts_dir, "..", "..", "evil.sh")
     )
+    assert not os.path.exists(traversal_target)
+    assert not os.path.exists(os.path.join(scripts_dir, "evil.sh"))
 
 
 def test_template_view_has_no_direct_webhook_io():

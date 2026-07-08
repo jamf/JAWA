@@ -41,8 +41,9 @@ from flask import (
     url_for,
 )
 from markupsafe import escape
+from werkzeug.utils import secure_filename
 
-from bin import logger
+from bin import data_store, logger
 from bin.view_modifiers import response
 
 blueprint = Blueprint(
@@ -102,47 +103,31 @@ def _load_credentials() -> List[Dict[str, Any]]:
 def _install_package(package: dict) -> None:
     """Install a .jawa.json workflow package into JAWA."""
     script = package["script"]
-    script_path = os.path.join(SCRIPTS_DIR, script["filename"])
+    safe_filename = secure_filename(script["filename"])
+    script_path = os.path.join(SCRIPTS_DIR, safe_filename)
     with open(script_path, "w", encoding="utf-8") as f:
         f.write(script["content"])
     os.chmod(script_path, 0o755)
 
-    _register_webhook(
+    data_store.add_webhook(
         {
             "name": package["name"],
+            "tag": "custom",
+            "url": session.get("url", ""),
             "event": package["trigger"]["event"],
-            "script": script["filename"],
+            "script": script_path,
+            "description": package.get("description", ""),
             "enabled": True,
+            "webhook_username": "null",
+            "webhook_password": "null",
+            "api_key": "null",
         }
     )
 
     logthis.info(
         f"Installed workflow package: {package['name']} "
-        f"(script: {script['filename']})"
+        f"(script: {safe_filename})"
     )
-
-
-def _load_webhooks() -> list:
-    """Load the current webhooks list from disk."""
-    if not os.path.isfile(WEBHOOKS_FILE):
-        return []
-    try:
-        with open(WEBHOOKS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError):
-        return []
-
-
-def _register_webhook(entry: dict) -> None:
-    """Append a webhook entry and save to disk."""
-    webhooks = _load_webhooks()
-    webhooks.append(entry)
-    try:
-        with open(WEBHOOKS_FILE, "w", encoding="utf-8") as f:
-            json.dump(webhooks, f, indent=2)
-    except (IOError, OSError) as err:
-        logthis.error(f"Failed to save webhook to {WEBHOOKS_FILE}: {err}")
-        raise
 
 
 def _apply_credentials(
@@ -183,7 +168,7 @@ def _apply_form_params(script_content: str, workflow: dict) -> str:
 
 
 def _write_script(name: str, content: str) -> str:
-    """Write script content to a unique file and return the filename."""
+    """Write script content to a unique file and return the absolute path."""
     safe_name = name.replace(" ", "_").replace("/", "_").lower()
     dest_filename = f"{safe_name}.py"
     dest_path = os.path.join(SCRIPTS_DIR, dest_filename)
@@ -197,7 +182,7 @@ def _write_script(name: str, content: str) -> str:
     with open(dest_path, "w", encoding="utf-8") as f:
         f.write(content)
     os.chmod(dest_path, 0o755)
-    return dest_filename
+    return dest_path
 
 
 def _validate_package(package: dict) -> Union[str, None]:
@@ -214,6 +199,14 @@ def _validate_package(package: dict) -> Union[str, None]:
 
     if "event" not in package["trigger"]:
         return "Trigger must have an event field."
+
+    filename = package["script"]["filename"]
+    safe = secure_filename(filename)
+    if not safe or safe != filename:
+        # secure_filename strips path separators / traversal; if the
+        # result is empty or differs, the package tried to write
+        # outside SCRIPTS_DIR (bug B7). Reject loudly, write nothing.
+        return f"Unsafe script filename: {filename}"
 
     return None
 
@@ -379,23 +372,27 @@ def enable_template(slug: str) -> Union[Response, str]:
         credentials,
     )
     script_content = _apply_form_params(script_content, workflow)
-    dest_filename = _write_script(webhook_name, script_content)
+    dest_path = _write_script(webhook_name, script_content)
 
-    _register_webhook(
+    data_store.add_webhook(
         {
             "name": webhook_name,
             "tag": "custom",
             "url": session.get("url", ""),
             "event": workflow.get("trigger_event", ""),
-            "script": dest_filename,
+            "script": dest_path,
             "description": workflow.get("description", ""),
             "enabled": True,
+            "webhook_username": "null",
+            "webhook_password": "null",
+            "api_key": "null",
         }
     )
 
     logthis.info(
         f"[{session.get('url')}] {session.get('username')} "
-        f"enabled template: {webhook_name} (script: {dest_filename})"
+        f"enabled template: {webhook_name} "
+        f"(script: {os.path.basename(dest_path)})"
     )
 
     return redirect(

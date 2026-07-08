@@ -42,7 +42,7 @@ from flask import (
 )
 from markupsafe import escape
 
-from bin import logger
+from bin import data_store, logger
 from bin.view_modifiers import response
 
 blueprint = Blueprint(
@@ -107,12 +107,16 @@ def _install_package(package: dict) -> None:
         f.write(script["content"])
     os.chmod(script_path, 0o755)
 
-    _register_webhook(
+    data_store.add_webhook(
         {
             "name": package["name"],
+            "tag": "custom",
             "event": package["trigger"]["event"],
             "script": script["filename"],
             "enabled": True,
+            "webhook_username": "null",
+            "webhook_password": "null",
+            "api_key": "null",
         }
     )
 
@@ -120,29 +124,6 @@ def _install_package(package: dict) -> None:
         f"Installed workflow package: {package['name']} "
         f"(script: {script['filename']})"
     )
-
-
-def _load_webhooks() -> list:
-    """Load the current webhooks list from disk."""
-    if not os.path.isfile(WEBHOOKS_FILE):
-        return []
-    try:
-        with open(WEBHOOKS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError):
-        return []
-
-
-def _register_webhook(entry: dict) -> None:
-    """Append a webhook entry and save to disk."""
-    webhooks = _load_webhooks()
-    webhooks.append(entry)
-    try:
-        with open(WEBHOOKS_FILE, "w", encoding="utf-8") as f:
-            json.dump(webhooks, f, indent=2)
-    except (IOError, OSError) as err:
-        logthis.error(f"Failed to save webhook to {WEBHOOKS_FILE}: {err}")
-        raise
 
 
 def _apply_credentials(
@@ -381,7 +362,7 @@ def enable_template(slug: str) -> Union[Response, str]:
     script_content = _apply_form_params(script_content, workflow)
     dest_filename = _write_script(webhook_name, script_content)
 
-    _register_webhook(
+    data_store.add_webhook(
         {
             "name": webhook_name,
             "tag": "custom",
@@ -390,6 +371,9 @@ def enable_template(slug: str) -> Union[Response, str]:
             "script": dest_filename,
             "description": workflow.get("description", ""),
             "enabled": True,
+            "webhook_username": "null",
+            "webhook_password": "null",
+            "api_key": "null",
         }
     )
 

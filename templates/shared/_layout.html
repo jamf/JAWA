@@ -135,7 +135,7 @@
 
 <script>
 (function () {
-    var SESSION_DURATION = 15 * 60;
+    var SESSION_DURATION = {{ session_timeout_seconds | default(900) }};
     var WARNING_BEFORE = 45;
     var remaining = SESSION_DURATION;
     var warningShown = false;

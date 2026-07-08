@@ -99,3 +99,14 @@ def test_setup_form_shows_timeout_control(logged_in_client, jawa_env):
     assert 'value="240" selected' in body
     # Extended tiers carry a security-trade-off note.
     assert "Extended" in body
+
+
+def test_layout_injects_effective_timeout(logged_in_client, jawa_env):
+    import json
+    data = json.loads(jawa_env.server_file.read_text())
+    data["session_timeout_minutes"] = 60
+    jawa_env.server_file.write_text(json.dumps(data))
+    resp = logged_in_client.get("/dashboard")
+    body = resp.data.decode()
+    # 60 min -> 3600 s injected for the modal to count down against.
+    assert "3600" in body

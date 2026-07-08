@@ -55,7 +55,12 @@ def register_static_cache_bust(app: Flask) -> None:
 
 def inject_common_vars() -> dict:
     """Auto-inject session variables into all templates."""
+    from app import _resolve_session_timeout
+    from bin import data_store
+
+    minutes = _resolve_session_timeout(data_store.get_server_config())
     return {
         "username": session.get("username"),
         "session_url": session.get("url"),
+        "session_timeout_seconds": minutes * 60,
     }

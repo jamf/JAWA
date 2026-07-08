@@ -1,6 +1,7 @@
 """Template enable/import → the resulting webhook actually fires (B1)."""
 
 import io
+import json
 import subprocess
 
 import pytest
@@ -55,6 +56,33 @@ def test_enabled_template_webhook_fires(
     )
     assert resp.status_code == 200
     assert len(fake_popen.calls) == 1
+
+
+def _traversal_package():
+    return {
+        "name": "evil",
+        "trigger": {"event": "ComputerCheckIn"},
+        "script": {"filename": "../../evil.sh", "content": "#!/bin/sh\n"},
+    }
+
+
+def test_import_rejects_traversal_filename(logged_in_client, jawa_env):
+    import io as _io
+
+    payload = json.dumps(_traversal_package()).encode()
+    resp = logged_in_client.post(
+        "/templates/import",
+        data={"package": (_io.BytesIO(payload), "evil.jawa.json")},
+        content_type="multipart/form-data",
+    )
+    # Rejected via the existing error redirect; nothing written outside
+    # SCRIPTS_DIR, and no webhook registered.
+    assert resp.status_code in (302, 400)
+    assert data_store.get_webhook_by_name("evil") is None
+    import os
+    assert not os.path.exists(
+        os.path.join(os.path.dirname(str(jawa_env.scripts_dir)), "evil.sh")
+    )
 
 
 def test_template_view_has_no_direct_webhook_io():

@@ -41,6 +41,7 @@ from flask import (
     url_for,
 )
 from markupsafe import escape
+from werkzeug.utils import secure_filename
 
 from bin import data_store, logger
 from bin.view_modifiers import response
@@ -102,7 +103,8 @@ def _load_credentials() -> List[Dict[str, Any]]:
 def _install_package(package: dict) -> None:
     """Install a .jawa.json workflow package into JAWA."""
     script = package["script"]
-    script_path = os.path.join(SCRIPTS_DIR, script["filename"])
+    safe_filename = secure_filename(script["filename"])
+    script_path = os.path.join(SCRIPTS_DIR, safe_filename)
     with open(script_path, "w", encoding="utf-8") as f:
         f.write(script["content"])
     os.chmod(script_path, 0o755)
@@ -112,7 +114,7 @@ def _install_package(package: dict) -> None:
             "name": package["name"],
             "tag": "custom",
             "event": package["trigger"]["event"],
-            "script": script["filename"],
+            "script": safe_filename,
             "enabled": True,
             "webhook_username": "null",
             "webhook_password": "null",
@@ -122,7 +124,7 @@ def _install_package(package: dict) -> None:
 
     logthis.info(
         f"Installed workflow package: {package['name']} "
-        f"(script: {script['filename']})"
+        f"(script: {safe_filename})"
     )
 
 
@@ -195,6 +197,14 @@ def _validate_package(package: dict) -> Union[str, None]:
 
     if "event" not in package["trigger"]:
         return "Trigger must have an event field."
+
+    filename = package["script"]["filename"]
+    safe = secure_filename(filename)
+    if not safe or safe != filename:
+        # secure_filename strips path separators / traversal; if the
+        # result is empty or differs, the package tried to write
+        # outside SCRIPTS_DIR (bug B7). Reject loudly, write nothing.
+        return f"Unsafe script filename: {filename}"
 
     return None
 

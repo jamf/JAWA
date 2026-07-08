@@ -63,17 +63,28 @@ def _resolve_session_timeout(config: dict) -> int:
     allowed ladder. Any missing / malformed / off-ladder value fails
     safe to the 15-minute default (never longer)."""
     value = config.get("session_timeout_minutes")
-    if value in SESSION_TIMEOUT_CHOICES:
+    if type(value) is int and value in SESSION_TIMEOUT_CHOICES:
         return value
     return DEFAULT_SESSION_TIMEOUT
 
 # Initiate Flask
 app = Flask(__name__)
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+)
 
 
-# Session heartbeat
+# Session heartbeat: slide the window and apply the admin-configured
+# timeout (fail-safe to 15 min) on every request, so a /setup change
+# takes effect immediately with no restart.
 @app.before_request
-def func() -> None:
+def _session_heartbeat() -> None:
+    from bin import data_store
+
+    minutes = _resolve_session_timeout(data_store.get_server_config())
+    app.permanent_session_lifetime = timedelta(minutes=minutes)
     session.modified = True
 
 

@@ -54,6 +54,19 @@ from views.home_view import load_home
 logthis = logger.setup_child_logger("jawa", "app")
 error_message = ""
 
+SESSION_TIMEOUT_CHOICES = (15, 60, 240, 480)
+DEFAULT_SESSION_TIMEOUT = 15
+
+
+def _resolve_session_timeout(config: dict) -> int:
+    """Resolve the configured session timeout (minutes) against the
+    allowed ladder. Any missing / malformed / off-ladder value fails
+    safe to the 15-minute default (never longer)."""
+    value = config.get("session_timeout_minutes")
+    if value in SESSION_TIMEOUT_CHOICES:
+        return value
+    return DEFAULT_SESSION_TIMEOUT
+
 # Initiate Flask
 app = Flask(__name__)
 

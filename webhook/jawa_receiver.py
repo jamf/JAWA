@@ -69,8 +69,13 @@ def validate_webhook(
         if each_webhook["name"] == webhook_name:
             truth_test = True
             if (
-                each_webhook.get("webhook_username") != webhook_user
-                or each_webhook.get("webhook_password") != webhook_pass
+                # Missing auth keys default to the "null" no-auth
+                # sentinel so a legacy/hand-edited entry degrades to
+                # the documented open-webhook behavior, never a silent
+                # 401. Canonical shape is written by data_store; see
+                # template_view + custom_handler.
+                each_webhook.get("webhook_username", "null") != webhook_user
+                or each_webhook.get("webhook_password", "null") != webhook_pass
                 or each_webhook.get("api_key", "null") != webhook_apikey
             ):
                 truth_test = False

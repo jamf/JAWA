@@ -150,6 +150,24 @@ def test_okta_verification_challenge_is_echoed(client, jawa_env):
     assert resp.get_json() == {"verification": "abc123"}
 
 
+def test_legacy_entry_missing_auth_keys_self_heals(
+    client, jawa_env, fake_popen
+):
+    # A pre-fix template webhook: no auth keys at all. The tolerant
+    # receiver must treat missing keys as "null" (open) and fire,
+    # rather than returning a permanent 401 (bug B1).
+    _make_webhook(jawa_env)
+    # Strip the auth keys to simulate a legacy template entry.
+    data = json.loads(jawa_env.webhooks_file.read_text())
+    for key in ("webhook_username", "webhook_password", "api_key"):
+        data[0].pop(key, None)
+    jawa_env.webhooks_file.write_text(json.dumps(data))
+
+    resp = client.post("/hooks/testhook", json=PAYLOAD)
+    assert resp.status_code == 200
+    assert len(fake_popen.calls) == 1
+
+
 def test_null_json_body_is_a_teapot(client, jawa_env, fake_popen):
     resp = client.post(
         "/hooks/testhook",

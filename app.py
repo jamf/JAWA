@@ -276,6 +276,15 @@ def setup() -> Union[Response, str]:
         jps_url = request.form.get("jss-lock")
         jps2_check = request.form.get("alternate-jamf")
         jps_url2 = request.form.get("alternate")
+        timeout_raw = request.form.get("session_timeout_minutes", "")
+        try:
+            timeout_val = int(timeout_raw)
+        except (TypeError, ValueError):
+            timeout_val = DEFAULT_SESSION_TIMEOUT
+        # Clamp to the allowed ladder; never store an off-ladder value.
+        session_timeout = _resolve_session_timeout(
+            {"session_timeout_minutes": timeout_val}
+        )
         logthis.info(
             f"{session.get('username')} made JAWA Setup Changes\n"
             f"JAWA URL: {server_url}\n"
@@ -294,6 +303,7 @@ def setup() -> Union[Response, str]:
                     "jawa_address": server_url,
                     "jps_url": jps_url,
                     "alternate_jps": jps_url2,
+                    "session_timeout_minutes": session_timeout,
                 }
                 json.dump(server_json, outfile)
         elif os.path.isfile(server_json_file):
@@ -302,6 +312,7 @@ def setup() -> Union[Response, str]:
                     "jawa_address": server_url,
                     "jps_url": jps_url,
                     "alternate_jps": jps_url2,
+                    "session_timeout_minutes": session_timeout,
                 }
                 json.dump(server_json, outfile)
             with open(server_json_file, "r") as fin:
@@ -330,6 +341,7 @@ def setup() -> Union[Response, str]:
                 json.dump(server_json, outfile)
         with open(server_json_file, "r") as fin:
             server_json = json.load(fin)
+        session_timeout = _resolve_session_timeout(server_json)
         jps_url2 = server_json.get("alternate_jps")
         if jps_url2 == str(escape(session["url"])):
             primary_jps = server_json["jps_url"]
@@ -342,6 +354,7 @@ def setup() -> Union[Response, str]:
             jps_url=primary_jps,
             jps_url2=jps_url2,
             jawa_url=jawa_url,
+            session_timeout=session_timeout,
             username=session.get("username"),
         )
 

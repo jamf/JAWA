@@ -54,3 +54,34 @@ def test_before_request_failsafe_on_bad_config(logged_in_client, jawa_env):
     logged_in_client.get("/dashboard")
     from datetime import timedelta
     assert jawa_app.app.permanent_session_lifetime == timedelta(minutes=15)
+
+
+def test_setup_persists_valid_timeout(logged_in_client, jawa_env):
+    import json
+    logged_in_client.post(
+        "/setup",
+        data={
+            "address": "https://jawa.example.test",
+            "jss-lock": "https://jamf.example.test",
+            "alternate": "",
+            "session_timeout_minutes": "240",
+        },
+    )
+    data = json.loads(jawa_env.server_file.read_text())
+    assert data["session_timeout_minutes"] == 240
+
+
+def test_setup_rejects_off_ladder_timeout(logged_in_client, jawa_env):
+    import json
+    logged_in_client.post(
+        "/setup",
+        data={
+            "address": "https://jawa.example.test",
+            "jss-lock": "https://jamf.example.test",
+            "alternate": "",
+            "session_timeout_minutes": "999999",
+        },
+    )
+    data = json.loads(jawa_env.server_file.read_text())
+    # Off-ladder input is clamped to the safe default, never stored raw.
+    assert data["session_timeout_minutes"] == 15

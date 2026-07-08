@@ -2,6 +2,7 @@
 
 import io
 import json
+import os
 import subprocess
 
 import pytest
@@ -56,6 +57,12 @@ def test_enabled_template_webhook_fires(
     )
     assert resp.status_code == 200
     assert len(fake_popen.calls) == 1
+    # The receiver runs the script via a direct Popen with no directory
+    # prefix, so the stored "script" must be an absolute path that exists
+    # on disk -- otherwise the script silently never runs (bug B1).
+    argv = fake_popen.calls[0]
+    assert os.path.isabs(argv[0])
+    assert os.path.exists(argv[0])
 
 
 def _traversal_package():

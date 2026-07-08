@@ -113,8 +113,10 @@ def _install_package(package: dict) -> None:
         {
             "name": package["name"],
             "tag": "custom",
+            "url": session.get("url", ""),
             "event": package["trigger"]["event"],
-            "script": safe_filename,
+            "script": script_path,
+            "description": package.get("description", ""),
             "enabled": True,
             "webhook_username": "null",
             "webhook_password": "null",
@@ -166,7 +168,7 @@ def _apply_form_params(script_content: str, workflow: dict) -> str:
 
 
 def _write_script(name: str, content: str) -> str:
-    """Write script content to a unique file and return the filename."""
+    """Write script content to a unique file and return the absolute path."""
     safe_name = name.replace(" ", "_").replace("/", "_").lower()
     dest_filename = f"{safe_name}.py"
     dest_path = os.path.join(SCRIPTS_DIR, dest_filename)
@@ -180,7 +182,7 @@ def _write_script(name: str, content: str) -> str:
     with open(dest_path, "w", encoding="utf-8") as f:
         f.write(content)
     os.chmod(dest_path, 0o755)
-    return dest_filename
+    return dest_path
 
 
 def _validate_package(package: dict) -> Union[str, None]:
@@ -370,7 +372,7 @@ def enable_template(slug: str) -> Union[Response, str]:
         credentials,
     )
     script_content = _apply_form_params(script_content, workflow)
-    dest_filename = _write_script(webhook_name, script_content)
+    dest_path = _write_script(webhook_name, script_content)
 
     data_store.add_webhook(
         {
@@ -378,7 +380,7 @@ def enable_template(slug: str) -> Union[Response, str]:
             "tag": "custom",
             "url": session.get("url", ""),
             "event": workflow.get("trigger_event", ""),
-            "script": dest_filename,
+            "script": dest_path,
             "description": workflow.get("description", ""),
             "enabled": True,
             "webhook_username": "null",
@@ -389,7 +391,8 @@ def enable_template(slug: str) -> Union[Response, str]:
 
     logthis.info(
         f"[{session.get('url')}] {session.get('username')} "
-        f"enabled template: {webhook_name} (script: {dest_filename})"
+        f"enabled template: {webhook_name} "
+        f"(script: {os.path.basename(dest_path)})"
     )
 
     return redirect(

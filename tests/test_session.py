@@ -85,3 +85,17 @@ def test_setup_rejects_off_ladder_timeout(logged_in_client, jawa_env):
     data = json.loads(jawa_env.server_file.read_text())
     # Off-ladder input is clamped to the safe default, never stored raw.
     assert data["session_timeout_minutes"] == 15
+
+
+def test_setup_form_shows_timeout_control(logged_in_client, jawa_env):
+    import json
+    data = json.loads(jawa_env.server_file.read_text())
+    data["session_timeout_minutes"] = 240
+    jawa_env.server_file.write_text(json.dumps(data))
+    resp = logged_in_client.get("/setup")
+    body = resp.data.decode()
+    assert 'name="session_timeout_minutes"' in body
+    # Current value preselected.
+    assert 'value="240" selected' in body
+    # Extended tiers carry a security-trade-off note.
+    assert "Extended" in body

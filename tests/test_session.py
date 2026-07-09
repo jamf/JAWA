@@ -110,3 +110,19 @@ def test_layout_injects_effective_timeout(logged_in_client, jawa_env):
     body = resp.data.decode()
     # 60 min -> 3600 s injected for the modal to count down against.
     assert "3600" in body
+
+
+def test_non_dict_server_config_fails_safe(logged_in_client, jawa_env):
+    # A hand-edited server.json that isn't a JSON object must not 500
+    # every route; it must fall back to the 15-min default.
+    jawa_env.server_file.write_text("[]")
+    resp = logged_in_client.get("/dashboard")
+    assert resp.status_code == 200
+    from datetime import timedelta
+    assert jawa_app.app.permanent_session_lifetime == timedelta(minutes=15)
+
+
+def test_get_server_config_returns_dict_for_non_object(jawa_env):
+    from bin import data_store
+    jawa_env.server_file.write_text("42")
+    assert data_store.get_server_config() == {}

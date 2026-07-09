@@ -171,9 +171,10 @@ def get_server_config() -> Dict:
         return {}
     with open(SERVER_FILE, "r") as f:
         try:
-            return json.load(f)
+            data = json.load(f)
         except json.JSONDecodeError:
             return {}
+    return data if isinstance(data, dict) else {}
 
 
 def get_jawa_address() -> Optional[str]:

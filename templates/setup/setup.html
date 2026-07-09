@@ -75,6 +75,22 @@
                            title="Use https://"
                            value="{{ jps_url2 if jps_url2 }}">
 
+                    <div class="mb-3 text-start">
+                        <label for="session-timeout" class="form-label">Session timeout</label>
+                        <select id="session-timeout" name="session_timeout_minutes" class="form-select" aria-describedby="session-timeout-help">
+                            <option value="15" {% if session_timeout == 15 %}selected{% endif %}>15 minutes (default)</option>
+                            <option value="60" {% if session_timeout == 60 %}selected{% endif %}>1 hour</option>
+                            <option value="240" {% if session_timeout == 240 %}selected{% endif %}>4 hours (Extended)</option>
+                            <option value="480" {% if session_timeout == 480 %}selected{% endif %}>8 hours (Extended)</option>
+                        </select>
+                        <small id="session-timeout-help" class="form-text text-muted">
+                            Longer sessions are convenient for workflow testing but increase risk:
+                            a signed-in console left unattended could be misused on-site. Extended
+                            tiers (4h/8h) are a deliberate trade-off; the 15-minute default is the
+                            most secure.
+                        </small>
+                    </div>
+
                     <div class="d-flex justify-content-center container-fluid">
                         <button type="submit" value="Setup" class="btn btn-jawa btn-padded">
                             Setup

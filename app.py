@@ -54,13 +54,37 @@ from views.home_view import load_home
 logthis = logger.setup_child_logger("jawa", "app")
 error_message = ""
 
+SESSION_TIMEOUT_CHOICES = (15, 60, 240, 480)
+DEFAULT_SESSION_TIMEOUT = 15
+
+
+def _resolve_session_timeout(config: dict) -> int:
+    """Resolve the configured session timeout (minutes) against the
+    allowed ladder. Any missing / malformed / off-ladder value fails
+    safe to the 15-minute default (never longer)."""
+    value = config.get("session_timeout_minutes")
+    if type(value) is int and value in SESSION_TIMEOUT_CHOICES:
+        return value
+    return DEFAULT_SESSION_TIMEOUT
+
 # Initiate Flask
 app = Flask(__name__)
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+)
 
 
-# Session heartbeat
+# Session heartbeat: slide the window and apply the admin-configured
+# timeout (fail-safe to 15 min) on every request, so a /setup change
+# takes effect immediately with no restart.
 @app.before_request
-def func() -> None:
+def _session_heartbeat() -> None:
+    from bin import data_store
+
+    minutes = _resolve_session_timeout(data_store.get_server_config())
+    app.permanent_session_lifetime = timedelta(minutes=minutes)
     session.modified = True
 
 
@@ -252,6 +276,15 @@ def setup() -> Union[Response, str]:
         jps_url = request.form.get("jss-lock")
         jps2_check = request.form.get("alternate-jamf")
         jps_url2 = request.form.get("alternate")
+        timeout_raw = request.form.get("session_timeout_minutes", "")
+        try:
+            timeout_val = int(timeout_raw)
+        except (TypeError, ValueError):
+            timeout_val = DEFAULT_SESSION_TIMEOUT
+        # Clamp to the allowed ladder; never store an off-ladder value.
+        session_timeout = _resolve_session_timeout(
+            {"session_timeout_minutes": timeout_val}
+        )
         logthis.info(
             f"{session.get('username')} made JAWA Setup Changes\n"
             f"JAWA URL: {server_url}\n"
@@ -270,6 +303,7 @@ def setup() -> Union[Response, str]:
                     "jawa_address": server_url,
                     "jps_url": jps_url,
                     "alternate_jps": jps_url2,
+                    "session_timeout_minutes": session_timeout,
                 }
                 json.dump(server_json, outfile)
         elif os.path.isfile(server_json_file):
@@ -278,6 +312,7 @@ def setup() -> Union[Response, str]:
                     "jawa_address": server_url,
                     "jps_url": jps_url,
                     "alternate_jps": jps_url2,
+                    "session_timeout_minutes": session_timeout,
                 }
                 json.dump(server_json, outfile)
             with open(server_json_file, "r") as fin:
@@ -306,6 +341,7 @@ def setup() -> Union[Response, str]:
                 json.dump(server_json, outfile)
         with open(server_json_file, "r") as fin:
             server_json = json.load(fin)
+        session_timeout = _resolve_session_timeout(server_json)
         jps_url2 = server_json.get("alternate_jps")
         if jps_url2 == str(escape(session["url"])):
             primary_jps = server_json["jps_url"]
@@ -318,6 +354,7 @@ def setup() -> Union[Response, str]:
             jps_url=primary_jps,
             jps_url2=jps_url2,
             jawa_url=jawa_url,
+            session_timeout=session_timeout,
             username=session.get("username"),
         )
 

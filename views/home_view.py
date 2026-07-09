@@ -174,6 +174,7 @@ def login() -> Response:
             + str(escape(session["username"]))
         )
 
+        session.permanent = True
         return redirect(url_for(DASHBOARD_ENDPOINT))
 
     if "username" not in session:

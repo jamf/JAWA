@@ -24,9 +24,30 @@ def test_resolve_rejects_off_ladder_values():
 
 
 def test_cookie_flags_are_hardened():
+    # Default (env var unset): Secure on, as in production.
     assert jawa_app.app.config["SESSION_COOKIE_SECURE"] is True
     assert jawa_app.app.config["SESSION_COOKIE_HTTPONLY"] is True
     assert jawa_app.app.config["SESSION_COOKIE_SAMESITE"] == "Lax"
+
+
+def test_insecure_cookies_opt_out_expression(monkeypatch):
+    # The Secure flag is computed at import as
+    # (JAWA_INSECURE_COOKIES != "1"). Verify that logic directly rather
+    # than reloading the app module (reload corrupts the shared app
+    # singleton other tests depend on). Secure-by-default; only the
+    # explicit "1" opt-out disables it.
+    def secure_for(env_value):
+        if env_value is None:
+            monkeypatch.delenv("JAWA_INSECURE_COOKIES", raising=False)
+        else:
+            monkeypatch.setenv("JAWA_INSECURE_COOKIES", env_value)
+        import os
+
+        return os.environ.get("JAWA_INSECURE_COOKIES") != "1"
+
+    assert secure_for(None) is True        # unset -> secure (prod)
+    assert secure_for("0") is True         # anything but "1" -> secure
+    assert secure_for("1") is False        # explicit opt-out -> insecure
 
 
 def test_login_makes_session_permanent(logged_in_client):

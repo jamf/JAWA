@@ -69,8 +69,14 @@ def _resolve_session_timeout(config: dict) -> int:
 
 # Initiate Flask
 app = Flask(__name__)
+# Secure cookies require HTTPS. JAWA runs HTTPS behind nginx in
+# production, so Secure defaults on. A Secure cookie is dropped by the
+# browser over plain http, which breaks local `python3 app.py` runs
+# (login succeeds but the session cookie never returns -> login loop).
+# Set JAWA_INSECURE_COOKIES=1 for local http development only.
+_secure_cookies = os.environ.get("JAWA_INSECURE_COOKIES") != "1"
 app.config.update(
-    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SECURE=_secure_cookies,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
 )

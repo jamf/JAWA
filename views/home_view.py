@@ -96,9 +96,16 @@ def _strip_trailing_slash(url: str) -> str:
 
 
 def _login_error(title: str, message) -> Response:
-    """Redirect to logout with an error."""
+    """Redirect to logout with an error, retaining the entered
+    username and JPS URL (never the password) for re-display."""
     return redirect(
-        url_for(LOGOUT_ENDPOINT, error_title=title, error_message=message)
+        url_for(
+            LOGOUT_ENDPOINT,
+            error_title=title,
+            error_message=message,
+            prev_username=request.form.get("username", ""),
+            prev_url=request.form.get("url", ""),
+        )
     )
 
 
@@ -214,11 +221,18 @@ def _load_server_config() -> dict:
 
 
 def _render_home(error_title="", error_message="", **kwargs) -> str:
-    """Render the home template with common error parameters."""
+    """Render the home template with common error parameters.
+
+    prev_username/prev_url are read from the request args so a failed
+    login can re-populate those fields (never the password). Reading
+    here covers every load_home render branch in one place.
+    """
     return render_template(
         HOME_TEMPLATE,
         error_title=error_title,
         error_message=error_message,
+        prev_username=request.args.get("prev_username", ""),
+        prev_url=request.args.get("prev_url", ""),
         **kwargs,
     )
 

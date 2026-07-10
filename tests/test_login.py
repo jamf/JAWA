@@ -42,3 +42,46 @@ def test_login_error_surfaces_when_no_jps_configured(client, jawa_env):
     # logout() HTML-escapes the message before rendering, so the
     # apostrophe surfaces as its entity in the login page body.
     assert "Passwords can&#39;t be blank" in body
+
+
+def test_failed_login_retains_username_and_url(client, jawa_env, fake_jamf):
+    # The plain url input only renders when no jps_url is locked in
+    # server.json, which is the scenario where retaining the typed URL
+    # matters. The default fixture locks a jps_url, so clear it here.
+    import json
+    jawa_env.server_file.write_text(json.dumps({"brand": "JAWA"}))
+    resp = client.post(
+        "/login",
+        data={
+            "url": "https://jamf.example.test",
+            "username": "hojo",
+            "password": "",  # blank password -> auth failure
+        },
+        follow_redirects=True,
+    )
+    assert resp.status_code == 200
+    body = resp.data.decode()
+    assert 'value="hojo"' in body
+    assert 'value="https://jamf.example.test"' in body
+    # Password must never be echoed back into the page.
+    assert 'type="password"' in body  # field still present
+    # (no password value assertion -- it must not be retained at all)
+
+
+def test_failed_login_does_not_reflect_script_injection(
+    client, jawa_env, fake_jamf
+):
+    import json
+    jawa_env.server_file.write_text(json.dumps({"brand": "JAWA"}))
+    resp = client.post(
+        "/login",
+        data={
+            "url": "https://jamf.example.test",
+            "username": "<script>alert(1)</script>",
+            "password": "",
+        },
+        follow_redirects=True,
+    )
+    body = resp.data.decode()
+    # Autoescaped -- the raw tag must not appear unescaped in the body.
+    assert "<script>alert(1)</script>" not in body

@@ -58,10 +58,11 @@
         {% else %}
             <label for="login-url" class="visually-hidden">Jamf Pro URL</label>
             <input id="login-url" name="url" type="url" placeholder="Jamf Pro URL" pattern="https?://.+" title="Use https://" required
+                   value="{{ prev_url if prev_url }}"
                    class="form-control text-center" autofocus>
         {% endif %}
         <label for="login-username" class="visually-hidden">Username</label>
-        <input id="login-username" name="username" type="text" placeholder="Username" required class="form-control text-center" autofocus>
+        <input id="login-username" name="username" type="text" placeholder="Username" required value="{{ prev_username if prev_username }}" class="form-control text-center" autofocus>
         <label for="login-password" class="visually-hidden">Password</label>
         <input id="login-password" name="password" type="password" placeholder="Password" required class="form-control text-center">
 

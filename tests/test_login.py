@@ -79,6 +79,22 @@ def test_prev_url_not_reflected_without_error(client, jawa_env):
     assert 'value="admin"' not in body
 
 
+def test_prev_url_not_reflected_via_logout_error_param(client, jawa_env):
+    # The prior gate keyed on error_title, which is attacker-suppliable
+    # via /logout query params. Confirm a crafted /logout link canNOT
+    # pre-fill the JPS URL / username (no session flash present).
+    import json
+    jawa_env.server_file.write_text(json.dumps({"brand": "JAWA"}))
+    resp = client.get(
+        "/logout?error_title=x&prev_url=https://evil-jamf.example"
+        "&prev_username=admin",
+        follow_redirects=True,
+    )
+    body = resp.data.decode()
+    assert "https://evil-jamf.example" not in body
+    assert 'value="admin"' not in body
+
+
 def test_failed_login_does_not_reflect_script_injection(
     client, jawa_env, fake_jamf
 ):

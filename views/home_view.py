@@ -96,16 +96,17 @@ def _strip_trailing_slash(url: str) -> str:
 
 
 def _login_error(title: str, message) -> Response:
-    """Redirect to logout with an error, retaining the entered
-    username and JPS URL (never the password) for re-display."""
+    """Redirect to logout with an error. Stash the entered username
+    and JPS URL (never the password) in the session for one-shot
+    re-display on the login page. Using the signed session (not query
+    params) prevents an attacker from crafting a link that pre-fills
+    the JPS URL field (credential-target phishing)."""
+    session["login_retry"] = {
+        "username": request.form.get("username", ""),
+        "url": request.form.get("url", ""),
+    }
     return redirect(
-        url_for(
-            LOGOUT_ENDPOINT,
-            error_title=title,
-            error_message=message,
-            prev_username=request.form.get("username", ""),
-            prev_url=request.form.get("url", ""),
-        )
+        url_for(LOGOUT_ENDPOINT, error_title=title, error_message=message)
     )
 
 
@@ -223,20 +224,18 @@ def _load_server_config() -> dict:
 def _render_home(error_title="", error_message="", **kwargs) -> str:
     """Render the home template with common error parameters.
 
-    prev_username/prev_url re-populate those fields after a FAILED
-    login only (gated on error_title). This prevents an attacker
-    from crafting a link like ?prev_url=https://evil that pre-fills
-    the JPS URL on a normal page load (credential-target phishing).
-    Password is never retained.
+    prev_username/prev_url come from a one-shot session flash set only
+    by _login_error (a genuine failed login), never from request args,
+    so they cannot be attacker-supplied via a crafted URL. Popped on
+    render so they don't persist. Password is never retained.
     """
-    prev_username = request.args.get("prev_username", "") if error_title else ""
-    prev_url = request.args.get("prev_url", "") if error_title else ""
+    retry = session.pop("login_retry", None) or {}
     return render_template(
         HOME_TEMPLATE,
         error_title=error_title,
         error_message=error_message,
-        prev_username=prev_username,
-        prev_url=prev_url,
+        prev_username=retry.get("username", ""),
+        prev_url=retry.get("url", ""),
         **kwargs,
     )
 

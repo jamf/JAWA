@@ -167,13 +167,25 @@ def delete_file() -> Union[Response, Tuple[str, int]]:
             target_file=target_file,
             username=str(escape(session.get("username"))),
         )
-    if target_file:
-        target_file_dir = os.path.dirname(
-            os.path.abspath(os.path.join(files_dir, target_file))
+    if not target_file:
+        logthis.warning(
+            f"[{session.get('url')}] {session.get('username')} "
+            f"attempted a file deletion with no file selected."
         )
-        target_file_path = os.path.abspath(
-            os.path.join(files_dir, target_file)
+        return redirect(
+            url_for(
+                "error",
+                error="No file selected",
+                error_message="Select a file to delete.",
+            )
         )
+
+    target_file_dir = os.path.dirname(
+        os.path.abspath(os.path.join(files_dir, target_file))
+    )
+    target_file_path = os.path.abspath(
+        os.path.join(files_dir, target_file)
+    )
 
     if target_file_dir != files_dir:
         logthis.warning(

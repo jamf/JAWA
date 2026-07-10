@@ -96,7 +96,15 @@ def _strip_trailing_slash(url: str) -> str:
 
 
 def _login_error(title: str, message) -> Response:
-    """Redirect to logout with an error."""
+    """Redirect to logout with an error. Stash the entered username
+    and JPS URL (never the password) in the session for one-shot
+    re-display on the login page. Using the signed session (not query
+    params) prevents an attacker from crafting a link that pre-fills
+    the JPS URL field (credential-target phishing)."""
+    session["login_retry"] = {
+        "username": request.form.get("username", ""),
+        "url": request.form.get("url", ""),
+    }
     return redirect(
         url_for(LOGOUT_ENDPOINT, error_title=title, error_message=message)
     )
@@ -214,11 +222,20 @@ def _load_server_config() -> dict:
 
 
 def _render_home(error_title="", error_message="", **kwargs) -> str:
-    """Render the home template with common error parameters."""
+    """Render the home template with common error parameters.
+
+    prev_username/prev_url come from a one-shot session flash set only
+    by _login_error (a genuine failed login), never from request args,
+    so they cannot be attacker-supplied via a crafted URL. Popped on
+    render so they don't persist. Password is never retained.
+    """
+    retry = session.pop("login_retry", None) or {}
     return render_template(
         HOME_TEMPLATE,
         error_title=error_title,
         error_message=error_message,
+        prev_username=retry.get("username", ""),
+        prev_url=retry.get("url", ""),
         **kwargs,
     )
 
@@ -231,13 +248,13 @@ def load_home(
 
     server_json = _load_server_config()
     if not server_json:
-        return render_template(HOME_TEMPLATE)
+        return _render_home(error_title, error_message)
 
     brand = server_json.get("brand")
     jps_url = server_json.get("jps_url")
 
     if not jps_url:
-        return _render_home(app_name=brand)
+        return _render_home(error_title, error_message, app_name=brand)
 
     alt_jps = server_json.get("alternate_jps")
     if alt_jps is None:

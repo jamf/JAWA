@@ -133,6 +133,24 @@ def test_layout_injects_effective_timeout(logged_in_client, jawa_env):
     assert "3600" in body
 
 
+def test_timeout_modal_is_sleep_robust(logged_in_client, jawa_env):
+    # The modal must track an absolute deadline and re-check on tab
+    # focus/visibility so it survives sleep (a decrementing setInterval
+    # counter pauses while the machine sleeps and under-counts).
+    # This is a structural assertion on the rendered JS; true
+    # sleep-survival is a manual browser check (see DESIGN relic).
+    resp = logged_in_client.get("/dashboard")
+    body = resp.data.decode()
+    # Deadline/real-clock based, not a decrementing counter.
+    assert "Date.now()" in body
+    assert "deadline" in body
+    # Re-evaluates when the tab regains focus / becomes visible.
+    assert "visibilitychange" in body
+    assert 'addEventListener("focus"' in body
+    # An already-expired session redirects to login with a reason.
+    assert "error_title=Session+expired" in body
+
+
 def test_non_dict_server_config_fails_safe(logged_in_client, jawa_env):
     # A hand-edited server.json that isn't a JSON object must not 500
     # every route; it must fall back to the 15-min default.

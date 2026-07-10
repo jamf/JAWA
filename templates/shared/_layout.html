@@ -137,10 +137,17 @@
 (function () {
     var SESSION_DURATION = {{ session_timeout_seconds | default(900) }};
     var WARNING_BEFORE = 45;
-    var remaining = SESSION_DURATION;
+    // Absolute expiry timestamp (ms). Using a deadline instead of a
+    // decrementing counter makes the timer robust across sleep/tab
+    // throttling: a paused setInterval no longer under-counts. On
+    // return we recompute remaining from the real clock, so an
+    // already-expired session is caught immediately.
+    var deadline = Date.now() + SESSION_DURATION * 1000;
     var warningShown = false;
-    var countdownInterval = null;
     var modal = null;
+    // Session-expired reason, surfaced on the login page after redirect.
+    var EXPIRED_URL = "/logout?error_title=Session+expired"
+        + "&error_message=Please+sign+in+again";
 
     function getModal() {
         if (!modal) {
@@ -150,43 +157,53 @@
         return modal;
     }
 
+    function remainingSeconds() {
+        return Math.round((deadline - Date.now()) / 1000);
+    }
+
     function resetTimer() {
-        remaining = SESSION_DURATION;
+        deadline = Date.now() + SESSION_DURATION * 1000;
         warningShown = false;
-        if (countdownInterval) {
-            clearInterval(countdownInterval);
-            countdownInterval = null;
-        }
         var m = getModal();
         if (m) {
             try { m.hide(); } catch (e) {}
         }
     }
 
-    function showWarning() {
-        warningShown = true;
-        var display = document.getElementById("countdownDisplay");
-        if (display) display.textContent = remaining;
-        var m = getModal();
-        if (m) m.show();
-        countdownInterval = setInterval(function () {
-            remaining--;
-            if (display) display.textContent = Math.max(remaining, 0);
-            if (remaining <= 0) {
-                clearInterval(countdownInterval);
-                window.location.href = "/logout";
-            }
-        }, 1000);
+    function expireNow() {
+        window.location.href = EXPIRED_URL;
     }
 
-    setInterval(function () {
-        if (!warningShown) {
-            remaining--;
-            if (remaining <= WARNING_BEFORE) {
-                showWarning();
+    // Single source of truth, driven by both the interval and by
+    // focus/visibility changes so returning to a slept tab re-evaluates
+    // against the real clock instead of a stale counter.
+    function tick() {
+        var remaining = remainingSeconds();
+        if (remaining <= 0) {
+            // Session already gone (e.g. after a long idle/sleep):
+            // redirect to login with a reason rather than silently.
+            expireNow();
+            return;
+        }
+        if (remaining <= WARNING_BEFORE) {
+            var display = document.getElementById("countdownDisplay");
+            if (display) display.textContent = remaining;
+            if (!warningShown) {
+                warningShown = true;
+                var m = getModal();
+                if (m) m.show();
             }
         }
-    }, 1000);
+    }
+
+    setInterval(tick, 1000);
+    // Re-check the moment the tab regains focus/visibility — this is
+    // what makes the modal survive sleep, since timers are throttled or
+    // paused while the machine sleeps or the tab is backgrounded.
+    window.addEventListener("focus", tick);
+    document.addEventListener("visibilitychange", function () {
+        if (!document.hidden) tick();
+    });
 
     document.getElementById("staySignedInBtn").addEventListener("click", function () {
         fetch("/dashboard", {method: "GET", credentials: "same-origin"})

@@ -68,6 +68,17 @@ def test_failed_login_retains_username_and_url(client, jawa_env, fake_jamf):
     # (no password value assertion -- it must not be retained at all)
 
 
+def test_prev_url_not_reflected_without_error(client, jawa_env):
+    # A bare GET with prev_url but NO failed-login error must NOT
+    # pre-fill the JPS URL field (phishing pre-fill prevention).
+    import json
+    jawa_env.server_file.write_text(json.dumps({"brand": "JAWA"}))
+    resp = client.get("/?prev_url=https://evil-jamf.example&prev_username=admin")
+    body = resp.data.decode()
+    assert "https://evil-jamf.example" not in body
+    assert 'value="admin"' not in body
+
+
 def test_failed_login_does_not_reflect_script_injection(
     client, jawa_env, fake_jamf
 ):

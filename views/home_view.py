@@ -223,16 +223,20 @@ def _load_server_config() -> dict:
 def _render_home(error_title="", error_message="", **kwargs) -> str:
     """Render the home template with common error parameters.
 
-    prev_username/prev_url are read from the request args so a failed
-    login can re-populate those fields (never the password). Reading
-    here covers every load_home render branch in one place.
+    prev_username/prev_url re-populate those fields after a FAILED
+    login only (gated on error_title). This prevents an attacker
+    from crafting a link like ?prev_url=https://evil that pre-fills
+    the JPS URL on a normal page load (credential-target phishing).
+    Password is never retained.
     """
+    prev_username = request.args.get("prev_username", "") if error_title else ""
+    prev_url = request.args.get("prev_url", "") if error_title else ""
     return render_template(
         HOME_TEMPLATE,
         error_title=error_title,
         error_message=error_message,
-        prev_username=request.args.get("prev_username", ""),
-        prev_url=request.args.get("prev_url", ""),
+        prev_username=prev_username,
+        prev_url=prev_url,
         **kwargs,
     )
 

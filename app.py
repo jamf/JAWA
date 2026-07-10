@@ -43,7 +43,7 @@ from flask import (
 )
 from markupsafe import escape
 from waitress import serve
-from typing import Any, Dict, Union
+from typing import Any, Dict, Tuple, Union
 
 from bin import logger
 from bin.context_processors import inject_common_vars, register_static_cache_bust
@@ -472,6 +472,56 @@ def page_not_found(e) -> Union[Response, str]:
         f"An invalid path ({request.path}) was provided and no user is logged in.  Returning login page."
     )
     return load_home()
+
+
+@app.errorhandler(500)
+def internal_error(e) -> Union[Response, Tuple[str, int]]:
+    logthis.exception(
+        f"500 at {request.path} for "
+        f"{session.get('username', 'anonymous')}"
+    )
+    if "username" in session:
+        return (
+            render_template(
+                "error.html",
+                username=session.get("username"),
+                error="Something went wrong",
+                error_message="An unexpected error occurred. "
+                "The details have been logged.",
+            ),
+            500,
+        )
+    return load_home(), 500
+
+
+@app.errorhandler(403)
+def forbidden(e) -> Union[Response, Tuple[str, int]]:
+    if "username" in session:
+        return (
+            render_template(
+                "error.html",
+                username=session.get("username"),
+                error="Forbidden",
+                error_message="You do not have access to that resource.",
+            ),
+            403,
+        )
+    return load_home(), 403
+
+
+@app.errorhandler(405)
+def method_not_allowed(e) -> Union[Response, Tuple[str, int]]:
+    if "username" in session:
+        return (
+            render_template(
+                "error.html",
+                username=session.get("username"),
+                error="Method not allowed",
+                error_message="That action isn't allowed here.",
+            ),
+            405,
+        )
+    return load_home(), 405
 
 
 if __name__ == "__main__":

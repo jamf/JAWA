@@ -178,22 +178,12 @@ def test_null_json_body_is_a_teapot(client, jawa_env, fake_popen):
     assert fake_popen.calls == []
 
 
-@pytest.mark.xfail(
-    reason="J4/B2: form-payload fallback is unguarded; a bodyless "
-    "POST raises instead of returning 4xx",
-    strict=True,
-)
 def test_bodyless_post_returns_4xx(client, jawa_env, fake_popen):
     resp = client.post("/hooks/testhook")
     assert 400 <= resp.status_code < 500
     assert fake_popen.calls == []
 
 
-@pytest.mark.xfail(
-    reason="J4/B2: method check happens after body parsing, so a "
-    "bare GET crashes in the form fallback instead of 405ing",
-    strict=True,
-)
 def test_get_method_returns_405(client, jawa_env, fake_popen):
     resp = client.get("/hooks/testhook")
     assert resp.status_code == 405

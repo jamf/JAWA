@@ -141,19 +141,6 @@ def webhook_handler(
         return okta_verification.verify_new_webhook(
             request.headers.get("x-okta-verification-challenge")
         )
-    try:
-        webhook_data = request.get_json()
-    except Exception as err:
-        logthis.warning(
-            f"Error loading JSON ({err}). Trying to load from form payload."
-        )
-        webhook_data = json.loads(request.form.get("payload"))
-    if not webhook_data:
-        logthis.warning(
-            f"418.  Error processing /hooks/{webhook_name} - no data provided. I'm a teapot."
-        )
-        return "418 - I'm a teapot.", 418
-    logthis.debug(f"{webhook_name} payload: {webhook_data}")
     if request.method != "POST":
         logthis.warning(
             f"Invalid request, {request.method} for /hooks/{webhook_name}."
@@ -163,6 +150,23 @@ def webhook_handler(
             "Move along.",
             405,
         )
+    try:
+        webhook_data = request.get_json()
+    except Exception as err:
+        logthis.warning(
+            f"Error loading JSON ({err}). Trying to load from form payload."
+        )
+        raw = request.form.get("payload")
+        try:
+            webhook_data = json.loads(raw) if raw else None
+        except (ValueError, TypeError):
+            webhook_data = None
+    if not webhook_data:
+        logthis.warning(
+            f"418.  Error processing /hooks/{webhook_name} - no data provided. I'm a teapot."
+        )
+        return "418 - I'm a teapot.", 418
+    logthis.debug(f"{webhook_name} payload: {webhook_data}")
     webhook_user = "null"
     webhook_pass = "null"
     webhook_apikey = "null"

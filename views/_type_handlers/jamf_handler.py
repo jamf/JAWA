@@ -183,7 +183,11 @@ class JamfHandler(AutomationHandler):
         server_address = get_jawa_address()
         if not server_address:
             raise AutomationError(
-                "Setup Required", "Please configure JAWA address first."
+                "Setup Required",
+                "Configure your JAWA address and Jamf Pro server "
+                "before creating an automation.",
+                link="/setup",
+                link_text="Go to Setup",
             )
 
         # Ensure token is valid

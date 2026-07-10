@@ -34,11 +34,18 @@ class AutomationError(Exception):
     """Raised when an automation operation fails."""
 
     def __init__(
-        self, title: str, message: str, link: Optional[str] = None
+        self,
+        title: str,
+        message: str,
+        link: Optional[str] = None,
+        link_text: Optional[str] = None,
     ) -> None:
         self.title = title
         self.message = message
         self.link = link
+        # Friendly label for the link when rendered as an action button;
+        # falls back to the raw link if omitted.
+        self.link_text = link_text
         super().__init__(message)
 
 

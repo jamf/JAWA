@@ -156,19 +156,24 @@
             {{ error_message }}
         </div>
 
-        {% if link %}
-        <div class="error-link">
-            <a href="{{ link }}" target="_blank">{{ link }}</a>
-        </div>
-        {% endif %}
-
         <div class="error-actions">
             <button type="button" onclick="history.back()" class="btn-error-secondary">
                 ← Back
             </button>
+            {% if link %}
+            {# A supplied link is the recommended next step: make it the
+               primary action (in-page) and demote Dashboard to secondary. #}
+            <a href="{{ link }}" class="btn-error-primary">
+                {{ link_text if link_text else link }} →
+            </a>
+            <a href="/dashboard" class="btn-error-secondary">
+                Dashboard →
+            </a>
+            {% else %}
             <a href="/dashboard" class="btn-error-primary">
                 Dashboard →
             </a>
+            {% endif %}
         </div>
     </div>
 </div>

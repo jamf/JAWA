@@ -231,13 +231,13 @@ def load_home(
 
     server_json = _load_server_config()
     if not server_json:
-        return render_template(HOME_TEMPLATE)
+        return _render_home(error_title, error_message)
 
     brand = server_json.get("brand")
     jps_url = server_json.get("jps_url")
 
     if not jps_url:
-        return _render_home(app_name=brand)
+        return _render_home(error_title, error_message, app_name=brand)
 
     alt_jps = server_json.get("alternate_jps")
     if alt_jps is None:

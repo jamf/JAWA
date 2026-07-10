@@ -26,3 +26,19 @@ def test_logout_clears_session(logged_in_client):
 def test_anonymous_home_renders(client):
     resp = client.get("/")
     assert resp.status_code == 200
+
+
+def test_login_error_surfaces_when_no_jps_configured(client, jawa_env):
+    # server.json with no jps_url is the branch that dropped errors.
+    import json
+    jawa_env.server_file.write_text(json.dumps({"brand": "JAWA"}))
+    resp = client.get(
+        "/logout?error_title=Authentication+error"
+        "&error_message=Passwords+can%27t+be+blank"
+    )
+    assert resp.status_code == 200
+    body = resp.data.decode()
+    assert "Authentication error" in body
+    # logout() HTML-escapes the message before rendering, so the
+    # apostrophe surfaces as its entity in the login page body.
+    assert "Passwords can&#39;t be blank" in body

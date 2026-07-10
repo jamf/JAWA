@@ -77,12 +77,15 @@ def _get_session_data() -> dict:
     }
 
 
-def _error_page(title: str, message: str, link: str = None) -> str:
+def _error_page(
+    title: str, message: str, link: str = None, link_text: str = None
+) -> str:
     return render_template(
         "error.html",
         error=title,
         error_message=message,
         link=link,
+        link_text=link_text,
         username=session.get("username"),
     )
 
@@ -175,7 +178,7 @@ def create(auto_type: str) -> Union[Response, str]:
             request.form, request.files, session_data
         )
     except AutomationError as err:
-        return _error_page(err.title, err.message, err.link)
+        return _error_page(err.title, err.message, err.link, err.link_text)
 
     # Persist the entry
     entry = result.get("entry")
@@ -288,7 +291,7 @@ def edit(auto_type: str, name: str) -> Union[Response, str]:
             all_items,
         )
     except AutomationError as err:
-        return _error_page(err.title, err.message, err.link)
+        return _error_page(err.title, err.message, err.link, err.link_text)
 
     return render_template(
         SUCCESS_TEMPLATE,

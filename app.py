@@ -79,6 +79,7 @@ app.config.update(
     SESSION_COOKIE_SECURE=_secure_cookies,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
+    MAX_CONTENT_LENGTH=16 * 1024 * 1024,
 )
 
 

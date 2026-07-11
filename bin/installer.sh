@@ -838,6 +838,7 @@ server {
 
         server_name localhost;
         server_name_in_redirect off;
+        client_max_body_size 16m;
         location / {
                 # First attempt to serve request as file, then
                 proxy_pass http://jawa;
@@ -879,6 +880,7 @@ configure_nginx_ubuntu() {
 
           server_name localhost;
           server_name_in_redirect off;
+          client_max_body_size 16m;
           location / {
                   # First attempt to serve request as file, then
                   proxy_pass http://localhost:8000;

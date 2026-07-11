@@ -221,6 +221,13 @@ def workflows_redirect() -> Response:
 
 @blueprint.route("/workflows/<path:rest>")
 def workflows_rest_redirect(rest: str) -> Response:
+    # `rest` is a user-controlled path tail interpolated into the
+    # redirect target. A value containing a backslash, a "//" run, or a
+    # scheme colon could make the result protocol-relative / off-site
+    # (open redirect, bug B8). Anything suspicious falls back to the
+    # catalog rather than redirecting off-origin.
+    if "\\" in rest or "//" in rest or ":" in rest:
+        return redirect(url_for(CATALOG_ENDPOINT), code=301)
     return redirect(f"/templates/{rest}", code=301)
 
 

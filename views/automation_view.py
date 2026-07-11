@@ -179,6 +179,9 @@ def create(auto_type: str) -> Union[Response, str]:
         )
     except AutomationError as err:
         return _error_page(err.title, err.message, err.link, err.link_text)
+    except ValueError as err:
+        # e.g. save_script rejecting an upload with no shebang.
+        return _error_page("Invalid script", str(err))
 
     # Persist the entry
     entry = result.get("entry")
@@ -292,6 +295,9 @@ def edit(auto_type: str, name: str) -> Union[Response, str]:
         )
     except AutomationError as err:
         return _error_page(err.title, err.message, err.link, err.link_text)
+    except ValueError as err:
+        # e.g. save_script rejecting an upload with no shebang.
+        return _error_page("Invalid script", str(err))
 
     return render_template(
         SUCCESS_TEMPLATE,

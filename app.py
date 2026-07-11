@@ -48,7 +48,7 @@ from typing import Any, Dict, Tuple, Union
 from bin import logger
 from bin.context_processors import inject_common_vars, register_static_cache_bust
 from bin.view_modifiers import response
-from views.home_view import load_home
+from views.home_view import _strip_trailing_slash, load_home
 
 # Flask logging
 logthis = logger.setup_child_logger("jawa", "app")
@@ -270,12 +270,12 @@ def setup() -> Union[Response, str]:
         logthis.debug(
             f"[{session.get('url')}] {session.get('username')} /setup - POST"
         )
-        server_url = request.form.get("address")
+        server_url = _strip_trailing_slash(request.form.get("address") or "")
         if not server_url:
             return redirect(url_for("setup"))
-        jps_url = request.form.get("jss-lock")
+        jps_url = _strip_trailing_slash(request.form.get("jss-lock") or "")
         jps2_check = request.form.get("alternate-jamf")
-        jps_url2 = request.form.get("alternate")
+        jps_url2 = _strip_trailing_slash(request.form.get("alternate") or "")
         timeout_raw = request.form.get("session_timeout_minutes", "")
         try:
             timeout_val = int(timeout_raw)

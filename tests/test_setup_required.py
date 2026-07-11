@@ -40,3 +40,19 @@ def test_okta_new_without_jawa_links_to_setup(logged_in_client, jawa_env):
     assert "Setup Required" in body
     assert 'href="/setup"' in body
     assert "Go to Setup" in body
+
+
+def test_setup_strips_trailing_slashes(logged_in_client, jawa_env):
+    logged_in_client.post(
+        "/setup",
+        data={
+            "address": "https://jawa.example.com/",
+            "jss-lock": "https://jamf.example.com/",
+            "alternate": "https://alt.example.com/",
+            "session_timeout_minutes": "15",
+        },
+    )
+    cfg = json.loads(jawa_env.server_file.read_text())
+    assert cfg["jawa_address"] == "https://jawa.example.com"
+    assert cfg["jps_url"] == "https://jamf.example.com"
+    assert cfg["alternate_jps"] == "https://alt.example.com"

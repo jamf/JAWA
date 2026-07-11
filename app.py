@@ -140,10 +140,6 @@ def register_blueprints() -> None:
     from webhook import jawa_receiver
 
     app.register_blueprint(jawa_receiver.blueprint)
-    # Legacy views (deprecated — routes handled by automation_view)
-    # from views import jamf_webhook
-    # from views.okta_webhook import blueprint
-    # from views.cron_view import blueprint
     # Log view
     from views import log_view
 
@@ -152,9 +148,6 @@ def register_blueprints() -> None:
     from views import resource_view
 
     app.register_blueprint(resource_view.blueprint)
-    # Legacy views (deprecated — routes handled by automation_view)
-    # from views import custom_webhook
-    # from views import webhook_view
     # Template catalog, enable, and import view
     from views import template_view
 

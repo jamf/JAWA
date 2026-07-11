@@ -47,6 +47,7 @@ from typing import Any, Dict, Tuple, Union
 
 from bin import logger
 from bin.context_processors import inject_common_vars, register_static_cache_bust
+from bin.url_safety import safe_path_segment
 from bin.view_modifiers import response
 from views.home_view import _strip_trailing_slash, load_home
 
@@ -192,7 +193,9 @@ def _redir_jamf_new():
 
 @app.route("/webhooks/jamf/edit")
 def _redir_jamf_edit():
-    name = request.args.get("name", "")
+    name = safe_path_segment(request.args.get("name", ""))
+    if not name:
+        return redirect("/automations/jamfpro", code=301)
     return redirect(f"/automations/jamfpro/{name}/edit", code=301)
 
 
@@ -218,7 +221,9 @@ def _redir_custom_new():
 
 @app.route("/webhooks/custom/edit")
 def _redir_custom_edit():
-    name = request.args.get("name", "")
+    name = safe_path_segment(request.args.get("name", ""))
+    if not name:
+        return redirect("/automations/custom", code=301)
     return redirect(f"/automations/custom/{name}/edit", code=301)
 
 
@@ -234,24 +239,34 @@ def _redir_cron_new():
 
 @app.route("/cron/edit")
 def _redir_cron_edit():
-    name = request.args.get("name", "")
+    name = safe_path_segment(request.args.get("name", ""))
+    if not name:
+        return redirect("/automations/cron", code=301)
     return redirect(f"/automations/cron/{name}/edit", code=301)
 
 
 @app.route("/cron/delete")
 def _redir_cron_delete():
-    name = request.args.get("target_job", "")
+    name = safe_path_segment(request.args.get("target_job", ""))
+    if not name:
+        return redirect("/automations/cron", code=301)
     return redirect(f"/automations/cron/{name}/delete", code=301)
 
 
 @app.route("/webhooks/delete")
 def _redir_webhook_delete():
-    name = request.args.get("target_webhook", "")
+    name = safe_path_segment(request.args.get("target_webhook", ""))
+    if not name:
+        return redirect("/automations", code=301)
     # Need to look up the tag to route properly
     from bin.data_store import get_webhook_by_name
 
     webhook = get_webhook_by_name(name)
-    tag = webhook.get("tag", "custom") if webhook else "custom"
+    tag = (
+        safe_path_segment(webhook.get("tag", "custom"))
+        if webhook
+        else "custom"
+    )
     return redirect(f"/automations/{tag}/{name}/delete", code=301)
 
 

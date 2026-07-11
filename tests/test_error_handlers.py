@@ -29,3 +29,25 @@ def test_405_renders_branded_page(logged_in_client):
     body = resp.data.decode()
     assert "error-card" in body
     assert "Method not allowed" in body
+
+
+def test_error_route_does_not_swap_title_and_message(logged_in_client):
+    # /error reads ?error=<title>&error_message=<body>. error.html renders
+    # `error` as the h1 title and `error_message` as the body. Assert each
+    # lands in the correct element so a future arg-swap regresses the test.
+    import re
+
+    resp = logged_in_client.get(
+        "/error?error=SwapTitleXYZ&error_message=SwapBodyXYZ"
+    )
+    body = resp.data.decode()
+    # Title belongs in the error-title heading, not the body.
+    title_match = re.search(
+        r'class="error-title"[^>]*>(.*?)</h1>', body, re.DOTALL
+    )
+    assert title_match and "SwapTitleXYZ" in title_match.group(1)
+    # Message belongs in the error-message block.
+    msg_match = re.search(
+        r'class="error-message"[^>]*>(.*?)</div>', body, re.DOTALL
+    )
+    assert msg_match and "SwapBodyXYZ" in msg_match.group(1)

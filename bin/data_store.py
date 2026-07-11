@@ -196,6 +196,16 @@ def save_script(
 
     Returns the absolute path to the saved file.
     """
+    # A JAWA automation script is executed directly by the receiver
+    # (Popen, argv form). Without a shebang the OS cannot pick an
+    # interpreter, so it would fail cryptically at trigger time. Reject
+    # it here so the upload fails clearly instead.
+    head = file_storage.read(2)
+    file_storage.seek(0)
+    if head != b"#!":
+        raise ValueError(
+            "Script must start with a shebang (e.g. #!/bin/bash)."
+        )
     if not os.path.isdir(SCRIPTS_DIR):
         os.mkdir(SCRIPTS_DIR)
     filename = file_storage.filename

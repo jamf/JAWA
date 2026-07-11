@@ -6,6 +6,23 @@ admin a direct, in-page way to reach /setup instead of dead-ending.
 """
 
 import json
+import re
+
+
+def _submit_button_label(body):
+    """Return the visible label of the setup form's submit button.
+
+    The nav bar and sibling pages also render the word "Setup", so a
+    bare substring check can't distinguish first-time setup from an edit.
+    Extract the submit button's inner text specifically.
+    """
+    match = re.search(
+        r'<button[^>]*type="submit"[^>]*>(.*?)</button>',
+        body,
+        re.DOTALL,
+    )
+    assert match, "setup form should have a submit button"
+    return match.group(1).strip()
 
 
 def _unconfigure_jawa(jawa_env):
@@ -40,3 +57,45 @@ def test_okta_new_without_jawa_links_to_setup(logged_in_client, jawa_env):
     assert "Setup Required" in body
     assert 'href="/setup"' in body
     assert "Go to Setup" in body
+
+
+def test_setup_strips_trailing_slashes(logged_in_client, jawa_env):
+    logged_in_client.post(
+        "/setup",
+        data={
+            "address": "https://jawa.example.com/",
+            "jss-lock": "https://jamf.example.com/",
+            "alternate": "https://alt.example.com/",
+            "session_timeout_minutes": "15",
+        },
+    )
+    cfg = json.loads(jawa_env.server_file.read_text())
+    assert cfg["jawa_address"] == "https://jawa.example.com"
+    assert cfg["jps_url"] == "https://jamf.example.com"
+    assert cfg["alternate_jps"] == "https://alt.example.com"
+
+
+def test_setup_button_says_save_when_editing(logged_in_client, jawa_env):
+    jawa_env.server_file.write_text(
+        json.dumps(
+            {
+                "jawa_address": "https://jawa.example.com",
+                "jps_url": "x",
+                "alternate_jps": "",
+            }
+        )
+    )
+    resp = logged_in_client.get("/setup")
+    body = resp.data.decode()
+    # An existing config is being edited -> the button reads "Save".
+    assert _submit_button_label(body) == "Save"
+
+
+def test_setup_button_says_setup_when_unconfigured(logged_in_client, jawa_env):
+    jawa_env.server_file.write_text(
+        json.dumps({"jawa_address": "", "jps_url": "", "alternate_jps": ""})
+    )
+    resp = logged_in_client.get("/setup")
+    body = resp.data.decode()
+    # First-time setup keeps the "Setup" affordance on the button itself.
+    assert _submit_button_label(body) == "Setup"

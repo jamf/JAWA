@@ -450,8 +450,8 @@ def error() -> Union[Response, str]:
     return render_template(
         "error.html",
         username=session.get("username"),
-        error_message=error_title,
-        error=error_message,
+        error=error_title,
+        error_message=error_message,
     )
 
 

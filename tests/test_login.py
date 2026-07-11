@@ -95,6 +95,45 @@ def test_prev_url_not_reflected_via_logout_error_param(client, jawa_env):
     assert 'value="admin"' not in body
 
 
+def test_login_fails_against_non_jamf_url(client, jawa_env, monkeypatch):
+    # Regression guard for the 3.0.2 report where server.json pointing
+    # at JAWA's own URL let any creds log in. A URL that does not answer
+    # Jamf's token endpoint like Jamf Pro (returns non-JSON) must not
+    # log in. Invert the conftest fake_jamf fixture: the token endpoint
+    # returns a 200 whose .json() raises, so get_token() swallows the
+    # error and never sets session["token"] -> _validate_credentials
+    # bounces to /logout.
+    import requests
+
+    class NotJamfResponse:
+        """A non-Jamf endpoint: HTTP 200 but the body is not JSON."""
+
+        status_code = 200
+
+        def json(self):
+            raise ValueError("not JSON")
+
+        def raise_for_status(self):
+            pass
+
+    monkeypatch.setattr(requests, "post", lambda *a, **k: NotJamfResponse())
+    monkeypatch.setattr(requests, "get", lambda *a, **k: NotJamfResponse())
+
+    resp = client.post(
+        "/login",
+        data={
+            "url": "https://not-jamf.example",
+            "username": "u",
+            "password": "p",  # non-blank, so the blank-password gate passes
+        },
+    )
+    # Must NOT reach the dashboard; token fetch failed, so login bounces
+    # to /logout with the "Could not fetch token" error.
+    assert resp.status_code == 302
+    assert "/dashboard" not in resp.headers.get("Location", "")
+    assert "/logout" in resp.headers.get("Location", "")
+
+
 def test_failed_login_does_not_reflect_script_injection(
     client, jawa_env, fake_jamf
 ):

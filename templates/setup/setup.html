@@ -92,8 +92,8 @@
                     </div>
 
                     <div class="d-flex justify-content-center container-fluid">
-                        <button type="submit" value="Setup" class="btn btn-jawa btn-padded">
-                            Setup
+                        <button type="submit" value="{{ "Save" if jawa_url else "Setup" }}" class="btn btn-jawa btn-padded">
+                            {{ "Save" if jawa_url else "Setup" }}
                         </button>
                     </div>
 

@@ -96,6 +96,107 @@ When scripting for webhooks, verify JSON structure sent from source:
 1. [Jamf Pro Webhook Event Info](https://developer.jamf.com/developer-guide/docs/webhooks)
 2. [Okta Webhook Event Info](https://developer.okta.com/docs/reference/api/event-types/?q=event-hook-eligible)
 
+## Writing Automation Scripts
+
+JAWA runs **your** scripts in response to Jamf Pro (or Okta/custom) webhooks and on a schedule. A script can be written in any language JAWA's host can execute; the examples here are Python. This section describes the contract JAWA uses to call your script.
+
+### How JAWA calls a webhook script
+
+When a webhook fires, JAWA executes your script and passes the **entire event payload as a single JSON string in the first command-line argument** (`sys.argv[1]`). It does not use stdin, environment variables, or a file. Your script's first job is to parse it:
+
+```python
+import json
+import sys
+
+event_data = json.loads(sys.argv[1])   # the whole webhook payload
+```
+
+A Jamf Pro webhook payload has two top-level keys:
+
+- `event_data["webhook"]` — event metadata (`webhookEvent`, `eventTimestamp`, `id`)
+- `event_data["event"]` — the event's own fields (for example `groupAddedDevicesIds`, `name`)
+
+### Output and status
+
+- Anything your script prints (stdout and stderr) is captured line-by-line into the JAWA log under the automation's name. Use `print()` for progress and diagnostics.
+- Exit `0` for success. A **non-zero exit code is recorded as a failure** in the log.
+
+### Credentials
+
+JAWA does not inject Jamf Pro or third-party credentials into your script. A script that calls the Jamf Pro API authenticates itself (for example, requesting its own OAuth token). Store secrets in your script's own configuration, not in JAWA.
+
+### Scheduled (timed) automations
+
+A timed automation runs your script on a schedule with **no webhook payload** — `sys.argv[1]` is not present. If one script serves both paths, guard for it:
+
+```python
+import json
+import sys
+
+event_data = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
+```
+
+### Complete example
+
+This bundled script (`data/workflows/scripts/smart_group_slack.py`) posts to Slack when devices join a smart group:
+
+```python
+#!/usr/bin/env python3
+"""Send Slack notification on smart group membership change.
+
+Webhook event: SmartGroupComputerMembershipChange
+"""
+
+import json
+import requests
+import sys
+from datetime import datetime
+
+SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+
+
+def main():
+    event_data = json.loads(sys.argv[1])
+    event = event_data["event"]
+
+    id_list = event.get("groupAddedDevicesIds", [])
+    if not id_list:
+        print("No devices entered the group.")
+        sys.exit(12)
+
+    group_name = event.get("name", "Unknown Group")
+
+    slack_data = {
+        "attachments": [
+            {
+                "title": f"Smart Group Update: {group_name}",
+                "text": f"{len(id_list)} device(s) added to {group_name}",
+                "footer": "JAWA Webhook Automation",
+                "ts": datetime.timestamp(datetime.now()),
+            }
+        ]
+    }
+
+    resp = requests.post(
+        SLACK_WEBHOOK_URL,
+        data=json.dumps(slack_data),
+        headers={"Content-Type": "application/json"},
+    )
+    print(f"Slack notification: {resp.status_code}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+### Common mistakes
+
+- **The payload is `sys.argv[1]`, not stdin, not an environment variable, and not a file.**
+- **It is a JSON *string*** — you must `json.loads()` it before use.
+- **The event fields are nested** under `event_data["event"]`, not at the top level.
+- **Don't assume JAWA provides a Jamf Pro token** — your script authenticates itself.
+- **On the timed path there is no `sys.argv[1]`** — guard for it if a script serves both.
+
 ## Releases
 
 Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)

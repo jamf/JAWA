@@ -207,22 +207,6 @@ configure_firewall() {
     esac
 }
 
-addToLog(){
-    ## Usage
-    ## addToLog <Text> <Log File>
-    logFile="${$1}"
-    fillerText="${$2}"
-
-    echo "$(date -j)" "$2" >> "$1"
-
-}
-
-timestamp() {
-  /bin/echo ""
-  /bin/echo -n $(date +"%D %T -")
-  /bin/echo -n " "
-}
-
 readme() {
 
   /usr/bin/clear
@@ -251,11 +235,6 @@ Please make sure you:
 *  Private key file must be named jawa.key
 *  Note: if upgrading from v2, choose the upgrade path /usr/local
 "
-}
-
-cancel() {
-  /bin/echo "Canceling..."
-  exit 0
 }
 
 install() {
@@ -306,10 +285,8 @@ install() {
     *) echo "Please answer yes or no." ;;
     esac
   fi
-  if [ "$upgradeOption" == "yes" ]; then
-    continue
-  else
-    # prompting for install directory
+  if [ "$upgradeOption" != "yes" ]; then
+    # prompting for install directory (upgrades reuse the detected installDir)
     read -r -p "Where would you like to install JAWA? [Press RETURN for $installDir]:  " new_dir
     while true; do
       if [ "$new_dir" != "" ]; then
@@ -413,12 +390,22 @@ install() {
   /bin/echo '[############            ](60%) Cloning the JAWA project from GitHub... ' >>/var/log/jawaInstall.log 2>&1
 
   git clone --branch "$branch" https://github.com/jamf/JAWA.git jawa >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  cloneStatus=$?
+  # spinner propagates the background job's exit code; also confirm the clone actually landed
+  if [ "$cloneStatus" -ne 0 ] || [ ! -d "$installDir/jawa/.git" ]; then
+    /usr/bin/clear
+    /bin/echo "Unable to clone the JAWA project (branch '$branch') from GitHub."
+    /bin/echo "Check your network connection and that the branch exists, then see /var/log/jawaInstall.log for details."
+    /bin/echo "Unable to clone the JAWA project (branch '$branch') from GitHub." >>/var/log/jawaInstall.log 2>&1
+    exit 2
+  fi
   # Restore backup?
   /usr/bin/clear
   /bin/echo -ne '[#############           ](64%) Checking for backups... '
   /bin/echo '[#############           ](64%) Checking for backups... ' >>/var/log/jawaInstall.log 2>&1
   /bin/sleep 1  & spinner $! ""
 if [ -d "$currentDir/jawabackup-$timenow" ]; then
+    backupJAWA="$currentDir/jawabackup-$timenow"
     while true; do
       /bin/echo ""
       if [ "$upgradeOption" == "yes" ]; then
@@ -713,10 +700,6 @@ function spinner() {
   return $?
 }
 
-("$@") &
-
-
-
 displayMenu() {
   while true; do
     read -r -p "Please select from the following options:
@@ -805,7 +788,7 @@ restoreBackup() {
               /bin/echo "Migrating cron..."
               /bin/cp "$currentDir/jawabackup-$timenow/v2/cron.json" "$currentDir/jawabackup-$timenow/data/"
             fi
-            if [ -e "$currentDir/jawabackup-$timenow/v2/webhook.conf" -o "$currentDir/jawabackup-$timenow/v2/jp_webhooks.json" ]; then
+            if [ -e "$currentDir/jawabackup-$timenow/v2/webhook.conf" ] || [ -e "$currentDir/jawabackup-$timenow/v2/jp_webhooks.json" ]; then
               /bin/echo "Migrating webhooks..."
               /usr/bin/python3 "$installDir/jawa/bin/v2_upgrade.py" "$currentDir/jawabackup-$timenow" >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
             fi
@@ -928,10 +911,10 @@ installDir=/usr/local
 timenow=$(date +%m-%d-%y_%T)
 
 #branch="main"  # Default branch name if no arguments are provided
-​
+
 while [[ $# -gt 0 ]]; do
   key="$1"
-​
+
   case $key in
     b|branch)
       branch="$2"
@@ -944,12 +927,12 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
-​
-# If no branch argument was provided, default to "develop"
+
+# If no branch argument was provided, default to "main" (production install path)
 if [ -z "$branch" ]; then
   branch="main"
 fi
-​
+
 
 
 # Checking for sudo

@@ -84,6 +84,13 @@ def _fake_jamf_post(url, **kwargs):
 
 
 def _fake_jamf_get(url, **kwargs):
+    # /JSSResource/activationcode is the endpoint login uses to confirm
+    # the host is really Jamf Pro; answer with the Jamf-shaped JSON so
+    # _verify_jamf_access accepts it. Other GETs get a benign payload.
+    if url.endswith("/JSSResource/activationcode"):
+        return FakeJamfResponse(
+            {"activation_code": {"organization_name": "Test Org"}}
+        )
     return FakeJamfResponse({})
 
 

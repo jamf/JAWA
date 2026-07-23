@@ -132,6 +132,27 @@ def _verify_jamf_access() -> Union[Response, None]:
             verify=verify_ssl,
         )
         resp.raise_for_status()
+        # A reachable non-Jamf site also answers 200 here; confirm the
+        # body is the Jamf activationcode JSON shape before trusting it.
+        # Any random website returning an HTML 200 must NOT count as a
+        # successful Jamf login (defense in depth behind the token check).
+        body = resp.json()
+        if not isinstance(body, dict) or "activation_code" not in body:
+            logthis.error(
+                f"[{session.get('url')}] activationcode response was not "
+                "Jamf-shaped; refusing login."
+            )
+            return _login_error(
+                "Login error",
+                "that URL did not respond like a Jamf Pro server",
+            )
+    except ValueError as err:
+        # resp.json() raised: the endpoint returned non-JSON (e.g. an
+        # HTML page from a non-Jamf host).
+        logthis.error(f"Error occurred: {err}")
+        return _login_error(
+            "Login error", "that URL did not respond like a Jamf Pro server"
+        )
     except requests.exceptions.HTTPError as err:
         logthis.error(f"Error occurred: {err}")
         return _login_error(
@@ -163,7 +184,12 @@ def login() -> Response:
         session["b64_auth"] = base64.b64encode(
             str.encode(f"{session.get('username')}:{session.get('password')}")
         )
-        get_token()
+        # Honor a token-fetch failure: get_token() returns a redirect
+        # when the token endpoint is unreachable or answers with a
+        # non-Jamf body. Ignoring it let login proceed on a failed fetch.
+        token_error = get_token()
+        if token_error:
+            return token_error
         logthis.info(
             f"[{session.get('url')}] Attempting login for: "
             f"{session.get('username')}"
@@ -209,6 +235,10 @@ def logout() -> Union[Response, str]:
         invalidate_token()
         logthis.info("Logging Out: " + str(escape(session["username"])))
         session.pop("username", None)
+    # Always clear API token state on logout so a stale token can never
+    # outlive the session and satisfy a later login's credential check.
+    session.pop("token", None)
+    session.pop("expires", None)
     return load_home(error_title, error_message)
 
 

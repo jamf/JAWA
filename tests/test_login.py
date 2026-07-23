@@ -134,6 +134,109 @@ def test_login_fails_against_non_jamf_url(client, jawa_env, monkeypatch):
     assert "/logout" in resp.headers.get("Location", "")
 
 
+class NotJamfResponse:
+    """A reachable non-Jamf endpoint: HTTP 200 whose body is not JSON.
+
+    Any random website answers /JSSResource/activationcode with a 200
+    HTML page and its token endpoint with non-JSON, so this stands in
+    for `fiddlefaddle.com` and friends.
+    """
+
+    status_code = 200
+
+    def json(self):
+        raise ValueError("not JSON")
+
+    def raise_for_status(self):
+        pass
+
+
+def test_logout_clears_token(logged_in_client):
+    # A stale token surviving logout is the core of the bypass: a later
+    # bogus login sees a truthy session["token"] and sails past the
+    # credential gate. Logout must clear it.
+    with logged_in_client.session_transaction() as sess:
+        assert sess.get("token"), "fixture should have logged in with a token"
+    logged_in_client.get("/logout")
+    with logged_in_client.session_transaction() as sess:
+        assert not sess.get("token"), "logout must clear the API token"
+
+
+def test_stale_token_blocks_bogus_login(logged_in_client, monkeypatch):
+    # THE BYPASS: reproduce a real prior Jamf login (logged_in_client has
+    # a valid session token), then attempt login with bogus creds against
+    # a non-Jamf URL that merely returns 200. Before the fix the stale
+    # token let this reach the dashboard.
+    import requests
+
+    # Plant a stale token as if a prior real login left one behind, even
+    # if logout were skipped.
+    with logged_in_client.session_transaction() as sess:
+        sess["token"] = "stale-token-from-prior-real-login"
+        sess["expires"] = "2099-01-01T00:00:00.000+0000"
+
+    monkeypatch.setattr(requests, "post", lambda *a, **k: NotJamfResponse())
+    monkeypatch.setattr(requests, "get", lambda *a, **k: NotJamfResponse())
+
+    resp = logged_in_client.post(
+        "/login",
+        data={
+            "url": "https://fiddlefaddle.com",
+            "username": "fjdsklj",
+            "password": "fjdklsjl",
+        },
+    )
+    assert resp.status_code == 302
+    assert "/dashboard" not in resp.headers.get("Location", "")
+    assert "/logout" in resp.headers.get("Location", "")
+
+
+def test_verify_jamf_access_rejects_non_jamf_200(client, jawa_env, monkeypatch):
+    # Defense in depth: even if a token were present, a 200 from a
+    # non-Jamf site (body not the activationcode JSON shape) must not
+    # count as Jamf access. Token endpoint returns a real-looking token
+    # so the only thing standing between bogus creds and the dashboard
+    # is the shape check in _verify_jamf_access.
+    import json as _json
+    import requests
+
+    jawa_env.server_file.write_text(_json.dumps({"brand": "JAWA"}))
+
+    class TokenButNotJamf:
+        status_code = 200
+
+        def __init__(self, kind):
+            self.kind = kind
+
+        def json(self):
+            if self.kind == "token":
+                return {"token": "looks-real", "expires":
+                        "2099-01-01T00:00:00.000+0000"}
+            raise ValueError("activationcode body is HTML, not JSON")
+
+        def raise_for_status(self):
+            pass
+
+    monkeypatch.setattr(
+        requests, "post", lambda *a, **k: TokenButNotJamf("token")
+    )
+    monkeypatch.setattr(
+        requests, "get", lambda *a, **k: TokenButNotJamf("activationcode")
+    )
+
+    resp = client.post(
+        "/login",
+        data={
+            "url": "https://fiddlefaddle.com",
+            "username": "fjdsklj",
+            "password": "fjdklsjl",
+        },
+    )
+    assert resp.status_code == 302
+    assert "/dashboard" not in resp.headers.get("Location", "")
+    assert "/logout" in resp.headers.get("Location", "")
+
+
 def test_failed_login_does_not_reflect_script_injection(
     client, jawa_env, fake_jamf
 ):

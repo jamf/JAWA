@@ -37,6 +37,12 @@ logthis = logger.setup_child_logger("jawa", __name__)
 
 
 def get_token() -> Optional[Response]:
+    # Clear any prior token up front so a failed fetch can never leave a
+    # stale token from an earlier (real) login behind — that stale token
+    # was the crux of the bogus-credential bypass: _validate_credentials
+    # only checks that session["token"] is truthy.
+    session.pop("token", None)
+    session.pop("expires", None)
     try:
         resp = requests.post(
             f"{session['url']}/api/v1/auth/token",

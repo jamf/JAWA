@@ -116,7 +116,7 @@ A Jamf Pro webhook payload has two top-level keys:
 - `event_data["webhook"]` — event metadata (`webhookEvent`, `eventTimestamp`, `id`)
 - `event_data["event"]` — the event's own fields (for example `groupAddedDevicesIds`, `name`)
 
-### Output and status
+### Output and status (webhook automations)
 
 - Anything your script prints (stdout and stderr) is captured line-by-line into the JAWA log under the automation's name. Use `print()` for progress and diagnostics.
 - Exit `0` for success. A **non-zero exit code is recorded as a failure** in the log.
@@ -135,6 +135,8 @@ import sys
 
 event_data = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
 ```
+
+Timed automations run under the system's cron, so a script's output and exit status are handled by cron (for example, in the host's mail/syslog), not captured in the JAWA log.
 
 ### Complete example
 
@@ -205,7 +207,7 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
 - New features
     - smoke-test harness + CI (ruff + pytest) for safer releases
     - admin-configurable session timeout with hardened session cookies
-    - in-app documentation for writing automation scripts
+    - documentation for writing automation scripts
 - Bugfixes
     - template webhooks now fire correctly
     - rejected path traversal in template import

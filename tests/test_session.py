@@ -118,8 +118,9 @@ def test_setup_form_shows_timeout_control(logged_in_client, jawa_env):
     assert 'name="session_timeout_minutes"' in body
     # Current value preselected.
     assert 'value="240" selected' in body
-    # Extended tiers carry a security-trade-off note.
-    assert "Extended" in body
+    # All tiers offered, including the extended ones.
+    for minutes in ("15", "60", "240", "480"):
+        assert f'value="{minutes}"' in body
 
 
 def test_layout_injects_effective_timeout(logged_in_client, jawa_env):

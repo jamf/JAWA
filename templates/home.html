@@ -62,7 +62,10 @@
                    class="form-control text-center" autofocus>
         {% endif %}
         <label for="login-username" class="visually-hidden">Username</label>
-        <input id="login-username" name="username" type="text" placeholder="Username" required value="{{ prev_username if prev_username }}" class="form-control text-center" autofocus>
+        {# autofocus only when the URL field above isn't rendered (jsslock),
+           so exactly one field ever carries autofocus — duplicate autofocus
+           is invalid HTML with browser-dependent focus behavior. #}
+        <input id="login-username" name="username" type="text" placeholder="Username" required value="{{ prev_username if prev_username }}" class="form-control text-center"{% if jsslock %} autofocus{% endif %}>
         <label for="login-password" class="visually-hidden">Password</label>
         <input id="login-password" name="password" type="password" placeholder="Password" required class="form-control text-center">
 

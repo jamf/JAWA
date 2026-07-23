@@ -162,3 +162,4 @@ data/credentials.json
 data/cron.json
 data/webhooks.json
 resources/files/
+scripts/

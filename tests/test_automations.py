@@ -37,3 +37,36 @@ def test_success_flash_is_one_shot(logged_in_client, jawa_env):
     second = logged_in_client.get("/success")
     # Flash popped: the create message must not persist on a re-load.
     assert b"New webhook created" not in second.data
+
+
+def test_edit_redirects_to_success(logged_in_client, jawa_env):
+    logged_in_client.post(
+        "/automations/custom/new",
+        data=_custom_create_data(),
+        content_type="multipart/form-data",
+    )
+    logged_in_client.get("/success")  # drain the create flash
+    resp = logged_in_client.post(
+        "/automations/custom/prg-test-hook/edit",
+        data={
+            "custom_name": "prg-test-hook",
+            "description": "edited",
+        },
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 302
+    assert "/success" in resp.headers["Location"]
+
+
+def test_delete_redirects_to_success(logged_in_client, jawa_env):
+    logged_in_client.post(
+        "/automations/custom/new",
+        data=_custom_create_data(),
+        content_type="multipart/form-data",
+    )
+    logged_in_client.get("/success")
+    resp = logged_in_client.post(
+        "/automations/custom/prg-test-hook/delete",
+    )
+    assert resp.status_code == 302
+    assert "/success" in resp.headers["Location"]

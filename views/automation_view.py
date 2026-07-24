@@ -307,9 +307,8 @@ def edit(auto_type: str, name: str) -> Union[Response, str]:
         # e.g. save_script rejecting an upload with no shebang.
         return _error_page("Invalid script", str(err))
 
-    return render_template(
-        SUCCESS_TEMPLATE,
-        webhooks="success",
+    return _flash_success(
+        auto_type=auto_type,
         success_msg=result.get("success_msg", "Updated successfully."),
         new_link=result.get("new_link"),
         new_here=result.get("new_here"),
@@ -317,7 +316,6 @@ def edit(auto_type: str, name: str) -> Union[Response, str]:
         smart_group_instructions=result.get("smart_group_instructions"),
         extra_notice=result.get("extra_notice"),
         custom_header=result.get("custom_header"),
-        username=session.get("username"),
     )
 
 
@@ -370,11 +368,7 @@ def delete(auto_type: str, name: str) -> Union[Response, str]:
     success_msg = (
         f"Successfully deleted the {handler.display_name} automation: {name}."
     )
-    return render_template(
-        SUCCESS_TEMPLATE,
-        success_msg=success_msg,
-        username=session.get("username"),
-    )
+    return _flash_success(auto_type=auto_type, success_msg=success_msg)
 
 
 # --- Helpers ---

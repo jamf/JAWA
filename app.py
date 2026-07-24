@@ -336,11 +336,8 @@ def setup() -> Union[Response, str]:
             with open(server_json_file, "w+") as outfile:
                 json.dump(data, outfile)
 
-        return render_template(
-            "success.html",
-            webhooks="success",
-            success_msg="JAWA Setup Complete!",
-            username=str(escape(session["username"])),
+        return redirect(
+            url_for("success", success_msg="JAWA Setup Complete!")
         )
     else:
         logthis.debug(
@@ -437,6 +434,14 @@ def success(success_msg="") -> Union[Response, str]:
                 error_title="Session Timed Out",
                 error_message="Please sign in again",
             )
+        )
+    flashed = session.pop("success_ctx", None)
+    if flashed:
+        return render_template(
+            "success.html",
+            login="true",
+            username=str(escape(session["username"])),
+            **flashed,
         )
     success_msg = request.args.get("success_msg")
     if success_msg:

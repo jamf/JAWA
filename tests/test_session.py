@@ -108,6 +108,20 @@ def test_setup_rejects_off_ladder_timeout(logged_in_client, jawa_env):
     assert data["session_timeout_minutes"] == 15
 
 
+def test_setup_post_redirects_to_success(logged_in_client, jawa_env):
+    # PRG: a successful setup POST redirects to /success rather than
+    # rendering inline, so browser-back can't re-POST setup (J13).
+    resp = logged_in_client.post(
+        "/setup",
+        data={
+            "address": "https://jawa.example.test",
+            "session_timeout_minutes": "15",
+        },
+    )
+    assert resp.status_code == 302
+    assert "/success" in resp.headers["Location"]
+
+
 def test_setup_form_shows_timeout_control(logged_in_client, jawa_env):
     import json
     data = json.loads(jawa_env.server_file.read_text())

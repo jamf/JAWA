@@ -26,7 +26,7 @@
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-from typing import Union
+from typing import Any, Union
 
 from flask import (
     Blueprint,
@@ -62,7 +62,6 @@ logthis = logger.setup_child_logger("jawa", "automation_view")
 
 blueprint = Blueprint("automations", __name__)
 
-SUCCESS_TEMPLATE = "success.html"
 LIST_TYPE_ENDPOINT = "automations.list_type"
 
 
@@ -75,6 +74,16 @@ def _get_session_data() -> dict:
         "expires": session.get("expires"),
         "b64_auth": session.get("b64_auth"),
     }
+
+
+def _flash_success(**ctx: Any) -> Response:
+    """Stash success context in a one-shot session flash and redirect to
+    /success (Post-Redirect-Get). Keeps the POST from being the terminal
+    history entry, so browser-back cannot re-issue it. Values must be
+    JSON-serializable (strings/None); this mirrors the login_retry flash
+    pattern in home_view."""
+    session["success_ctx"] = {k: v for k, v in ctx.items() if v is not None}
+    return redirect(url_for("success"))
 
 
 def _error_page(
@@ -191,9 +200,8 @@ def create(auto_type: str) -> Union[Response, str]:
         else:
             add_webhook(entry)
 
-    return render_template(
-        SUCCESS_TEMPLATE,
-        webhooks="success",
+    return _flash_success(
+        auto_type=auto_type,
         success_msg=result.get("success_msg", "Created successfully."),
         new_link=result.get("new_link"),
         new_here=result.get("new_here"),
@@ -201,7 +209,6 @@ def create(auto_type: str) -> Union[Response, str]:
         smart_group_instructions=result.get("smart_group_instructions"),
         extra_notice=result.get("extra_notice"),
         custom_header=result.get("custom_header"),
-        username=session.get("username"),
     )
 
 
@@ -299,9 +306,8 @@ def edit(auto_type: str, name: str) -> Union[Response, str]:
         # e.g. save_script rejecting an upload with no shebang.
         return _error_page("Invalid script", str(err))
 
-    return render_template(
-        SUCCESS_TEMPLATE,
-        webhooks="success",
+    return _flash_success(
+        auto_type=auto_type,
         success_msg=result.get("success_msg", "Updated successfully."),
         new_link=result.get("new_link"),
         new_here=result.get("new_here"),
@@ -309,7 +315,6 @@ def edit(auto_type: str, name: str) -> Union[Response, str]:
         smart_group_instructions=result.get("smart_group_instructions"),
         extra_notice=result.get("extra_notice"),
         custom_header=result.get("custom_header"),
-        username=session.get("username"),
     )
 
 
@@ -362,11 +367,7 @@ def delete(auto_type: str, name: str) -> Union[Response, str]:
     success_msg = (
         f"Successfully deleted the {handler.display_name} automation: {name}."
     )
-    return render_template(
-        SUCCESS_TEMPLATE,
-        success_msg=success_msg,
-        username=session.get("username"),
-    )
+    return _flash_success(auto_type=auto_type, success_msg=success_msg)
 
 
 # --- Helpers ---

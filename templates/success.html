@@ -214,9 +214,16 @@
         {% endif %}
 
         <div class="success-actions">
-            <button type="button" onclick="history.back()" class="btn-success-secondary">
-                ← Back
-            </button>
+            {% if new_link and new_here %}
+            <a href="{{ new_link }}" target="_blank" class="btn-success-secondary">
+                View it →
+            </a>
+            {% endif %}
+            {% if auto_type %}
+            <a href="{{ url_for('automations.create', auto_type=auto_type) }}" class="btn-success-secondary">
+                Create another
+            </a>
+            {% endif %}
             <a href="/dashboard" class="btn-success-primary">
                 Dashboard →
             </a>

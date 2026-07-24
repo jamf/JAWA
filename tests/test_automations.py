@@ -70,3 +70,20 @@ def test_delete_redirects_to_success(logged_in_client, jawa_env):
     )
     assert resp.status_code == 302
     assert "/success" in resp.headers["Location"]
+
+
+def test_success_has_forward_actions_not_history_back(
+    logged_in_client, jawa_env
+):
+    logged_in_client.post(
+        "/automations/custom/new",
+        data=_custom_create_data(),
+        content_type="multipart/form-data",
+    )
+    resp = logged_in_client.get("/success")
+    body = resp.data.decode()
+    # No blind history.back() — it walks into a spent form.
+    assert "history.back()" not in body
+    # Forward actions present: Create another (for this type) + Dashboard.
+    assert "/automations/custom/new" in body   # Create another
+    assert "/dashboard" in body                # Dashboard

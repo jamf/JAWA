@@ -62,7 +62,6 @@ logthis = logger.setup_child_logger("jawa", "automation_view")
 
 blueprint = Blueprint("automations", __name__)
 
-SUCCESS_TEMPLATE = "success.html"
 LIST_TYPE_ENDPOINT = "automations.list_type"
 
 

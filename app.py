@@ -438,6 +438,14 @@ def success(success_msg="") -> Union[Response, str]:
                 error_message="Please sign in again",
             )
         )
+    flashed = session.pop("success_ctx", None)
+    if flashed:
+        return render_template(
+            "success.html",
+            login="true",
+            username=str(escape(session["username"])),
+            **flashed,
+        )
     success_msg = request.args.get("success_msg")
     if success_msg:
         success_msg = escape(success_msg)

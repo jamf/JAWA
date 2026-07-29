@@ -1,11 +1,11 @@
 {# Shared Jinja2 macros for JAWA automation templates #}
 
-{% macro hero_section(title, subtitle="", create_url="", create_label="Create", secondary_url="", secondary_label="") %}
+{% macro hero_section(title, subtitle="", create_url="", create_label="Create", secondary_url="", secondary_label="", subtitle_link_url="", subtitle_link_text="") %}
 <div class="hero-section">
     <div class="container">
         <h2>{{ title }}</h2>
-        {% if subtitle %}
-        <p>{{ subtitle|safe }}</p>
+        {% if subtitle or subtitle_link_url %}
+        <p>{{ subtitle|safe }}{% if subtitle_link_url %}<a href="{{ subtitle_link_url }}" target="_blank" rel="noopener">{{ subtitle_link_text or subtitle_link_url }}</a>{% endif %}</p>
         {% endif %}
         {% if create_url or secondary_url %}
         <div class="hero-cta">

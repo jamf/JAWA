@@ -972,6 +972,16 @@ code {
     position: relative;
 }
 
+.hero-section p a,
+.hero-section p a:visited {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: underline;
+}
+
+.hero-section p a:hover {
+    color: #fff;
+}
+
 .hero-cta {
     display: flex;
     justify-content: left;

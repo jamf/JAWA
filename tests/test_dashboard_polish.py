@@ -50,3 +50,29 @@ def test_empty_state_renders_on_a_type_list_page(
     )
     assert 'class="empty-state"' in states
     assert 'class="btn btn-jawa btn-action"' in states
+
+
+def test_hero_subtitle_has_no_inline_style(logged_in_client, jawa_env):
+    body = logged_in_client.get("/dashboard").data.decode()
+    # The JPS-URL link used to carry style='color: rgba(...)'.
+    assert "style='color: rgba(255,255,255,0.9);'" not in body
+    assert 'style="color: rgba(255,255,255,0.9);"' not in body
+
+
+def test_hero_subtitle_still_links_the_jamf_pro_url(
+    logged_in_client, jawa_env
+):
+    body = logged_in_client.get("/dashboard").data.decode()
+    assert "webhooks" in body
+    assert "timed automations" in body
+    assert 'href="https://jamf.example.test"' in body
+    assert 'target="_blank"' in body
+    # New tab hygiene on an admin-supplied destination.
+    assert 'rel="noopener"' in body
+
+
+def test_hero_subtitle_link_is_attribute_escaped(logged_in_client, jawa_env):
+    # The URL is rendered as an autoescaped attribute now, not spliced
+    # into the |safe subtitle string.
+    body = logged_in_client.get("/dashboard").data.decode()
+    assert "<a href='" not in body

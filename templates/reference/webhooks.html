@@ -54,7 +54,7 @@
                                 <td>
                                     <a href="{{ url_for('reference.webhook_detail', event_type=event) }}"><code>{{ event }}</code></a>
                                 </td>
-                                <td>{{ schemas[event].description }}</td>
+                                <td>{{ schemas.get(event, {}).get('description', '') }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

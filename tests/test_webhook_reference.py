@@ -82,6 +82,36 @@ def test_overview_survives_a_catalog_missing_its_schemas(
     assert "ComputerAdded" in body
 
 
+def test_overview_still_answers_when_one_events_entry_is_damaged(
+    logged_in_client, jawa_env
+):
+    """One damaged entry must not take the whole index down.
+
+    The overview looks up a description for every event it lists, so a
+    single hand-edited entry is reachable here without anyone opening
+    that event's page. The entry is present but is not a mapping, so it
+    cannot answer the description lookup: the row must fall back to an
+    empty description and the page must still list the event.
+    """
+    import json
+
+    pristine = jawa_env.webhook_schemas_file.read_text()
+    for shape in ("TBD", ["jssID", "udid"], 5):
+        catalog = json.loads(pristine)
+        catalog["schemas"]["ComputerAdded"] = shape
+        jawa_env.webhook_schemas_file.write_text(json.dumps(catalog))
+
+        resp = logged_in_client.get("/reference/webhooks")
+        assert resp.status_code == 200, shape
+        body = resp.data.decode()
+        # The categories are a separate section and undamaged, so the
+        # event is still listed and still linked.
+        assert "Computer Events" in body, shape
+        assert "/reference/webhooks/ComputerAdded" in body, shape
+        # Undamaged siblings keep their descriptions.
+        assert "computer checks in" in body, shape
+
+
 def test_legacy_webhooks_redirect_is_untouched(logged_in_client, jawa_env):
     # The new namespace must not shadow the legacy automation redirect.
     resp = logged_in_client.get("/webhooks")

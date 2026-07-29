@@ -31,7 +31,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for field, description in (entry.schema or {}).items() | sort %}
+                {% for field, description in (entry.schema if entry.schema is mapping else {}).items() | sort %}
                 <tr>
                     <td><code>{{ field }}</code></td>
                     <td>{{ description }}</td>

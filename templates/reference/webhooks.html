@@ -54,7 +54,7 @@
                                 <td>
                                     <a href="{{ url_for('reference.webhook_detail', event_type=event) }}"><code>{{ event }}</code></a>
                                 </td>
-                                <td>{{ schemas.get(event, {}).get('description', '') }}</td>
+                                <td>{{ (schemas.get(event) if schemas.get(event) is mapping else {}).get('description', '') }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

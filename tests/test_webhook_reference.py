@@ -150,26 +150,49 @@ def test_detail_still_answers_when_one_events_entry_is_damaged(
 ):
     """A single malformed entry degrades that event, not the page.
 
-    The accessor validates each catalog section as a whole, so a hand
-    edit that replaces one event's entry with a scalar leaves the key in
-    place: the view does not treat the event as unknown, and the page is
-    then asked to render an entry with no description, no pending flag
-    and no field mapping to iterate. It must answer with an empty field
-    list rather than failing.
+    The accessor validates each catalog section as a whole and cannot
+    see inside it, so a hand edit that damages one event leaves the key
+    in place: the view does not treat the event as unknown, and the page
+    is asked to render an entry whose field mapping may be missing or
+    may not be a mapping at all. Every shape must render an empty field
+    list rather than failing, because this file is hand-maintained.
+
+    The wrong-typed mappings matter most: unlike an empty one they are
+    truthy, so a guard that only tests falsiness lets them through to a
+    lookup that fails.
     """
     import json
 
-    catalog = json.loads(jawa_env.webhook_schemas_file.read_text())
-    catalog["schemas"]["ComputerAdded"] = "not an object"
-    jawa_env.webhook_schemas_file.write_text(json.dumps(catalog))
+    pristine = jawa_env.webhook_schemas_file.read_text()
+    shapes = (
+        # The whole entry replaced by a scalar.
+        "not an object",
+        # Truthy, wrong-typed field mappings -- the plausible slips in a
+        # hand-maintained mapping.
+        {"description": "d", "schema": "TBD"},
+        {"description": "d", "schema": ["jssID", "udid"]},
+        {"description": "d", "schema": 5},
+        # Falsy shapes, for completeness.
+        {"description": "d", "schema": {}},
+        {"description": "d"},
+    )
+    for shape in shapes:
+        catalog = json.loads(pristine)
+        catalog["schemas"]["ComputerAdded"] = shape
+        jawa_env.webhook_schemas_file.write_text(json.dumps(catalog))
 
-    resp = logged_in_client.get("/reference/webhooks/ComputerAdded")
-    assert resp.status_code == 200
-    # The rest of the catalog is undamaged, so the sidebar still lists
-    # the events and the heading still renders.
-    body = resp.data.decode()
-    assert "Event schema" in body
-    assert "/reference/webhooks/ComputerCheckIn" in body
+        resp = logged_in_client.get("/reference/webhooks/ComputerAdded")
+        assert resp.status_code == 200, shape
+        # The rest of the catalog is undamaged, so the sidebar still
+        # lists the events and the heading still renders.
+        body = resp.data.decode()
+        assert "Event schema" in body, shape
+        assert "/reference/webhooks/ComputerCheckIn" in body, shape
+        # No field row survives the damage, whatever its shape. Scoped
+        # to the table-row markup: the sample payload is a separate
+        # catalog section, so it is undamaged and still names its
+        # fields.
+        assert "<td><code>jssID</code></td>" not in body, shape
 
 
 def test_reference_pages_carry_no_inline_styles(logged_in_client, jawa_env):

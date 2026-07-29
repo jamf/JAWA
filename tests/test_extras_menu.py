@@ -5,9 +5,15 @@ is removed) and Webhook Reference (now a real page).
 """
 
 
+def _extras_menu(body: str) -> str:
+    """The Extras dropdown markup only — the app renders exactly one."""
+    start = body.index('<ul class="dropdown-menu">')
+    return body[start : body.index("</ul>", start)]
+
+
 def test_notebooks_item_is_gone(logged_in_client, jawa_env):
     body = logged_in_client.get("/dashboard").data.decode()
-    assert "Notebooks" not in body
+    assert "Notebooks" not in _extras_menu(body)
 
 
 def test_webhook_reference_item_is_live(logged_in_client, jawa_env):
@@ -20,8 +26,9 @@ def test_webhook_reference_item_is_live(logged_in_client, jawa_env):
 
 def test_no_disabled_placeholder_items_remain(logged_in_client, jawa_env):
     body = logged_in_client.get("/dashboard").data.decode()
-    # The greyed-out placeholder pattern: a muted item pointing nowhere.
-    assert 'class="dropdown-item text-muted" href="#"' not in body
+    # Dead placeholder link: any menu item pointing nowhere, regardless
+    # of attribute order.
+    assert 'href="#"' not in _extras_menu(body)
 
 
 def test_extras_still_links_log_and_files(logged_in_client, jawa_env):

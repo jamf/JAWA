@@ -207,7 +207,10 @@ def get_webhook_schemas() -> Dict[str, Any]:
     try:
         with open(WEBHOOK_SCHEMAS_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-    except (OSError, json.JSONDecodeError):
+    except (OSError, ValueError):
+        # ValueError covers both a malformed JSON body
+        # (json.JSONDecodeError) and a file saved in a non-UTF-8
+        # encoding (UnicodeDecodeError) - neither is an OSError.
         logthis.warning(
             f"Webhook event catalog unreadable: {WEBHOOK_SCHEMAS_FILE}"
         )
@@ -215,7 +218,14 @@ def get_webhook_schemas() -> Dict[str, Any]:
     if not isinstance(data, dict):
         logthis.warning("Webhook event catalog is not a JSON object.")
         return empty
-    return {key: data.get(key) or {} for key in empty}
+    # Each section is iterated as a mapping by the reference pages and
+    # the event dropdown, so a hand edit that turns one into a list or
+    # a string degrades to empty here rather than failing in a template.
+    out: Dict[str, Any] = {}
+    for key in empty:
+        section = data.get(key)
+        out[key] = section if isinstance(section, dict) else {}
+    return out
 
 
 # --- Script Management ---

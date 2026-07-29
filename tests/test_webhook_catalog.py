@@ -7,6 +7,8 @@ string is stored on the webhook and then never matches the inbound
 payload's webhookEvent.
 """
 
+import json
+
 from bin.data_store import get_webhook_schemas
 
 # Jamf Pro's authoritative event set (maintainer-confirmed against the
@@ -103,3 +105,36 @@ def test_missing_catalog_degrades_to_empty_structures(jawa_env):
     catalog = get_webhook_schemas()
     # Never raise: a broken catalog must not 500 the creation form.
     assert catalog == {"categories": {}, "schemas": {}, "examples": {}}
+
+
+def test_undecodable_catalog_degrades_to_empty_structures(jawa_env):
+    # A hand edit saved in a non-UTF-8 encoding: 0x92 is a Latin-1
+    # curly apostrophe, which is not valid UTF-8. The resulting
+    # UnicodeDecodeError is a ValueError, not an OSError, so it has to
+    # be caught explicitly or it escapes the fail-soft guard.
+    jawa_env.webhook_schemas_file.write_bytes(
+        b'{"categories": {}, "schemas": {"X": {"description":'
+        b' "Jamf\x92s device"}}, "examples": {}}'
+    )
+    catalog = get_webhook_schemas()
+    assert catalog == {"categories": {}, "schemas": {}, "examples": {}}
+
+
+def test_wrong_typed_sections_degrade_to_empty_structures(jawa_env):
+    # A hand edit turns an object into an array. The top-level object
+    # check still passes, so without a per-section type check the list
+    # reaches the caller and .items() raises inside the template.
+    jawa_env.webhook_schemas_file.write_text(
+        json.dumps(
+            {
+                "categories": ["Computer Events"],
+                "schemas": "not a dict",
+                "examples": 17,
+            }
+        )
+    )
+    catalog = get_webhook_schemas()
+    assert catalog == {"categories": {}, "schemas": {}, "examples": {}}
+    # Callers iterate these as mappings; every value must be one.
+    for section in catalog.values():
+        assert section.items() is not None

@@ -131,34 +131,45 @@ def test_pending_event_says_so_instead_of_showing_empty_fields(
     body = logged_in_client.get(
         "/reference/webhooks/DeviceRateLimited"
     ).data.decode()
-    assert "pending confirmation" in body
-    # No empty schema table and no payload block for a pending event.
+    # Copy unique to the pending branch. The catalog description also
+    # contains "pending confirmation", so asserting that phrase alone
+    # would pass without the branch; this sentence exists only here, and
+    # is what tells the reader the event is usable regardless.
+    assert "it is selectable when you create a Jamf Pro" in body
+    # A pending event still gets the section heading a normal event
+    # gets, so the page does not look truncated...
+    assert "Event schema" in body
+    # ...but none of the machinery a documented event renders.
     assert 'class="hippocrates"' not in body
     assert 'id="example-json"' not in body
+    assert "Sample payload" not in body
 
 
-def test_detail_survives_a_catalog_missing_its_examples(
+def test_detail_still_answers_when_one_events_entry_is_damaged(
     logged_in_client, jawa_env
 ):
-    """A detail page must degrade the same way the overview does.
+    """A single malformed entry degrades that event, not the page.
 
-    Each catalog section is validated independently, so a hand edit that
-    turns "examples" into an array leaves the field schema intact while
-    every payload lookup comes back missing. The page must drop the
-    sample-payload block and still render the schema table rather than
-    raising while the template evaluates the payload.
+    The accessor validates each catalog section as a whole, so a hand
+    edit that replaces one event's entry with a scalar leaves the key in
+    place: the view does not treat the event as unknown, and the page is
+    then asked to render an entry with no description, no pending flag
+    and no field mapping to iterate. It must answer with an empty field
+    list rather than failing.
     """
     import json
 
     catalog = json.loads(jawa_env.webhook_schemas_file.read_text())
-    catalog["examples"] = []
+    catalog["schemas"]["ComputerAdded"] = "not an object"
     jawa_env.webhook_schemas_file.write_text(json.dumps(catalog))
 
     resp = logged_in_client.get("/reference/webhooks/ComputerAdded")
     assert resp.status_code == 200
+    # The rest of the catalog is undamaged, so the sidebar still lists
+    # the events and the heading still renders.
     body = resp.data.decode()
-    assert "jssID" in body
-    assert 'id="example-json"' not in body
+    assert "Event schema" in body
+    assert "/reference/webhooks/ComputerCheckIn" in body
 
 
 def test_reference_pages_carry_no_inline_styles(logged_in_client, jawa_env):

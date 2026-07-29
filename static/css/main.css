@@ -1295,3 +1295,125 @@ a.btn-hero-secondary:visited {
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-lg);
 }
+
+/* ===== Webhook Reference ===== */
+.event-sidebar {
+    position: sticky;
+    top: 70px;
+    max-height: calc(100vh - 90px);
+    overflow-y: auto;
+    padding: 0.75rem 1rem 2rem 0.5rem;
+    background-color: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+}
+
+.event-sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.event-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.event-sidebar::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.event-sidebar h6 {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-secondary);
+    margin: 1.25rem 0 0.5rem;
+    padding-left: 12px;
+}
+
+.event-sidebar h6:first-child {
+    margin-top: 0;
+}
+
+.event-link,
+.event-link:visited {
+    display: block;
+    padding: 6px 12px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.event-link:hover {
+    color: var(--color-primary);
+    background: var(--color-surface-hover);
+    text-decoration: none;
+}
+
+.event-link.active {
+    color: var(--color-primary);
+    font-weight: 600;
+    border-left-color: var(--color-primary);
+    background: var(--color-primary-light);
+}
+
+.schema-section {
+    margin-bottom: 2rem;
+}
+
+.schema-caption {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.event-description {
+    color: var(--color-text-secondary);
+    font-style: italic;
+    margin-bottom: 1.5rem;
+}
+
+.code-wrapper {
+    position: relative;
+}
+
+.copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 3px 12px;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease, background-color 0.15s ease;
+}
+
+.code-wrapper:hover .copy-btn,
+.copy-btn:focus-visible {
+    opacity: 1;
+}
+
+.copy-btn:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.copy-btn.copied {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+.copy-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(60, 106, 167, 0.35);
+}

@@ -4,6 +4,8 @@ Namespaced under /reference/ on purpose: /webhooks* is already taken by
 the legacy automation redirects in app.py.
 """
 
+import re
+
 
 def test_overview_renders(logged_in_client, jawa_env):
     resp = logged_in_client.get("/reference/webhooks")
@@ -85,3 +87,91 @@ def test_legacy_webhooks_redirect_is_untouched(logged_in_client, jawa_env):
     resp = logged_in_client.get("/webhooks")
     assert resp.status_code == 301
     assert "/automations" in resp.headers["Location"]
+
+
+def test_detail_shows_the_field_schema_table(logged_in_client, jawa_env):
+    body = logged_in_client.get(
+        "/reference/webhooks/ComputerAdded"
+    ).data.decode()
+    assert "Event schema" in body
+    # Fields render in the standard table treatment, not a bare table.
+    assert 'class="hippocrates"' in body
+    assert "jssID" in body
+    assert "Unique Jamf Pro computer record ID" in body
+
+
+def test_detail_embeds_the_payload_as_json_not_markup(
+    logged_in_client, jawa_env
+):
+    body = logged_in_client.get(
+        "/reference/webhooks/ComputerAdded"
+    ).data.decode()
+    # Payload goes into JS via tojson and is written with textContent;
+    # it is never interpolated into markup with |safe.
+    assert 'id="example-json"' in body
+    assert '"webhookEvent": "ComputerAdded"' in body
+    assert "JSON.stringify" in body
+    # The json language pack is not in the layout; this page loads it.
+    assert "languages/json.min.js" in body
+    # The layout's highlightAll() has already run by then.
+    assert "hljs.highlightElement" in body
+
+
+def test_detail_offers_a_copy_button(logged_in_client, jawa_env):
+    body = logged_in_client.get(
+        "/reference/webhooks/ComputerAdded"
+    ).data.decode()
+    assert 'class="copy-btn"' in body
+    assert "clipboard.writeText" in body
+
+
+def test_pending_event_says_so_instead_of_showing_empty_fields(
+    logged_in_client, jawa_env
+):
+    body = logged_in_client.get(
+        "/reference/webhooks/DeviceRateLimited"
+    ).data.decode()
+    assert "pending confirmation" in body
+    # No empty schema table and no payload block for a pending event.
+    assert 'class="hippocrates"' not in body
+    assert 'id="example-json"' not in body
+
+
+def test_detail_survives_a_catalog_missing_its_examples(
+    logged_in_client, jawa_env
+):
+    """A detail page must degrade the same way the overview does.
+
+    Each catalog section is validated independently, so a hand edit that
+    turns "examples" into an array leaves the field schema intact while
+    every payload lookup comes back missing. The page must drop the
+    sample-payload block and still render the schema table rather than
+    raising while the template evaluates the payload.
+    """
+    import json
+
+    catalog = json.loads(jawa_env.webhook_schemas_file.read_text())
+    catalog["examples"] = []
+    jawa_env.webhook_schemas_file.write_text(json.dumps(catalog))
+
+    resp = logged_in_client.get("/reference/webhooks/ComputerAdded")
+    assert resp.status_code == 200
+    body = resp.data.decode()
+    assert "jssID" in body
+    assert 'id="example-json"' not in body
+
+
+def test_reference_pages_carry_no_inline_styles(logged_in_client, jawa_env):
+    # The design system forbids inline style= and <style> blocks. The
+    # only inline style the shared layout itself renders is on the
+    # session-timeout modal's "seconds" caption; the reference pages
+    # must add nothing to that set.
+    layout_styles = {'style="font-size: 0.85rem;"'}
+    for path in (
+        "/reference/webhooks",
+        "/reference/webhooks/ComputerAdded",
+    ):
+        body = logged_in_client.get(path).data.decode()
+        found = set(re.findall(r"""style=["'][^"']*["']""", body))
+        assert found <= layout_styles, found - layout_styles
+        assert "<style" not in body

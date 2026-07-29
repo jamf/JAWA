@@ -1,3 +1,59 @@
+{% set entry = schemas.get(selected_event, {}) %}
+<p class="event-description">{{ entry.description }}</p>
+
+{% if entry.pending %}
 <div class="schema-section">
-    <p class="event-description">{{ schemas.get(selected_event, {}).get('description', '') }}</p>
+    <div class="section-header">
+        <h3>Event schema</h3>
+    </div>
+    <p class="schema-caption">
+        The field schema and sample payload for
+        <code>{{ selected_event }}</code> are pending confirmation
+        against a live Jamf Pro instance. Jamf Pro can send this event
+        today &mdash; it is selectable when you create a Jamf Pro
+        automation.
+    </p>
 </div>
+{% else %}
+<div class="schema-section">
+    <div class="section-header">
+        <h3>Event schema</h3>
+    </div>
+    <p class="schema-caption">
+        Structure of the <code>event</code> object in the webhook payload.
+    </p>
+    <div class="table-responsive">
+        <table class="hippocrates">
+            <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Type and description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for field, description in (entry.schema or {}).items() | sort %}
+                <tr>
+                    <td><code>{{ field }}</code></td>
+                    <td>{{ description }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if examples.get(selected_event) %}
+<div class="schema-section">
+    <div class="section-header">
+        <h3>Sample payload</h3>
+    </div>
+    <p class="schema-caption">
+        A complete webhook payload with representative sample data.
+    </p>
+    <div class="script-preview code-wrapper">
+        <button type="button" class="copy-btn" title="Copy this payload">Copy</button>
+        <pre><code class="language-json" id="example-json"></code></pre>
+    </div>
+</div>
+{% endif %}
+{% endif %}

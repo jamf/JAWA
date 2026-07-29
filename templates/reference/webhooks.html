@@ -67,3 +67,47 @@
     </div>
 </div>
 {% endblock %}
+
+{% block additional_js %}
+{% if examples.get(selected_event) %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+{% endif %}
+<script>
+(function () {
+    var COPIED_RESET_MS = 2000;
+
+    {% if examples.get(selected_event) %}
+    // The payload crosses into JS as data (tojson) and is written with
+    // textContent, so it is never parsed as markup. The layout already
+    // ran hljs.highlightAll() while this element was empty, so
+    // highlight it explicitly now that it has content.
+    var payload = {{ examples.get(selected_event) | tojson }};
+    var codeEl = document.getElementById('example-json');
+    // A pending event renders no payload block even when the catalog
+    // carries an example for it, so the element may be absent.
+    if (codeEl) {
+        codeEl.textContent = JSON.stringify(payload, null, 2);
+        if (window.hljs) {
+            hljs.highlightElement(codeEl);
+        }
+    }
+    {% endif %}
+
+    document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var code = btn.closest('.code-wrapper').querySelector('code');
+            navigator.clipboard.writeText(code.textContent).then(
+                function () {
+                    btn.textContent = 'Copied!';
+                    btn.classList.add('copied');
+                    setTimeout(function () {
+                        btn.textContent = 'Copy';
+                        btn.classList.remove('copied');
+                    }, COPIED_RESET_MS);
+                }
+            );
+        });
+    });
+})();
+</script>
+{% endblock %}

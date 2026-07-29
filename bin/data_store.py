@@ -44,6 +44,9 @@ WEBHOOKS_FILE = os.path.abspath(
 CRON_FILE = os.path.abspath(os.path.join(_base_dir, "data", "cron.json"))
 SERVER_FILE = os.path.abspath(os.path.join(_base_dir, "data", "server.json"))
 TIME_FILE = os.path.abspath(os.path.join(_base_dir, "data", "time.json"))
+WEBHOOK_SCHEMAS_FILE = os.path.abspath(
+    os.path.join(_base_dir, "data", "webhook_schemas.json")
+)
 SCRIPTS_DIR = os.path.abspath(os.path.join(_base_dir, "scripts"))
 
 
@@ -184,6 +187,35 @@ def get_jawa_address() -> Optional[str]:
 def get_time_data() -> Dict:
     with open(TIME_FILE, "r") as f:
         return json.load(f)
+
+
+def get_webhook_schemas() -> Dict[str, Any]:
+    """Read the static Jamf Pro webhook event catalog.
+
+    Hand-maintained reference data, not runtime state: the file ships
+    with JAWA and is edited directly when Jamf Pro's event set changes.
+    Read on every call (it is small, and no caching keeps a stale copy
+    alive after an edit). Degrades to empty structures instead of
+    raising, because the Jamf automation form's event dropdown reads
+    this too and must still render if the file is damaged.
+    """
+    empty: Dict[str, Any] = {
+        "categories": {},
+        "schemas": {},
+        "examples": {},
+    }
+    try:
+        with open(WEBHOOK_SCHEMAS_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        logthis.warning(
+            f"Webhook event catalog unreadable: {WEBHOOK_SCHEMAS_FILE}"
+        )
+        return empty
+    if not isinstance(data, dict):
+        logthis.warning("Webhook event catalog is not a JSON object.")
+        return empty
+    return {key: data.get(key) or {} for key in empty}
 
 
 # --- Script Management ---

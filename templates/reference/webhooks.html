@@ -1,0 +1,69 @@
+{% extends "shared/_layout.html" %}
+{% from "shared/_macros.html" import hero_section %}
+
+{% block title %}
+{% if selected_event %}{{ selected_event }} | {% endif %}Webhook Reference | JAWA
+{% endblock %}
+
+{% block content %}
+{{ hero_section(
+    title=selected_event if selected_event else "Webhook Reference",
+    subtitle=(
+        "Jamf Pro webhook event"
+        if selected_event
+        else (schemas|length|string) ~ " Jamf Pro webhook events -- field schemas and sample payloads"
+    ),
+    secondary_url=url_for('reference.webhooks') if selected_event else "",
+    secondary_label="All events"
+) }}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-3 d-none d-md-block">
+            <nav class="event-sidebar" aria-label="Webhook events">
+                {% for category, events in categories.items() %}
+                <h6>{{ category }}</h6>
+                {% for event in events %}
+                <a class="event-link {% if event == selected_event %}active{% endif %}"
+                   href="{{ url_for('reference.webhook_detail', event_type=event) }}">{{ event }}</a>
+                {% endfor %}
+                {% endfor %}
+            </nav>
+        </div>
+
+        <div class="col-md-9">
+            {% if selected_event %}
+            {% include "reference/_event_detail.html" %}
+            {% else %}
+            {% for category, events in categories.items() %}
+            <div class="schema-section">
+                <div class="section-header">
+                    <h3>{{ category }}</h3>
+                </div>
+                <div class="table-responsive">
+                    <table class="hippocrates">
+                        <thead>
+                            <tr>
+                                <th>Event</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for event in events %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('reference.webhook_detail', event_type=event) }}"><code>{{ event }}</code></a>
+                                </td>
+                                <td>{{ schemas[event].description }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

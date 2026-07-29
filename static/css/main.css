@@ -1417,3 +1417,20 @@ a.btn-hero-secondary:visited {
     outline: none;
     box-shadow: 0 0 0 3px rgba(60, 106, 167, 0.35);
 }
+
+/* ===== Empty States ===== */
+.empty-state {
+    max-width: 800px;
+    margin: 1rem auto;
+    padding: 2rem;
+    text-align: center;
+    background: var(--color-surface);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.empty-state-message {
+    margin: 0 0 1rem;
+    font-size: 0.95rem;
+    color: var(--color-text-secondary);
+}

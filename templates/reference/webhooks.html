@@ -17,11 +17,22 @@
     secondary_label="All events"
 ) }}
 
+{# One shape rule for every consumer of the catalog: the event dropdown
+   applies the same filter. `or {}` covers the context key being absent
+   altogether -- a damaged catalog file is already normalised to empty by
+   the data store. Both rejectattr tests are load-bearing: Jinja's
+   sequence test admits strings and mappings, and a category a hand edit
+   left holding either would otherwise render one row per character or
+   one row per key -- links to events that do not exist. #}
+{% set event_groups = (categories or {}).items()
+   | selectattr('1', 'sequence') | rejectattr('1', 'string')
+   | rejectattr('1', 'mapping') | list %}
+
 <div class="container">
     <div class="row">
         <div class="col-md-3 d-none d-md-block">
             <nav class="event-sidebar" aria-label="Webhook events">
-                {% for category, events in categories.items() %}
+                {% for category, events in event_groups %}
                 <h6>{{ category }}</h6>
                 {% for event in events %}
                 <a class="event-link {% if event == selected_event %}active{% endif %}"
@@ -35,7 +46,7 @@
             {% if selected_event %}
             {% include "reference/_event_detail.html" %}
             {% else %}
-            {% for category, events in categories.items() %}
+            {% for category, events in event_groups %}
             <div class="schema-section">
                 <div class="section-header">
                     <h3>{{ category }}</h3>

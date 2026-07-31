@@ -1408,8 +1408,7 @@ a.btn-hero-secondary:visited {
     transition: opacity 0.2s ease, background-color 0.15s ease;
 }
 
-.code-wrapper:hover .copy-btn,
-.copy-btn:focus-visible {
+.code-wrapper:hover .copy-btn {
     opacity: 1;
 }
 
@@ -1423,7 +1422,10 @@ a.btn-hero-secondary:visited {
     border-color: var(--color-accent);
 }
 
+/* Keyboard focus both reveals the button (it is opacity 0 until the
+   wrapper is hovered) and rings it. */
 .copy-btn:focus-visible {
+    opacity: 1;
     outline: none;
     box-shadow: 0 0 0 3px rgba(60, 106, 167, 0.35);
 }

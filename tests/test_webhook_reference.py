@@ -7,6 +7,8 @@ the legacy automation redirects in app.py.
 import json
 import re
 
+import pytest
+
 from bin.data_store import get_webhook_schemas
 
 # The overview table is the only place an event link is wrapped in
@@ -235,6 +237,54 @@ def test_detail_still_answers_when_one_events_entry_is_damaged(
         # catalog section, so it is undamaged and still names its
         # fields.
         assert "<td><code>jssID</code></td>" not in body, shape
+
+
+@pytest.mark.parametrize(
+    "bad_value",
+    [
+        "JSSStartup",  # string
+        {"JSSStartup": "x"},  # mapping
+    ],
+    ids=["string", "mapping"],
+)
+def test_a_miscategorised_event_list_degrades_that_group_only(
+    logged_in_client, jawa_env, bad_value
+):
+    """The overview applies the same shape rule as the event dropdown.
+
+    A hand edit that leaves one category holding a bare string or a
+    mapping instead of a list is iterable, so the page does not fail --
+    it renders a row and a sidebar link per character or per key, every
+    one of them linking to an event that does not exist. That group must
+    be dropped instead.
+    """
+    jawa_env.webhook_schemas_file.write_text(
+        json.dumps(
+            {
+                "categories": {
+                    "Computer Events": ["ComputerAdded"],
+                    "System Events": bad_value,
+                },
+                "schemas": {},
+                "examples": {},
+            }
+        )
+    )
+    resp = logged_in_client.get("/reference/webhooks")
+    assert resp.status_code == 200
+    body = resp.data.decode()
+    # The undamaged group still renders its table row.
+    assert TABLE_EVENT_LINK.findall(body) == ["ComputerAdded"]
+    # ...and the damaged one contributes nothing anywhere on the page:
+    # no table row, no heading, and no per-character sidebar link. Kept
+    # at document scope so a guard applied to only one of the two loops
+    # cannot satisfy it.
+    assert "System Events" not in body
+    assert not [
+        event
+        for event in re.findall(r'/reference/webhooks/([^"]+)"', body)
+        if len(event) == 1
+    ]
 
 
 def test_reference_pages_carry_no_inline_styles(logged_in_client, jawa_env):

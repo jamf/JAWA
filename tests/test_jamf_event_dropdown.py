@@ -8,6 +8,8 @@ matched against the inbound payload's webhookEvent.
 
 import json
 
+import pytest
+
 from bin.data_store import get_webhook_schemas
 
 
@@ -104,17 +106,26 @@ def test_empty_catalog_leaves_the_form_renderable(
     assert 'name="event"' in resp.data.decode()
 
 
+@pytest.mark.parametrize(
+    "bad_value",
+    [
+        "JSSStartup",  # string
+        {"JSSStartup": "x"},  # mapping
+    ],
+    ids=["string", "mapping"],
+)
 def test_a_miscategorised_event_list_degrades_that_group_only(
-    logged_in_client, jawa_env
+    logged_in_client, jawa_env, bad_value
 ):
-    # A hand edit that leaves one category holding a bare string
-    # instead of a list must drop that group, not the whole form.
+    # A hand edit that leaves one category holding a bare string or
+    # mapping object instead of a list must drop that group, not the
+    # whole form. Both damage shapes blow up the flatten with TypeError.
     jawa_env.webhook_schemas_file.write_text(
         json.dumps(
             {
                 "categories": {
                     "Computer Events": ["ComputerAdded"],
-                    "System Events": "JSSStartup",
+                    "System Events": bad_value,
                 },
                 "schemas": {},
                 "examples": {},

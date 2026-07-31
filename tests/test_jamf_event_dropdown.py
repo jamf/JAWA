@@ -7,6 +7,7 @@ matched against the inbound payload's webhookEvent.
 """
 
 import json
+import re
 
 import pytest
 
@@ -19,6 +20,26 @@ def _catalog_events():
         for events in get_webhook_schemas()["categories"].values()
         for event in events
     ]
+
+
+def _event_select_tag(body):
+    """The <select name="event"> opening tag on its own.
+
+    Other fields on the form carry `required` too, so an attribute
+    assertion has to be scoped to this tag or it cannot discriminate.
+    """
+    match = re.search(r'<select[^>]*name="event"[^>]*>', body)
+    assert match, "the event select is missing entirely"
+    return match.group(0)
+
+
+def _option_values(body):
+    """Every non-empty option value in document order.
+
+    The placeholder renders as value="" and is excluded, so this is the
+    catalog options plus a "Stored event" option when one is rendered.
+    """
+    return re.findall(r'<option value="([^"]+)"', body)
 
 
 def test_create_form_groups_events_by_category(logged_in_client, jawa_env):
@@ -34,7 +55,11 @@ def test_create_form_lists_every_catalog_event(logged_in_client, jawa_env):
         "/automations/jamfpro/new"
     ).data.decode()
     events = _catalog_events()
-    assert len(events) == 23
+    # An option per catalog event and no more. No stored event exists on
+    # the create form, so the only other option is the value=""
+    # placeholder, which _option_values excludes. A count read off the
+    # page, not a literal that has to be bumped when Jamf adds an event.
+    assert _option_values(body) == events
     for event in events:
         assert f'value="{event}"' in body
 
@@ -49,6 +74,10 @@ def test_create_form_keeps_the_required_empty_placeholder(
     assert "-- Keep current --" not in body
     assert 'name="event"' in body
     assert "showSmartGroupNote(this.value)" in body
+    # The placeholder is only a placeholder if the browser refuses the
+    # submission: a webhook saved with no event never matches an inbound
+    # webhookEvent, so it exists and never fires.
+    assert "required" in _event_select_tag(body)
 
 
 def _stored_webhook(event):
@@ -74,6 +103,9 @@ def test_edit_form_preselects_the_stored_event(
     ).data.decode()
     assert '<option value="ComputerCheckIn" selected>' in body
     assert "-- Keep current --" in body
+    # "Keep current" only works if the empty option is submittable, so
+    # the attribute the create form carries must be absent here.
+    assert "required" not in _event_select_tag(body)
 
 
 def test_edit_form_preserves_an_event_missing_from_the_catalog(

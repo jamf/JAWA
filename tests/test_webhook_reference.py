@@ -4,7 +4,24 @@ Namespaced under /reference/ on purpose: /webhooks* is already taken by
 the legacy automation redirects in app.py.
 """
 
+import json
 import re
+
+from bin.data_store import get_webhook_schemas
+
+# The overview table is the only place an event link is wrapped in
+# <code>; the sidebar renders bare anchors. Counting this shape keeps
+# the assertions below pinned to the table rather than to the sidebar,
+# which emits the same category headings and event names.
+TABLE_EVENT_LINK = re.compile(r'<a href="/reference/webhooks/([^"]+)"><code>')
+
+
+def _catalog_events():
+    return [
+        event
+        for events in get_webhook_schemas()["categories"].values()
+        for event in events
+    ]
 
 
 def test_overview_renders(logged_in_client, jawa_env):
@@ -17,18 +34,19 @@ def test_overview_renders(logged_in_client, jawa_env):
     assert "Mobile Device Events" in body
     assert "System Events" in body
     assert "ComputerAdded" in body
+    # The headings and names above are also emitted by the sidebar, so
+    # they cannot see the table at all. Descriptions and the standard
+    # table treatment come only from the table.
+    assert "new computer record is created" in body
+    assert 'class="hippocrates"' in body
 
 
-def test_overview_lists_all_23_events(logged_in_client, jawa_env):
-    from bin.data_store import get_webhook_schemas
-
+def test_overview_lists_every_catalog_event(logged_in_client, jawa_env):
     body = logged_in_client.get("/reference/webhooks").data.decode()
-    events = [
-        e
-        for evs in get_webhook_schemas()["categories"].values()
-        for e in evs
-    ]
-    assert len(events) == 23
+    events = _catalog_events()
+    # A row per catalog event and no more: a count read off the page,
+    # not a literal that has to be bumped when Jamf adds an event.
+    assert TABLE_EVENT_LINK.findall(body) == events
     for event in events:
         assert f"/reference/webhooks/{event}" in body
 
@@ -69,8 +87,6 @@ def test_overview_survives_a_catalog_missing_its_schemas(
     populated while every description lookup comes back undefined. The
     overview must still render the event names it does know about.
     """
-    import json
-
     catalog = json.loads(jawa_env.webhook_schemas_file.read_text())
     catalog["schemas"] = []
     jawa_env.webhook_schemas_file.write_text(json.dumps(catalog))
@@ -93,8 +109,6 @@ def test_overview_still_answers_when_one_events_entry_is_damaged(
     cannot answer the description lookup: the row must fall back to an
     empty description and the page must still list the event.
     """
-    import json
-
     pristine = jawa_env.webhook_schemas_file.read_text()
     for shape in ("TBD", ["jssID", "udid"], 5):
         catalog = json.loads(pristine)
@@ -191,8 +205,6 @@ def test_detail_still_answers_when_one_events_entry_is_damaged(
     truthy, so a guard that only tests falsiness lets them through to a
     lookup that fails.
     """
-    import json
-
     pristine = jawa_env.webhook_schemas_file.read_text()
     shapes = (
         # The whole entry replaced by a scalar.

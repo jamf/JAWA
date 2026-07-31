@@ -35,6 +35,7 @@ import requests
 from bin import logger
 from bin.data_store import (
     get_jawa_address,
+    get_webhook_schemas,
     save_script,
     save_all_webhooks,
     retire_script,
@@ -163,7 +164,12 @@ class JamfHandler(AutomationHandler):
     supports_auth = True
 
     def get_create_context(self, session_data: Dict) -> Dict[str, Any]:
-        return {"url": session_data.get("url")}
+        # The event dropdown is generated from the same catalog the
+        # Webhook Reference pages use, so the two cannot drift.
+        return {
+            "url": session_data.get("url"),
+            "event_categories": get_webhook_schemas()["categories"],
+        }
 
     def process_create(
         self,

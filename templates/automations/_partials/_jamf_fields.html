@@ -12,7 +12,15 @@
 <div class="d-flex justify-content-center text-center">
     <b>Jamf Event:</b>
 </div>
-{% set catalog_events = (event_categories or {}).values() | sum(start=[]) %}
+{# `or {}` covers this partial being rendered without the context key at
+   all (a caller that does not splat get_create_context) -- a damaged
+   catalog file is already normalised to empty by the data store. The
+   sequence tests drop a category a hand edit left holding a string or a
+   mapping instead of a list, so one bad group degrades on its own. #}
+{% set event_groups = (event_categories or {}).items()
+   | selectattr('1', 'sequence') | rejectattr('1', 'string')
+   | rejectattr('1', 'mapping') | list %}
+{% set catalog_events = event_groups | map(attribute='1') | sum(start=[]) %}
 {% set stored_event = webhook_info[0].event if webhook_info else '' %}
 <select class="form-control text-center" name="event"
         onchange="showSmartGroupNote(this.value)"
@@ -25,7 +33,7 @@
         <option value="{{ stored_event }}" selected>{{ stored_event }}</option>
     </optgroup>
     {% endif %}
-    {% for category, events in (event_categories or {}).items() %}
+    {% for category, events in event_groups %}
     <optgroup label="{{ category }}">
         {% for event in events %}
         <option value="{{ event }}" {{ 'selected' if event == stored_event }}>{{ event }}</option>

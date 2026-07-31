@@ -6,6 +6,8 @@ the exact Jamf event strings -- they are stored on the webhook and
 matched against the inbound payload's webhookEvent.
 """
 
+import json
+
 from bin.data_store import get_webhook_schemas
 
 
@@ -100,3 +102,28 @@ def test_empty_catalog_leaves_the_form_renderable(
     resp = logged_in_client.get("/automations/jamfpro/new")
     assert resp.status_code == 200
     assert 'name="event"' in resp.data.decode()
+
+
+def test_a_miscategorised_event_list_degrades_that_group_only(
+    logged_in_client, jawa_env
+):
+    # A hand edit that leaves one category holding a bare string
+    # instead of a list must drop that group, not the whole form.
+    jawa_env.webhook_schemas_file.write_text(
+        json.dumps(
+            {
+                "categories": {
+                    "Computer Events": ["ComputerAdded"],
+                    "System Events": "JSSStartup",
+                },
+                "schemas": {},
+                "examples": {},
+            }
+        )
+    )
+    resp = logged_in_client.get("/automations/jamfpro/new")
+    assert resp.status_code == 200
+    body = resp.data.decode()
+    assert '<optgroup label="Computer Events">' in body
+    assert 'value="ComputerAdded"' in body
+    assert '<optgroup label="System Events">' not in body

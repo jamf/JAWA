@@ -1,0 +1,124 @@
+{% extends "shared/_layout.html" %}
+{% from "shared/_macros.html" import hero_section %}
+
+{% block title %}
+{% if selected_event %}{{ selected_event }} | {% endif %}Webhook Reference | JAWA
+{% endblock %}
+
+{% block content %}
+{{ hero_section(
+    title=selected_event if selected_event else "Webhook Reference",
+    subtitle=(
+        "Jamf Pro webhook event"
+        if selected_event
+        else (schemas|length|string) ~ " Jamf Pro webhook events -- field schemas and sample payloads"
+    ),
+    secondary_url=url_for('reference.webhooks') if selected_event else "",
+    secondary_label="All events"
+) }}
+
+{# One shape rule for every consumer of the catalog: the event dropdown
+   applies the same filter. `or {}` covers the context key being absent
+   altogether -- a damaged catalog file is already normalised to empty by
+   the data store. Both rejectattr tests are load-bearing: Jinja's
+   sequence test admits strings and mappings, and a category a hand edit
+   left holding either would otherwise render one row per character or
+   one row per key -- links to events that do not exist. #}
+{% set event_groups = (categories or {}).items()
+   | selectattr('1', 'sequence') | rejectattr('1', 'string')
+   | rejectattr('1', 'mapping') | list %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-3 d-none d-md-block">
+            <nav class="event-sidebar" aria-label="Webhook events">
+                {% for category, events in event_groups %}
+                <h6>{{ category }}</h6>
+                {% for event in events %}
+                <a class="event-link {% if event == selected_event %}active{% endif %}"
+                   href="{{ url_for('reference.webhook_detail', event_type=event) }}">{{ event }}</a>
+                {% endfor %}
+                {% endfor %}
+            </nav>
+        </div>
+
+        <div class="col-md-9">
+            {% if selected_event %}
+            {% include "reference/_event_detail.html" %}
+            {% else %}
+            {% for category, events in event_groups %}
+            <div class="schema-section">
+                <div class="section-header">
+                    <h3>{{ category }}</h3>
+                </div>
+                <div class="table-responsive">
+                    <table class="hippocrates">
+                        <thead>
+                            <tr>
+                                <th>Event</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for event in events %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('reference.webhook_detail', event_type=event) }}"><code>{{ event }}</code></a>
+                                </td>
+                                <td>{{ (schemas.get(event) if schemas.get(event) is mapping else {}).get('description', '') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+{% if examples.get(selected_event) %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+{% endif %}
+<script>
+(function () {
+    var COPIED_RESET_MS = 2000;
+
+    {% if examples.get(selected_event) %}
+    // The payload crosses into JS as data (tojson) and is written with
+    // textContent, so it is never parsed as markup. The layout already
+    // ran hljs.highlightAll() while this element was empty, so
+    // highlight it explicitly now that it has content.
+    var payload = {{ examples.get(selected_event) | tojson }};
+    var codeEl = document.getElementById('example-json');
+    // A pending event renders no payload block even when the catalog
+    // carries an example for it, so the element may be absent.
+    if (codeEl) {
+        codeEl.textContent = JSON.stringify(payload, null, 2);
+        if (window.hljs) {
+            hljs.highlightElement(codeEl);
+        }
+    }
+    {% endif %}
+
+    document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var code = btn.closest('.code-wrapper').querySelector('code');
+            navigator.clipboard.writeText(code.textContent).then(
+                function () {
+                    btn.textContent = 'Copied!';
+                    btn.classList.add('copied');
+                    setTimeout(function () {
+                        btn.textContent = 'Copy';
+                        btn.classList.remove('copied');
+                    }, COPIED_RESET_MS);
+                }
+            );
+        });
+    });
+})();
+</script>
+{% endblock %}

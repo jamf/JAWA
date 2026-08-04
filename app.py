@@ -158,6 +158,10 @@ def register_blueprints() -> None:
     from views import search_view
 
     app.register_blueprint(search_view.blueprint)
+    # Webhook event reference (read-only docs)
+    from views import reference_view
+
+    app.register_blueprint(reference_view.blueprint)
     # Credential management view
     from views import credential_view
 

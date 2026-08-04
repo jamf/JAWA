@@ -44,6 +44,9 @@ WEBHOOKS_FILE = os.path.abspath(
 CRON_FILE = os.path.abspath(os.path.join(_base_dir, "data", "cron.json"))
 SERVER_FILE = os.path.abspath(os.path.join(_base_dir, "data", "server.json"))
 TIME_FILE = os.path.abspath(os.path.join(_base_dir, "data", "time.json"))
+WEBHOOK_SCHEMAS_FILE = os.path.abspath(
+    os.path.join(_base_dir, "data", "webhook_schemas.json")
+)
 SCRIPTS_DIR = os.path.abspath(os.path.join(_base_dir, "scripts"))
 
 
@@ -184,6 +187,45 @@ def get_jawa_address() -> Optional[str]:
 def get_time_data() -> Dict:
     with open(TIME_FILE, "r") as f:
         return json.load(f)
+
+
+def get_webhook_schemas() -> Dict[str, Any]:
+    """Read the static Jamf Pro webhook event catalog.
+
+    Hand-maintained reference data, not runtime state: the file ships
+    with JAWA and is edited directly when Jamf Pro's event set changes.
+    Read on every call (it is small, and no caching keeps a stale copy
+    alive after an edit). Degrades to empty structures instead of
+    raising, because the Jamf automation form's event dropdown reads
+    this too and must still render if the file is damaged.
+    """
+    empty: Dict[str, Any] = {
+        "categories": {},
+        "schemas": {},
+        "examples": {},
+    }
+    try:
+        with open(WEBHOOK_SCHEMAS_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        # ValueError covers both a malformed JSON body
+        # (json.JSONDecodeError) and a file saved in a non-UTF-8
+        # encoding (UnicodeDecodeError) - neither is an OSError.
+        logthis.warning(
+            f"Webhook event catalog unreadable: {WEBHOOK_SCHEMAS_FILE}"
+        )
+        return empty
+    if not isinstance(data, dict):
+        logthis.warning("Webhook event catalog is not a JSON object.")
+        return empty
+    # Each section is iterated as a mapping by the reference pages and
+    # the event dropdown, so a hand edit that turns one into a list or
+    # a string degrades to empty here rather than failing in a template.
+    out: Dict[str, Any] = {}
+    for key in empty:
+        section = data.get(key)
+        out[key] = section if isinstance(section, dict) else {}
+    return out
 
 
 # --- Script Management ---

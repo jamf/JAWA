@@ -120,6 +120,7 @@ class JawaEnv:
         self.server_file = self.data_dir / "server.json"
         self.credentials_file = self.data_dir / "credentials.json"
         self.log_file = self.data_dir / "jawa.log"
+        self.webhook_schemas_file = self.data_dir / "webhook_schemas.json"
 
     def add_webhook(self, entry):
         data = json.loads(self.webhooks_file.read_text())
@@ -152,6 +153,10 @@ def jawa_env(tmp_path, monkeypatch):
         os.path.join(REPO_ROOT, "data", "time.json"),
         env.data_dir / "time.json",
     )
+    shutil.copy(
+        os.path.join(REPO_ROOT, "data", "webhook_schemas.json"),
+        env.webhook_schemas_file,
+    )
 
     webhooks = str(env.webhooks_file)
     cron = str(env.cron_file)
@@ -165,6 +170,11 @@ def jawa_env(tmp_path, monkeypatch):
     monkeypatch.setattr(data_store, "SERVER_FILE", server)
     monkeypatch.setattr(
         data_store, "TIME_FILE", str(env.data_dir / "time.json")
+    )
+    monkeypatch.setattr(
+        data_store,
+        "WEBHOOK_SCHEMAS_FILE",
+        str(env.webhook_schemas_file),
     )
     monkeypatch.setattr(data_store, "SCRIPTS_DIR", scripts)
 

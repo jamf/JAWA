@@ -36,7 +36,8 @@
 {% block content %}
 {{ hero_section(
     title="JAWA Dashboard",
-    subtitle=(total_webhooks or '0')|string ~ " webhooks &middot; " ~ (total_cron or '0')|string ~ " timed automations &middot; <a href='" ~ session.get('url', '') ~ "' target='_blank' style='color: rgba(255,255,255,0.9);'>" ~ session.get('url', '') ~ "</a>",
+    subtitle=(total_webhooks or '0')|string ~ " webhooks &middot; " ~ (total_cron or '0')|string ~ " timed automations &middot; ",
+    subtitle_link_url=session.get('url', ''),
     create_url="/automations/jamfpro/new",
     create_label="Create Webhook",
     secondary_url="/templates",

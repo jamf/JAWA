@@ -1,0 +1,1057 @@
+{
+  "_comment": "Static reference catalog of Jamf Pro webhook events: display grouping, per-event field schemas, and sample payloads. Hand-maintained, like data/time.json - edit this file directly when Jamf Pro's event set changes. Read by the Webhook Reference pages and by the Jamf Pro automation form's event dropdown, so every event listed under 'categories' needs a matching 'schemas' entry. An entry with \"pending\": true renders as 'not yet confirmed' instead of showing fields.",
+  "categories": {
+    "Computer Events": [
+      "ComputerAdded",
+      "ComputerCheckIn",
+      "ComputerInventoryCompleted",
+      "ComputerPatchPolicyCompleted",
+      "ComputerPolicyFinished",
+      "ComputerPushCapabilityChanged",
+      "SmartGroupComputerMembershipChange"
+    ],
+    "Mobile Device Events": [
+      "MobileDeviceCheckIn",
+      "MobileDeviceCommandCompleted",
+      "MobileDeviceEnrolled",
+      "MobileDeviceInventoryCompleted",
+      "MobileDevicePushSent",
+      "MobileDeviceUnEnrolled",
+      "SmartGroupMobileDeviceMembershipChange"
+    ],
+    "System Events": [
+      "DeviceAddedToDEP",
+      "DeviceRateLimited",
+      "JSSShutdown",
+      "JSSStartup",
+      "PatchSoftwareTitleUpdated",
+      "PushSent",
+      "RestAPIOperation",
+      "SCEPChallenge",
+      "SmartGroupUserMembershipChange"
+    ]
+  },
+  "schemas": {
+    "ComputerAdded": {
+      "description": "Triggered when a new computer record is created in Jamf Pro",
+      "schema": {
+        "alternateMacAddress": "<string> Secondary MAC address (e.g., Ethernet)",
+        "building": "<string> Building name assigned to the computer",
+        "department": "<string> Department name assigned to the computer",
+        "deviceName": "<string> Computer name as reported by the device",
+        "emailAddress": "<string> Email address of the assigned user",
+        "ipAddress": "<string> Current IP address of the computer",
+        "jssID": "<integer> Unique Jamf Pro computer record ID",
+        "macAddress": "<string> Primary MAC address (usually Wi-Fi)",
+        "model": "<string> Hardware model identifier",
+        "osBuild": "<string> macOS build number",
+        "osVersion": "<string> macOS version string",
+        "phone": "<string> Phone number of the assigned user",
+        "position": "<string> Job title of the assigned user",
+        "realName": "<string> Full name of the assigned user",
+        "reportedIpAddress": "<string> IP address reported during last check-in",
+        "room": "<string> Room number/name assigned to the computer",
+        "serialNumber": "<string> Hardware serial number",
+        "udid": "<string> Unique Device Identifier",
+        "userDirectoryID": "<string> Directory service user ID (e.g., from AD/LDAP)",
+        "username": "<string> Username of the assigned user"
+      }
+    },
+    "ComputerCheckIn": {
+      "description": "Triggered when a computer checks in with Jamf Pro",
+      "schema": {
+        "alternateMacAddress": "<string> Secondary MAC address",
+        "building": "<string> Building name",
+        "department": "<string> Department name",
+        "deviceName": "<string> Computer name",
+        "emailAddress": "<string> Assigned user email",
+        "ipAddress": "<string> Current IP address",
+        "jssID": "<integer> Jamf Pro computer ID",
+        "macAddress": "<string> Primary MAC address",
+        "model": "<string> Hardware model",
+        "osBuild": "<string> macOS build number",
+        "osVersion": "<string> macOS version",
+        "phone": "<string> User phone number",
+        "position": "<string> User job title",
+        "realName": "<string> User full name",
+        "reportedIpAddress": "<string> Reported IP address",
+        "room": "<string> Room assignment",
+        "serialNumber": "<string> Serial number",
+        "udid": "<string> UDID",
+        "userDirectoryID": "<string> Directory user ID",
+        "username": "<string> Username"
+      }
+    },
+    "ComputerInventoryCompleted": {
+      "description": "Triggered when a computer completes a full inventory update",
+      "schema": {
+        "alternateMacAddress": "<string> Secondary MAC address",
+        "building": "<string> Building name",
+        "department": "<string> Department name",
+        "deviceName": "<string> Computer name",
+        "emailAddress": "<string> Assigned user email",
+        "ipAddress": "<string> Current IP address",
+        "jssID": "<integer> Jamf Pro computer ID",
+        "macAddress": "<string> Primary MAC address",
+        "model": "<string> Hardware model",
+        "osBuild": "<string> macOS build number",
+        "osVersion": "<string> macOS version",
+        "phone": "<string> User phone number",
+        "position": "<string> User job title",
+        "realName": "<string> User full name",
+        "reportedIpAddress": "<string> Reported IP address",
+        "room": "<string> Room assignment",
+        "serialNumber": "<string> Serial number",
+        "udid": "<string> UDID",
+        "userDirectoryID": "<string> Directory user ID",
+        "username": "<string> Username"
+      }
+    },
+    "ComputerPatchPolicyCompleted": {
+      "description": "Triggered when a patch policy completes on a computer",
+      "schema": {
+        "alternateMacAddress": "<string> Secondary MAC address",
+        "building": "<string> Building name",
+        "department": "<string> Department name",
+        "deviceName": "<string> Computer name",
+        "emailAddress": "<string> Assigned user email",
+        "ipAddress": "<string> Current IP address",
+        "jssID": "<integer> Jamf Pro computer ID",
+        "macAddress": "<string> Primary MAC address",
+        "model": "<string> Hardware model",
+        "osBuild": "<string> macOS build number",
+        "osVersion": "<string> macOS version",
+        "patchPolicyId": "<integer> ID of the patch policy that ran",
+        "patchPolicyName": "<string> Name of the patch policy",
+        "phone": "<string> User phone number",
+        "position": "<string> User job title",
+        "realName": "<string> User full name",
+        "reportedIpAddress": "<string> Reported IP address",
+        "room": "<string> Room assignment",
+        "serialNumber": "<string> Serial number",
+        "softwareTitleId": "<integer> ID of the software title being patched",
+        "softwareTitleName": "<string> Name of the software title",
+        "successful": "<boolean> Whether the patch was successfully installed",
+        "udid": "<string> UDID",
+        "userDirectoryID": "<string> Directory user ID",
+        "username": "<string> Username"
+      }
+    },
+    "ComputerPolicyFinished": {
+      "description": "Triggered when a policy finishes executing on a computer",
+      "schema": {
+        "alternateMacAddress": "<string> Secondary MAC address",
+        "building": "<string> Building name",
+        "department": "<string> Department name",
+        "deviceName": "<string> Computer name",
+        "emailAddress": "<string> Assigned user email",
+        "ipAddress": "<string> Current IP address",
+        "jssID": "<integer> Jamf Pro computer ID",
+        "macAddress": "<string> Primary MAC address",
+        "model": "<string> Hardware model",
+        "osBuild": "<string> macOS build number",
+        "osVersion": "<string> macOS version",
+        "phone": "<string> User phone number",
+        "policyId": "<integer> ID of the policy that finished",
+        "position": "<string> User job title",
+        "realName": "<string> User full name",
+        "reportedIpAddress": "<string> Reported IP address",
+        "room": "<string> Room assignment",
+        "serialNumber": "<string> Serial number",
+        "successful": "<boolean> Whether the policy completed successfully",
+        "udid": "<string> UDID",
+        "userDirectoryID": "<string> Directory user ID",
+        "username": "<string> Username"
+      }
+    },
+    "ComputerPushCapabilityChanged": {
+      "description": "Triggered when a computer's push notification capability changes",
+      "schema": {
+        "alternateMacAddress": "<string> Secondary MAC address",
+        "building": "<string> Building name",
+        "department": "<string> Department name",
+        "deviceName": "<string> Computer name",
+        "emailAddress": "<string> Assigned user email",
+        "ipAddress": "<string> Current IP address",
+        "jssID": "<integer> Jamf Pro computer ID",
+        "macAddress": "<string> Primary MAC address",
+        "model": "<string> Hardware model",
+        "osBuild": "<string> macOS build number",
+        "osVersion": "<string> macOS version",
+        "phone": "<string> User phone number",
+        "position": "<string> User job title",
+        "realName": "<string> User full name",
+        "reportedIpAddress": "<string> Reported IP address",
+        "room": "<string> Room assignment",
+        "serialNumber": "<string> Serial number",
+        "udid": "<string> UDID",
+        "userDirectoryID": "<string> Directory user ID",
+        "username": "<string> Username"
+      }
+    },
+    "MobileDeviceCheckIn": {
+      "description": "Triggered when a mobile device checks in with Jamf Pro",
+      "schema": {
+        "bluetoothMacAddress": "<string> Bluetooth MAC address",
+        "building": "<string> Building name",
+        "department": "<string> Department name",
+        "deviceName": "<string> Device name",
+        "emailAddress": "<string> Assigned user email",
+        "icciID": "<string> Integrated Circuit Card ID for SIM",
+        "imei": "<string> International Mobile Equipment Identity",
+        "ipAddress": "<string> Current IP address",
+        "jssID": "<integer> Jamf Pro mobile device ID",
+        "model": "<string> Device model",
+        "modelDisplay": "<string> Human-readable model name",
+        "osBuild": "<string> iOS/iPadOS build number",
+        "osVersion": "<string> iOS/iPadOS version",
+        "phone": "<string> User phone number",
+        "position": "<string> User job title",
+        "product": "<string> Product identifier",
+        "realName": "<string> User full name",
+        "room": "<string> Room assignment",
+        "serialNumber": "<string> Serial number",
+        "udid": "<string> UDID",
+        "userDirectoryID": "<string> Directory user ID",
+        "username": "<string> Username",
+        "version": "<string> Device version",
+        "wifiMacAddress": "<string> Wi-Fi MAC address"
+      }
+    },
+    "MobileDeviceCommandCompleted": {
+      "description": "Triggered when an MDM command completes on a mobile device",
+      "schema": {
+        "bluetoothMacAddress": "<string> Bluetooth MAC address",
+        "building": "<string> Building name",
+        "department": "<string> Department name",
+        "deviceName": "<string> Device name",
+        "emailAddress": "<string> Assigned user email",
+        "icciID": "<string> ICC ID",
+        "imei": "<string> IMEI",
+        "ipAddress": "<string> Current IP address",
+        "jssID": "<integer> Jamf Pro mobile device ID",
+        "model": "<string> Device model",
+        "modelDisplay": "<string> Model display name",
+        "osBuild": "<string> OS build number",
+        "osVersion": "<string> OS version",
+        "phone": "<string> User phone number",
+        "position": "<string> User job title",
+        "product": "<string> Product identifier",
+        "realName": "<string> User full name",
+        "room": "<string> Room assignment",
+        "serialNumber": "<string> Serial number",
+        "udid": "<string> UDID",
+        "userDirectoryID": "<string> Directory user ID",
+        "username": "<string> Username",
+        "version": "<string> Device version",
+        "wifiMacAddress": "<string> Wi-Fi MAC address"
+      }
+    },
+    "MobileDeviceEnrolled": {
+      "description": "Triggered when a mobile device completes MDM enrollment",
+      "schema": {
+        "bluetoothMacAddress": "<string> Bluetooth MAC address",
+        "building": "<string> Building name",
+        "department": "<string> Department name",
+        "deviceName": "<string> Device name",
+        "emailAddress": "<string> Assigned user email",
+        "icciID": "<string> ICC ID",
+        "imei": "<string> IMEI",
+        "ipAddress": "<string> Current IP address",
+        "jssID": "<integer> Jamf Pro mobile device ID",
+        "model": "<string> Device model",
+        "modelDisplay": "<string> Model display name",
+        "osBuild": "<string> OS build number",
+        "osVersion": "<string> OS version",
+        "phone": "<string> User phone number",
+        "position": "<string> User job title",
+        "product": "<string> Product identifier",
+        "realName": "<string> User full name",
+        "room": "<string> Room assignment",
+        "serialNumber": "<string> Serial number",
+        "udid": "<string> UDID",
+        "userDirectoryID": "<string> Directory user ID",
+        "username": "<string> Username",
+        "version": "<string> Device version",
+        "wifiMacAddress": "<string> Wi-Fi MAC address"
+      }
+    },
+    "MobileDeviceInventoryCompleted": {
+      "description": "Triggered when a mobile device completes a full inventory update",
+      "schema": {
+        "bluetoothMacAddress": "<string> Bluetooth MAC address",
+        "building": "<string> Building name",
+        "department": "<string> Department name",
+        "deviceName": "<string> Device name",
+        "emailAddress": "<string> Assigned user email",
+        "icciID": "<string> ICC ID",
+        "imei": "<string> IMEI",
+        "ipAddress": "<string> Current IP address",
+        "jssID": "<integer> Jamf Pro mobile device ID",
+        "model": "<string> Device model",
+        "modelDisplay": "<string> Model display name",
+        "osBuild": "<string> OS build number",
+        "osVersion": "<string> OS version",
+        "phone": "<string> User phone number",
+        "position": "<string> User job title",
+        "product": "<string> Product identifier",
+        "realName": "<string> User full name",
+        "room": "<string> Room assignment",
+        "serialNumber": "<string> Serial number",
+        "udid": "<string> UDID",
+        "userDirectoryID": "<string> Directory user ID",
+        "username": "<string> Username",
+        "version": "<string> Device version",
+        "wifiMacAddress": "<string> Wi-Fi MAC address"
+      }
+    },
+    "MobileDevicePushSent": {
+      "description": "Triggered when a push notification is sent to a mobile device",
+      "schema": {
+        "bluetoothMacAddress": "<string> Bluetooth MAC address",
+        "building": "<string> Building name",
+        "department": "<string> Department name",
+        "deviceName": "<string> Device name",
+        "emailAddress": "<string> Assigned user email",
+        "icciID": "<string> ICC ID",
+        "imei": "<string> IMEI",
+        "ipAddress": "<string> Current IP address",
+        "jssID": "<integer> Jamf Pro mobile device ID",
+        "model": "<string> Device model",
+        "modelDisplay": "<string> Model display name",
+        "osBuild": "<string> OS build number",
+        "osVersion": "<string> OS version",
+        "phone": "<string> User phone number",
+        "position": "<string> User job title",
+        "product": "<string> Product identifier",
+        "realName": "<string> User full name",
+        "room": "<string> Room assignment",
+        "serialNumber": "<string> Serial number",
+        "udid": "<string> UDID",
+        "userDirectoryID": "<string> Directory user ID",
+        "username": "<string> Username",
+        "version": "<string> Device version",
+        "wifiMacAddress": "<string> Wi-Fi MAC address"
+      }
+    },
+    "MobileDeviceUnEnrolled": {
+      "description": "Triggered when a mobile device is unenrolled from MDM",
+      "schema": {
+        "bluetoothMacAddress": "<string> Bluetooth MAC address",
+        "building": "<string> Building name",
+        "department": "<string> Department name",
+        "deviceName": "<string> Device name",
+        "emailAddress": "<string> Assigned user email",
+        "icciID": "<string> ICC ID",
+        "imei": "<string> IMEI",
+        "ipAddress": "<string> Current IP address",
+        "jssID": "<integer> Jamf Pro mobile device ID",
+        "model": "<string> Device model",
+        "modelDisplay": "<string> Model display name",
+        "osBuild": "<string> OS build number",
+        "osVersion": "<string> OS version",
+        "phone": "<string> User phone number",
+        "position": "<string> User job title",
+        "product": "<string> Product identifier",
+        "realName": "<string> User full name",
+        "room": "<string> Room assignment",
+        "serialNumber": "<string> Serial number",
+        "udid": "<string> UDID",
+        "userDirectoryID": "<string> Directory user ID",
+        "username": "<string> Username",
+        "version": "<string> Device version",
+        "wifiMacAddress": "<string> Wi-Fi MAC address"
+      }
+    },
+    "JSSShutdown": {
+      "description": "Triggered when the Jamf Pro server shuts down",
+      "schema": {
+        "hostAddress": "<string> IP address or hostname of the Jamf Pro server",
+        "institution": "<string> Organization name configured in Jamf Pro",
+        "isClusterMaster": "<boolean> Whether this node is the cluster master",
+        "jssUrl": "<string> Full URL of the Jamf Pro server",
+        "webApplicationPath": "<string> File system path to the web application"
+      }
+    },
+    "JSSStartup": {
+      "description": "Triggered when the Jamf Pro server starts up",
+      "schema": {
+        "hostAddress": "<string> IP address or hostname of the Jamf Pro server",
+        "institution": "<string> Organization name configured in Jamf Pro",
+        "isClusterMaster": "<boolean> Whether this node is the cluster master",
+        "jssUrl": "<string> Full URL of the Jamf Pro server",
+        "webApplicationPath": "<string> File system path to the web application"
+      }
+    },
+    "DeviceAddedToDEP": {
+      "description": "Triggered when a device is added to Apple Business/School Manager (DEP)",
+      "schema": {
+        "assetTag": "<string> Asset tag assigned to the device",
+        "description": "<string> Device description from Apple",
+        "deviceAssignedDate": "<integer> Epoch timestamp when device was assigned",
+        "deviceEnrollmentProgramInstanceId": "<integer> DEP instance ID in Jamf Pro",
+        "model": "<string> Device model",
+        "serialNumber": "<string> Device serial number"
+      }
+    },
+    "DeviceRateLimited": {
+      "description": "Triggered when Jamf Pro rate limits communication with a device. Field schema and sample payload are pending confirmation against a live Jamf Pro instance.",
+      "schema": {},
+      "pending": true
+    },
+    "PatchSoftwareTitleUpdated": {
+      "description": "Triggered when a patch software title definition is updated",
+      "schema": {
+        "jssID": "<integer> Jamf Pro patch software title ID",
+        "lastUpdate": "<integer> Epoch timestamp of last update",
+        "latestVersion": "<string> Latest available version",
+        "name": "<string> Software title name",
+        "reportUrl": "<string> URL to the patch report in Jamf Pro"
+      }
+    },
+    "PushSent": {
+      "description": "Triggered when a push notification is sent (generic)",
+      "schema": {
+        "type": "<string> Type of push notification sent",
+        "jssID": "<integer> ID of the device or object receiving the push"
+      }
+    },
+    "RestAPIOperation": {
+      "description": "Triggered when a REST API operation is performed",
+      "schema": {
+        "authorizedUsername": "<string> Username that authenticated the request",
+        "objectID": "<integer> ID of the object that was operated on",
+        "objectName": "<string> Name of the object",
+        "objectTypeName": "<string> Type of object (e.g., Computer, Policy)",
+        "operationSuccessful": "<boolean> Whether the operation succeeded",
+        "restAPIOperationType": "<string> Type of operation (GET, POST, PUT, DELETE)"
+      }
+    },
+    "SCEPChallenge": {
+      "description": "Triggered when a SCEP challenge is requested",
+      "schema": {
+        "challenge": "<string> The SCEP challenge password",
+        "deviceName": "<string> Name of the device requesting SCEP",
+        "jssID": "<integer> Jamf Pro device ID",
+        "product": "<string> Device product type",
+        "serialNumber": "<string> Device serial number",
+        "udid": "<string> Device UDID"
+      }
+    },
+    "SmartGroupComputerMembershipChange": {
+      "description": "Triggered when a computer's smart group membership changes",
+      "schema": {
+        "computer": "<boolean> Indicates this is a computer group",
+        "groupAddedDevices": "<array> List of device IDs added to the group",
+        "groupAddedDevicesIds": "<array> List of Jamf Pro IDs for added devices",
+        "groupRemovedDevices": "<array> List of device IDs removed from the group",
+        "groupRemovedDevicesIds": "<array> List of Jamf Pro IDs for removed devices",
+        "jssID": "<integer> Smart group ID",
+        "name": "<string> Smart group name",
+        "smartGroup": "<boolean> Indicates this is a smart group"
+      }
+    },
+    "SmartGroupMobileDeviceMembershipChange": {
+      "description": "Triggered when a mobile device's smart group membership changes",
+      "schema": {
+        "computer": "<boolean> Indicates this is a computer group (false for mobile)",
+        "groupAddedDevices": "<array> List of device IDs added to the group",
+        "groupAddedDevicesIds": "<array> List of Jamf Pro IDs for added devices",
+        "groupRemovedDevices": "<array> List of device IDs removed from the group",
+        "groupRemovedDevicesIds": "<array> List of Jamf Pro IDs for removed devices",
+        "jssID": "<integer> Smart group ID",
+        "name": "<string> Smart group name",
+        "smartGroup": "<boolean> Indicates this is a smart group"
+      }
+    },
+    "SmartGroupUserMembershipChange": {
+      "description": "Triggered when a user's smart group membership changes",
+      "schema": {
+        "groupAddedUserIds": "<array> List of user IDs added to the group",
+        "groupAddedUsers": "<array> List of usernames added to the group",
+        "groupRemovedUserIds": "<array> List of user IDs removed from the group",
+        "groupRemovedUsers": "<array> List of usernames removed from the group",
+        "jssID": "<integer> Smart group ID",
+        "name": "<string> Smart group name",
+        "smartGroup": "<boolean> Indicates this is a smart group"
+      }
+    }
+  },
+  "examples": {
+    "ComputerAdded": {
+      "event": {
+        "alternateMacAddress": "3C:22:FB:7A:B2:45",
+        "building": "Corporate HQ",
+        "department": "Marketing",
+        "deviceName": "MARKETING-MBP-001",
+        "emailAddress": "sarah.johnson@acmecorp.com",
+        "ipAddress": "10.0.50.142",
+        "jssID": 1547,
+        "macAddress": "F0:18:98:3C:D5:21",
+        "model": "MacBookPro18,3",
+        "osBuild": "23F79",
+        "osVersion": "14.5",
+        "phone": "+1 (555) 234-5678",
+        "position": "Marketing Manager",
+        "realName": "Sarah Johnson",
+        "reportedIpAddress": "10.0.50.142",
+        "room": "4th Floor - 412A",
+        "serialNumber": "C02ZN1YZLVDL",
+        "udid": "5A4E3D2C-1B0A-9F8E-7D6C-5B4A3E2D1C0B",
+        "userDirectoryID": "-1",
+        "username": "sjohnson"
+      },
+      "webhook": {
+        "eventTimestamp": 1706745623000,
+        "id": 3,
+        "name": "Computer Events Webhook",
+        "webhookEvent": "ComputerAdded"
+      }
+    },
+    "ComputerCheckIn": {
+      "event": {
+        "alternateMacAddress": "A4:83:E7:2D:9F:1B",
+        "building": "Engineering Center",
+        "department": "Software Development",
+        "deviceName": "DEV-MBP-042",
+        "emailAddress": "mike.chen@acmecorp.com",
+        "ipAddress": "10.0.100.87",
+        "jssID": 892,
+        "macAddress": "88:66:5A:3E:2C:1A",
+        "model": "MacBookPro18,1",
+        "osBuild": "23F79",
+        "osVersion": "14.5",
+        "phone": "+1 (555) 345-6789",
+        "position": "Senior Software Engineer",
+        "realName": "Michael Chen",
+        "reportedIpAddress": "10.0.100.87",
+        "room": "Building B - Lab 3",
+        "serialNumber": "C02FM2ABMD6T",
+        "udid": "8B7C6D5E-4F3A-2B1C-0D9E-8F7A6B5C4D3E",
+        "userDirectoryID": "12847",
+        "username": "mchen"
+      },
+      "webhook": {
+        "eventTimestamp": 1706746234000,
+        "id": 3,
+        "name": "Computer Events Webhook",
+        "webhookEvent": "ComputerCheckIn"
+      }
+    },
+    "ComputerInventoryCompleted": {
+      "event": {
+        "alternateMacAddress": "DC:A6:32:7F:E5:94",
+        "building": "Finance Tower",
+        "department": "Accounting",
+        "deviceName": "FINANCE-iMac-007",
+        "emailAddress": "jennifer.williams@acmecorp.com",
+        "ipAddress": "10.0.75.201",
+        "jssID": 2341,
+        "macAddress": "14:98:77:5B:3A:C2",
+        "model": "iMac21,1",
+        "osBuild": "23F79",
+        "osVersion": "14.5",
+        "phone": "+1 (555) 456-7890",
+        "position": "Senior Accountant",
+        "realName": "Jennifer Williams",
+        "reportedIpAddress": "10.0.75.201",
+        "room": "Suite 500",
+        "serialNumber": "C02G1234HASH",
+        "udid": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
+        "userDirectoryID": "15632",
+        "username": "jwilliams"
+      },
+      "webhook": {
+        "eventTimestamp": 1706747845000,
+        "id": 3,
+        "name": "Computer Events Webhook",
+        "webhookEvent": "ComputerInventoryCompleted"
+      }
+    },
+    "ComputerPatchPolicyCompleted": {
+      "event": {
+        "alternateMacAddress": "70:4D:7B:9A:2E:F3",
+        "building": "Corporate HQ",
+        "department": "Human Resources",
+        "deviceName": "HR-MBP-015",
+        "emailAddress": "david.martinez@acmecorp.com",
+        "ipAddress": "10.0.60.55",
+        "jssID": 1893,
+        "macAddress": "A8:5C:2E:9D:1B:74",
+        "model": "MacBookAir10,1",
+        "osBuild": "23F79",
+        "osVersion": "14.5",
+        "patchPolicyId": 47,
+        "patchPolicyName": "Google Chrome - Latest",
+        "phone": "+1 (555) 567-8901",
+        "position": "HR Specialist",
+        "realName": "David Martinez",
+        "reportedIpAddress": "10.0.60.55",
+        "room": "3rd Floor - 305",
+        "serialNumber": "FVFH52ABPXWT",
+        "softwareTitleId": 12,
+        "softwareTitleName": "Google Chrome",
+        "successful": true,
+        "udid": "2C3D4E5F-6A7B-8C9D-0E1F-234567890ABC",
+        "userDirectoryID": "18754",
+        "username": "dmartinez"
+      },
+      "webhook": {
+        "eventTimestamp": 1706748456000,
+        "id": 5,
+        "name": "Patch Management Webhook",
+        "webhookEvent": "ComputerPatchPolicyCompleted"
+      }
+    },
+    "ComputerPolicyFinished": {
+      "event": {
+        "alternateMacAddress": "2C:F0:EE:8B:3D:A7",
+        "building": "Data Center",
+        "department": "IT Operations",
+        "deviceName": "ITOPS-Mac-Studio-001",
+        "emailAddress": "emily.brown@acmecorp.com",
+        "ipAddress": "10.0.200.15",
+        "jssID": 567,
+        "macAddress": "9C:76:0E:4D:2A:B8",
+        "model": "Mac14,13",
+        "osBuild": "23F79",
+        "osVersion": "14.5",
+        "phone": "+1 (555) 678-9012",
+        "policyId": 234,
+        "position": "Systems Administrator",
+        "realName": "Emily Brown",
+        "reportedIpAddress": "10.0.200.15",
+        "room": "Server Room A",
+        "serialNumber": "H2YQ4ABCD1GH",
+        "successful": true,
+        "udid": "9E8D7C6B-5A4F-3E2D-1C0B-9A8F7E6D5C4B",
+        "userDirectoryID": "10234",
+        "username": "ebrown"
+      },
+      "webhook": {
+        "eventTimestamp": 1706749067000,
+        "id": 4,
+        "name": "Policy Execution Webhook",
+        "webhookEvent": "ComputerPolicyFinished"
+      }
+    },
+    "ComputerPushCapabilityChanged": {
+      "event": {
+        "alternateMacAddress": "68:FE:F7:1C:9B:42",
+        "building": "Research Lab",
+        "department": "R&D",
+        "deviceName": "RND-MBP-023",
+        "emailAddress": "alex.thompson@acmecorp.com",
+        "ipAddress": "10.0.150.78",
+        "jssID": 1456,
+        "macAddress": "B0:BE:83:5E:7D:2F",
+        "model": "MacBookPro18,2",
+        "osBuild": "23F79",
+        "osVersion": "14.5",
+        "phone": "+1 (555) 789-0123",
+        "position": "Research Scientist",
+        "realName": "Alex Thompson",
+        "reportedIpAddress": "10.0.150.78",
+        "room": "Lab 7B",
+        "serialNumber": "C02XL1YZTFVH",
+        "udid": "F1E2D3C4-B5A6-9780-1234-56789ABCDEF0",
+        "userDirectoryID": "22341",
+        "username": "athompson"
+      },
+      "webhook": {
+        "eventTimestamp": 1706749678000,
+        "id": 3,
+        "name": "Computer Events Webhook",
+        "webhookEvent": "ComputerPushCapabilityChanged"
+      }
+    },
+    "MobileDeviceCheckIn": {
+      "event": {
+        "bluetoothMacAddress": "5C:F7:E6:D5:C4:B3",
+        "building": "Sales Office",
+        "department": "Sales",
+        "deviceName": "SALES-iPhone-042",
+        "emailAddress": "robert.davis@acmecorp.com",
+        "icciID": "89014104279605312847",
+        "imei": "353879234567891",
+        "ipAddress": "10.0.80.134",
+        "jssID": 3421,
+        "model": "iPhone15,3",
+        "modelDisplay": "iPhone 15 Pro Max",
+        "osBuild": "21F90",
+        "osVersion": "17.5.1",
+        "phone": "+1 (555) 890-1234",
+        "position": "Regional Sales Manager",
+        "product": "iPhone15,3",
+        "realName": "Robert Davis",
+        "room": "Floor 2 - East Wing",
+        "serialNumber": "DNQT4ABCDEFG",
+        "udid": "00008120-001234567890ABCD",
+        "userDirectoryID": "14523",
+        "username": "rdavis",
+        "version": "17.5.1",
+        "wifiMacAddress": "A4:B3:C2:D1:E0:F9"
+      },
+      "webhook": {
+        "eventTimestamp": 1706750289000,
+        "id": 7,
+        "name": "Mobile Device Webhook",
+        "webhookEvent": "MobileDeviceCheckIn"
+      }
+    },
+    "MobileDeviceCommandCompleted": {
+      "event": {
+        "bluetoothMacAddress": "1A:2B:3C:4D:5E:6F",
+        "building": "Corporate HQ",
+        "department": "Executive",
+        "deviceName": "EXEC-iPad-001",
+        "emailAddress": "ceo@acmecorp.com",
+        "icciID": "",
+        "imei": "",
+        "ipAddress": "10.0.10.5",
+        "jssID": 4521,
+        "model": "iPad14,6",
+        "modelDisplay": "iPad Pro 12.9-inch (6th generation)",
+        "osBuild": "21F90",
+        "osVersion": "17.5.1",
+        "phone": "+1 (555) 100-0001",
+        "position": "Chief Executive Officer",
+        "product": "iPad14,6",
+        "realName": "James Wilson",
+        "room": "Executive Suite",
+        "serialNumber": "DMPXQ1234567",
+        "udid": "00008027-000A1B2C3D4E5F6A",
+        "userDirectoryID": "10001",
+        "username": "jwilson",
+        "version": "17.5.1",
+        "wifiMacAddress": "7E:8F:9A:0B:1C:2D"
+      },
+      "webhook": {
+        "eventTimestamp": 1706750900000,
+        "id": 7,
+        "name": "Mobile Device Webhook",
+        "webhookEvent": "MobileDeviceCommandCompleted"
+      }
+    },
+    "MobileDeviceEnrolled": {
+      "event": {
+        "bluetoothMacAddress": "9F:8E:7D:6C:5B:4A",
+        "building": "Distribution Center",
+        "department": "Logistics",
+        "deviceName": "LOGISTICS-iPhone-089",
+        "emailAddress": "maria.garcia@acmecorp.com",
+        "icciID": "89012345678901234567",
+        "imei": "358765432109876",
+        "ipAddress": "10.0.180.42",
+        "jssID": 5678,
+        "model": "iPhone14,7",
+        "modelDisplay": "iPhone 14 Plus",
+        "osBuild": "21F90",
+        "osVersion": "17.5.1",
+        "phone": "+1 (555) 901-2345",
+        "position": "Logistics Coordinator",
+        "product": "iPhone14,7",
+        "realName": "Maria Garcia",
+        "room": "Warehouse Office",
+        "serialNumber": "F2LXCABCD123",
+        "udid": "00008110-000F1E2D3C4B5A69",
+        "userDirectoryID": "28456",
+        "username": "mgarcia",
+        "version": "17.5.1",
+        "wifiMacAddress": "3D:4E:5F:6A:7B:8C"
+      },
+      "webhook": {
+        "eventTimestamp": 1706751511000,
+        "id": 7,
+        "name": "Mobile Device Webhook",
+        "webhookEvent": "MobileDeviceEnrolled"
+      }
+    },
+    "MobileDeviceInventoryCompleted": {
+      "event": {
+        "bluetoothMacAddress": "2B:3C:4D:5E:6F:7A",
+        "building": "Customer Service Center",
+        "department": "Customer Support",
+        "deviceName": "SUPPORT-iPad-034",
+        "emailAddress": "lisa.anderson@acmecorp.com",
+        "icciID": "",
+        "imei": "",
+        "ipAddress": "10.0.90.178",
+        "jssID": 6234,
+        "model": "iPad13,18",
+        "modelDisplay": "iPad (10th generation)",
+        "osBuild": "21F90",
+        "osVersion": "17.5.1",
+        "phone": "+1 (555) 012-3456",
+        "position": "Customer Service Representative",
+        "product": "iPad13,18",
+        "realName": "Lisa Anderson",
+        "room": "Call Center - Section B",
+        "serialNumber": "GH7YK2ABCDEF",
+        "udid": "00008103-0012345678901234",
+        "userDirectoryID": "31245",
+        "username": "landerson",
+        "version": "17.5.1",
+        "wifiMacAddress": "8C:9D:AE:BF:C0:D1"
+      },
+      "webhook": {
+        "eventTimestamp": 1706752122000,
+        "id": 7,
+        "name": "Mobile Device Webhook",
+        "webhookEvent": "MobileDeviceInventoryCompleted"
+      }
+    },
+    "MobileDevicePushSent": {
+      "event": {
+        "bluetoothMacAddress": "6F:7A:8B:9C:0D:1E",
+        "building": "Field Office - Chicago",
+        "department": "Field Services",
+        "deviceName": "FIELD-iPhone-156",
+        "emailAddress": "chris.taylor@acmecorp.com",
+        "icciID": "89014103278456123098",
+        "imei": "359876543210123",
+        "ipAddress": "172.16.45.89",
+        "jssID": 7845,
+        "model": "iPhone15,2",
+        "modelDisplay": "iPhone 15 Pro",
+        "osBuild": "21F90",
+        "osVersion": "17.5.1",
+        "phone": "+1 (555) 123-4567",
+        "position": "Field Technician",
+        "product": "iPhone15,2",
+        "realName": "Chris Taylor",
+        "room": "Mobile Unit",
+        "serialNumber": "JKL9MNOPQRST",
+        "udid": "00008120-00AABBCCDDEEFF00",
+        "userDirectoryID": "35612",
+        "username": "ctaylor",
+        "version": "17.5.1",
+        "wifiMacAddress": "E2:F3:04:15:26:37"
+      },
+      "webhook": {
+        "eventTimestamp": 1706752733000,
+        "id": 7,
+        "name": "Mobile Device Webhook",
+        "webhookEvent": "MobileDevicePushSent"
+      }
+    },
+    "MobileDeviceUnEnrolled": {
+      "event": {
+        "bluetoothMacAddress": "A1:B2:C3:D4:E5:F6",
+        "building": "Corporate HQ",
+        "department": "Former Employee",
+        "deviceName": "OLD-iPhone-892",
+        "emailAddress": "former.employee@acmecorp.com",
+        "icciID": "89014108765432109876",
+        "imei": "352345678901234",
+        "ipAddress": "",
+        "jssID": 2341,
+        "model": "iPhone13,4",
+        "modelDisplay": "iPhone 12 Pro Max",
+        "osBuild": "21F90",
+        "osVersion": "17.5.1",
+        "phone": "",
+        "position": "",
+        "product": "iPhone13,4",
+        "realName": "Former Employee",
+        "room": "",
+        "serialNumber": "DNP45ABCDEFG",
+        "udid": "00008101-00112233445566AA",
+        "userDirectoryID": "-1",
+        "username": "",
+        "version": "17.5.1",
+        "wifiMacAddress": "48:59:6A:7B:8C:9D"
+      },
+      "webhook": {
+        "eventTimestamp": 1706753344000,
+        "id": 7,
+        "name": "Mobile Device Webhook",
+        "webhookEvent": "MobileDeviceUnEnrolled"
+      }
+    },
+    "JSSShutdown": {
+      "event": {
+        "hostAddress": "jamfpro.acmecorp.com",
+        "institution": "ACME Corporation",
+        "isClusterMaster": true,
+        "jssUrl": "https://jamfpro.acmecorp.com:8443/",
+        "webApplicationPath": "/usr/local/jss/tomcat/webapps/ROOT"
+      },
+      "webhook": {
+        "eventTimestamp": 1706753955000,
+        "id": 1,
+        "name": "System Events Webhook",
+        "webhookEvent": "JSSShutdown"
+      }
+    },
+    "JSSStartup": {
+      "event": {
+        "hostAddress": "jamfpro.acmecorp.com",
+        "institution": "ACME Corporation",
+        "isClusterMaster": true,
+        "jssUrl": "https://jamfpro.acmecorp.com:8443/",
+        "webApplicationPath": "/usr/local/jss/tomcat/webapps/ROOT"
+      },
+      "webhook": {
+        "eventTimestamp": 1706754566000,
+        "id": 1,
+        "name": "System Events Webhook",
+        "webhookEvent": "JSSStartup"
+      }
+    },
+    "DeviceAddedToDEP": {
+      "event": {
+        "assetTag": "ACME-2024-00456",
+        "description": "MACBOOKPRO 14 M3 PRO",
+        "deviceAssignedDate": 1706700000000,
+        "deviceEnrollmentProgramInstanceId": 2,
+        "model": "MacBook Pro 14\"",
+        "serialNumber": "XYZ789ABCDEF"
+      },
+      "webhook": {
+        "eventTimestamp": 1706755177000,
+        "id": 2,
+        "name": "DEP Events Webhook",
+        "webhookEvent": "DeviceAddedToDEP"
+      }
+    },
+    "PatchSoftwareTitleUpdated": {
+      "event": {
+        "jssID": 12,
+        "lastUpdate": 1706755000000,
+        "latestVersion": "124.0.6367.91",
+        "name": "Google Chrome",
+        "reportUrl": "https://jamfpro.acmecorp.com:8443/patchReports.html?id=12&o=r"
+      },
+      "webhook": {
+        "eventTimestamp": 1706755788000,
+        "id": 6,
+        "name": "Patch Updates Webhook",
+        "webhookEvent": "PatchSoftwareTitleUpdated"
+      }
+    },
+    "PushSent": {
+      "event": {
+        "type": "MDM",
+        "jssID": 1547
+      },
+      "webhook": {
+        "eventTimestamp": 1706756399000,
+        "id": 8,
+        "name": "Push Notification Webhook",
+        "webhookEvent": "PushSent"
+      }
+    },
+    "RestAPIOperation": {
+      "event": {
+        "authorizedUsername": "api-service-account",
+        "objectID": 892,
+        "objectName": "DEV-MBP-042",
+        "objectTypeName": "Computer",
+        "operationSuccessful": true,
+        "restAPIOperationType": "PUT"
+      },
+      "webhook": {
+        "eventTimestamp": 1706757010000,
+        "id": 9,
+        "name": "API Audit Webhook",
+        "webhookEvent": "RestAPIOperation"
+      }
+    },
+    "SCEPChallenge": {
+      "event": {
+        "challenge": "A1B2C3D4E5F6789012345678901234567890ABCDEF",
+        "deviceName": "NEW-MBP-ENROLLMENT",
+        "jssID": 0,
+        "product": "MacBookPro18,3",
+        "serialNumber": "ABC123XYZ789",
+        "udid": "TEMP-UDID-00000000-0000-0000-0000-000000000000"
+      },
+      "webhook": {
+        "eventTimestamp": 1706757621000,
+        "id": 10,
+        "name": "SCEP Events Webhook",
+        "webhookEvent": "SCEPChallenge"
+      }
+    },
+    "SmartGroupComputerMembershipChange": {
+      "event": {
+        "computer": true,
+        "groupAddedDevices": [
+          "DEV-MBP-042",
+          "MARKETING-MBP-001"
+        ],
+        "groupAddedDevicesIds": [
+          892,
+          1547
+        ],
+        "groupRemovedDevices": [
+          "OLD-iMac-retired"
+        ],
+        "groupRemovedDevicesIds": [
+          234
+        ],
+        "jssID": 45,
+        "name": "macOS 14 - All Macs",
+        "smartGroup": true
+      },
+      "webhook": {
+        "eventTimestamp": 1706758232000,
+        "id": 11,
+        "name": "Smart Group Webhook",
+        "webhookEvent": "SmartGroupComputerMembershipChange"
+      }
+    },
+    "SmartGroupMobileDeviceMembershipChange": {
+      "event": {
+        "computer": false,
+        "groupAddedDevices": [
+          "SALES-iPhone-042",
+          "LOGISTICS-iPhone-089"
+        ],
+        "groupAddedDevicesIds": [
+          3421,
+          5678
+        ],
+        "groupRemovedDevices": [],
+        "groupRemovedDevicesIds": [],
+        "jssID": 67,
+        "name": "iOS 17 - Corporate iPhones",
+        "smartGroup": true
+      },
+      "webhook": {
+        "eventTimestamp": 1706758843000,
+        "id": 11,
+        "name": "Smart Group Webhook",
+        "webhookEvent": "SmartGroupMobileDeviceMembershipChange"
+      }
+    },
+    "SmartGroupUserMembershipChange": {
+      "event": {
+        "groupAddedUserIds": [
+          28456,
+          31245
+        ],
+        "groupAddedUsers": [
+          "mgarcia",
+          "landerson"
+        ],
+        "groupRemovedUserIds": [
+          15000
+        ],
+        "groupRemovedUsers": [
+          "former.user"
+        ],
+        "jssID": 89,
+        "name": "All Active Employees",
+        "smartGroup": true
+      },
+      "webhook": {
+        "eventTimestamp": 1706759454000,
+        "id": 11,
+        "name": "Smart Group Webhook",
+        "webhookEvent": "SmartGroupUserMembershipChange"
+      }
+    }
+  }
+}

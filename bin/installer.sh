@@ -223,7 +223,7 @@ readme() {
 |  \`--'  |  /  _____  \  \    /\    / /  _____  \  
  \______/  /__/     \__\  \__/  \__/ /__/     \__\  
 
-                        v3.1.1
+                        v3.2.0
 
 
 Welcome to the Jamf Automation and Webhook Assistant, we hope it provides the solution you are looking for.

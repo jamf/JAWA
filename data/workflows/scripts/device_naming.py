@@ -6,27 +6,30 @@ API privileges: Read Mobile Devices, Send Mobile Device Set Device Name Command
 """
 
 import json
-import logging
-import requests
 import sys
 import time
+
+import requests
+
+# --- JAWA canonical Jamf API block (keep identical across templates) ---
 
 token_cache = {"access_token": None, "expires_in": 0, "timestamp": 0}
 
 
 class Config:
     def __init__(self):
-        self.server_url = "https://example.jamfcloud.com"  # Your Jamf Pro URL
+        self.server_url = "__JAWA_SERVER_URL__"
         self.token_url = f"{self.server_url}/api/oauth/token"
-        self.client_id = "your_client_id"
-        self.client_secret = "your_client_secret"
-        self.scope = ""  # e.g., api-role:5
+        self.client_id = "__JAWA_CLIENT_ID__"
+        self.client_secret = "__JAWA_CLIENT_SECRET__"
+        self.scope = ""
 
 
 def get_oauth_token():
+    """Fetch (and cache) an OAuth access token from Jamf Pro."""
     global token_cache
-    current_time = time.time()
     config = Config()
+    current_time = time.time()
     if (
         token_cache["access_token"]
         and (current_time - token_cache["timestamp"])
@@ -44,7 +47,9 @@ def get_oauth_token():
         config.token_url,
         headers={"Content-Type": "application/x-www-form-urlencoded"},
         data=data,
+        timeout=30,
     )
+    response.raise_for_status()
     response_data = response.json()
     token_cache = {
         "access_token": response_data["access_token"],
@@ -54,32 +59,32 @@ def get_oauth_token():
     return token_cache["access_token"]
 
 
-def api_get(endpoint):
+def perform_api_call(endpoint, method="GET", data=None, api="classic"):
+    """Call the Jamf Pro API and return the parsed response.
+
+    endpoint: path with no leading slash, e.g. "mobiledevices/id/42".
+    api: "classic" for /JSSResource, "pro" for /api.
+    Returns parsed JSON, or the raw response when the body is not JSON.
+    """
     config = Config()
     token = get_oauth_token()
+    prefix = "JSSResource" if api == "classic" else "api"
+    url = f"{config.server_url}/{prefix}/{endpoint}"
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/json",
+        "Content-Type": "application/json",
     }
-    resp = requests.get(
-        f"{config.server_url}/JSSResource/{endpoint}", headers=headers
+    response = requests.request(
+        method, url, headers=headers, json=data, timeout=30
     )
-    resp.raise_for_status()
-    return resp.json()
+    response.raise_for_status()
+    try:
+        return response.json()
+    except ValueError:
+        return response
 
-
-def api_post(endpoint):
-    config = Config()
-    token = get_oauth_token()
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/json",
-    }
-    resp = requests.post(
-        f"{config.server_url}/JSSResource/{endpoint}", headers=headers
-    )
-    resp.raise_for_status()
-    return resp
+# --- end canonical block ---
 
 
 def main():
@@ -104,7 +109,7 @@ def main():
     # 3. Wait for device record to populate, then look up asset tag
     time.sleep(30)
     try:
-        device_record = api_get(f"mobiledevices/id/{jss_id}")
+        device_record = perform_api_call(f"mobiledevices/id/{jss_id}")
         asset_tag = device_record["mobile_device"]["general"].get("asset_tag")
     except Exception as err:
         print(f"Could not GET device record for ID {jss_id}: {err}")
@@ -116,8 +121,9 @@ def main():
 
     # 4. Send DeviceName command
     try:
-        api_post(
-            f"mobiledevicecommands/command/DeviceName/{asset_tag}/id/{jss_id}"
+        perform_api_call(
+            f"mobiledevicecommands/command/DeviceName/{asset_tag}/id/{jss_id}",
+            method="POST",
         )
         print(
             f"Renamed {old_name} -> {asset_tag} (SN: {serial}, ID: {jss_id})"
@@ -128,7 +134,10 @@ def main():
 
     # 5. Send blank push to speed up command delivery
     try:
-        api_post(f"mobiledevicecommands/command/BlankPush/id/{jss_id}")
+        perform_api_call(
+            f"mobiledevicecommands/command/BlankPush/id/{jss_id}",
+            method="POST",
+        )
     except Exception:
         pass  # Non-critical
 

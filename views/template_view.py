@@ -32,6 +32,7 @@ import os
 import re
 from typing import Any, Dict, List, Union
 
+import requests
 from flask import (
     Blueprint,
     Response,
@@ -46,8 +47,19 @@ from markupsafe import escape
 from werkzeug.utils import secure_filename
 
 from bin import data_store, logger
+from bin.data_store import get_jawa_address, get_webhook_schemas
+from bin.tokens import get_token, validate_token
 from bin.view_modifiers import response
 from views._type_handlers.base import AutomationError
+from views._type_handlers.jamf_handler import (
+    USER_AGENT_STRING,
+    VERIFY_SSL,
+    XML,
+    _build_auth_xml,
+    _build_webhook_xml,
+    _extract_auth_fields,
+    _smart_group_info,
+)
 
 blueprint = Blueprint(
     "template_view",
@@ -349,6 +361,73 @@ def _write_script(name: str, content: str) -> str:
     return dest_path
 
 
+def _create_jamf_webhook(webhook_name: str, xml_data: str) -> str:
+    """Create the webhook in Jamf Pro and return its id.
+
+    Runs before any local write: if Jamf rejects the webhook there is
+    no orphaned script on disk and no half-configured automation.
+    """
+    full_url = session["url"] + "/JSSResource/webhooks/id/0"
+    try:
+        resp = requests.post(
+            full_url,
+            headers={
+                "Content-Type": XML,
+                "Authorization": f"Bearer {session['token']}",
+                "User-Agent": USER_AGENT_STRING,
+            },
+            data=xml_data,
+            verify=VERIFY_SSL,
+            timeout=30,
+        )
+    except requests.exceptions.Timeout as err:
+        logthis.error(
+            f"Timeout creating Jamf webhook {webhook_name}: {err}"
+        )
+        raise AutomationError(
+            "Connection Timeout",
+            f"Request to Jamf Pro timed out after 30 seconds. {err}",
+        )
+    except requests.exceptions.ConnectionError as err:
+        logthis.error(
+            f"Connection error creating Jamf webhook {webhook_name}: {err}"
+        )
+        raise AutomationError(
+            "Connection Error",
+            f"Could not connect to Jamf Pro. {err}",
+        )
+    except Exception as err:
+        logthis.error(
+            f"Unexpected error creating Jamf webhook {webhook_name}: {err}"
+        )
+        raise AutomationError(
+            "API Error", f"Failed to create the webhook in Jamf Pro. {err}"
+        )
+
+    if resp.status_code == 409:
+        logthis.error(
+            f"Duplicate webhook name {webhook_name} in Jamf Pro (409)"
+        )
+        raise AutomationError(
+            "Duplicate",
+            f'The webhook name "{webhook_name}" already exists in your '
+            f"Jamf Pro Server.",
+        )
+    if resp.status_code >= 400:
+        logthis.error(
+            f"Jamf API error creating webhook {webhook_name}: "
+            f"HTTP {resp.status_code} - {resp.text}"
+        )
+        raise AutomationError(
+            "API Error",
+            f"Jamf Pro returned HTTP {resp.status_code}. Check the "
+            f"API privileges on your account and try again.",
+        )
+
+    found = re.search("<id>(.*)</id>", resp.text)
+    return found.group(1) if found else ""
+
+
 def _validate_package(package: dict) -> Union[str, None]:
     """Validate a .jawa.json package. Returns error message or None."""
     for field in ("name", "trigger", "script"):
@@ -532,64 +611,151 @@ def enable_template(slug: str) -> Union[Response, str]:
             username=session.get("username"),
             workflow=workflow,
             credentials=credentials,
+            event_categories=get_webhook_schemas()["categories"],
         )
 
     # POST: enable the template
-    webhook_name = str(
-        escape(request.form.get("webhook_name", workflow["title"]))
-    )
+    try:
+        webhook_name = request.form.get(
+            "webhook_name", workflow["hook_name"]
+        ).strip()
+        if not webhook_name:
+            raise AutomationError("Error", "Webhook name is required.")
+        if " " in webhook_name:
+            raise AutomationError(
+                "Error",
+                "Single-string name only -- the name becomes part of "
+                "the URL Jamf Pro calls.",
+            )
+        # The name is interpolated into the webhook XML body and into
+        # the callback URL. xml_escape() covers the XML; these
+        # characters would still break the URL, so reject them here.
+        # Same rule the catalog test applies to hook_name, since a user
+        # can type anything into this field.
+        for bad in ("&", "<", ">", '"', "'", "/", "\\"):
+            if bad in webhook_name:
+                raise AutomationError(
+                    "Error",
+                    f"The webhook name may not contain {bad!r}.",
+                )
+        if data_store.get_webhook_by_name(webhook_name):
+            raise AutomationError(
+                "Error", f'The name "{webhook_name}" is already in use.'
+            )
 
-    src_path = os.path.join(TEMPLATE_SCRIPTS_DIR, workflow["script_file"])
-    if not os.path.isfile(src_path):
+        # trigger_event is null for any-event templates: the form asks.
+        event = workflow.get("trigger_event") or request.form.get(
+            "event", ""
+        )
+        if not event:
+            raise AutomationError(
+                "Error", "Choose the Jamf Pro event to listen for."
+            )
+
+        server_address = get_jawa_address()
+        if not server_address:
+            raise AutomationError(
+                "Setup Required",
+                "Configure your JAWA address and Jamf Pro server "
+                "before enabling a template.",
+                link="/setup",
+                link_text="Go to Setup",
+            )
+
+        src_path = os.path.join(
+            TEMPLATE_SCRIPTS_DIR, workflow["script_file"]
+        )
+        if not os.path.isfile(src_path):
+            raise AutomationError(
+                "Script not found",
+                f"Script {workflow['script_file']} not found.",
+            )
+        with open(src_path, "r", encoding="utf-8") as f:
+            script_content = f.read()
+
+        # Fill every token BEFORE touching Jamf, so a missing field
+        # fails before any remote state is created.
+        script_content = substitute_params(
+            script_content,
+            workflow,
+            request.form,
+            credentials,
+            request.form.get("credential_set", ""),
+        )
+
+        if not validate_token(session.get("expires")):
+            get_token()
+
+        notice, instructions, enablement, extra_xml = _smart_group_info(
+            event
+        )
+        auth_xml = _build_auth_xml(request.form)
+        (
+            webhook_user,
+            webhook_pass,
+            webhook_apikey,
+            extra_notice,
+            custom_header,
+        ) = _extract_auth_fields(request.form)
+
+        xml_data = _build_webhook_xml(
+            webhook_name,
+            enablement,
+            server_address,
+            event,
+            auth_xml,
+            extra_xml,
+        )
+        jamf_id = _create_jamf_webhook(webhook_name, xml_data)
+    except AutomationError as err:
         return redirect(
             url_for(
                 "error",
-                error="Script not found",
-                error_message=f"Script {workflow['script_file']} not found.",
+                error=err.title,
+                error_message=err.message,
             )
         )
 
-    with open(src_path, "r", encoding="utf-8") as f:
-        script_content = f.read()
-
-    script_content = substitute_params(
-        script_content,
-        workflow,
-        request.form,
-        credentials,
-        request.form.get("credential_set", ""),
-    )
+    # Jamf accepted it: only now write anything locally.
     dest_path = _write_script(webhook_name, script_content)
-
     data_store.add_webhook(
         {
             "name": webhook_name,
-            "tag": "custom",
+            "tag": "jamfpro",
             "url": session.get("url", ""),
-            # null trigger_event means any-event; store "" rather than
-            # the string "None", which no payload would ever match.
-            "event": workflow.get("trigger_event") or "",
+            "jawa_admin": session.get("username", ""),
+            "event": event,
             "script": dest_path,
             "description": workflow.get("description", ""),
             "enabled": True,
-            "webhook_username": "null",
-            "webhook_password": "null",
-            "api_key": "null",
+            "jamf_id": jamf_id,
+            "webhook_username": webhook_user,
+            "webhook_password": webhook_pass,
+            "api_key": webhook_apikey,
         }
     )
 
     logthis.info(
         f"[{session.get('url')}] {session.get('username')} "
         f"enabled template: {webhook_name} "
-        f"(script: {os.path.basename(dest_path)})"
+        f"(script: {os.path.basename(dest_path)}, jamf id: {jamf_id})"
     )
 
-    return redirect(
-        url_for(
-            "success",
-            success_msg=f"Enabled template: {webhook_name}",
-        )
-    )
+    # Same one-shot flash + PRG the create path uses, so the notices
+    # survive the redirect. A smart-group event is created DISABLED in
+    # Jamf Pro, so reporting a bare "Enabled" for those three templates
+    # would leave the user believing the automation is already live.
+    ctx = {
+        "success_msg": f"Enabled template: {webhook_name}",
+        "new_link": f"{session.get('url')}/webhooks.html?id={jamf_id}&o=r",
+        "new_here": webhook_name,
+        "smart_group_notice": notice,
+        "smart_group_instructions": instructions,
+        "extra_notice": extra_notice,
+        "custom_header": custom_header,
+    }
+    session["success_ctx"] = {k: v for k, v in ctx.items() if v}
+    return redirect(url_for("success"))
 
 
 @blueprint.route("/templates/import", methods=["GET", "POST"])

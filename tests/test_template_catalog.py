@@ -194,21 +194,28 @@ def test_any_event_template_never_renders_the_word_none(
 def test_enabling_an_any_event_template_stores_no_none_event(
     logged_in_client, jawa_env, enable_form
 ):
-    """The stored event is compared against the inbound payload's
-    webhookEvent, so persisting the string "None" would never match.
+    """The stored event is what gets created in Jamf Pro, so persisting
+    the string "None" -- or the "Any Event" display label -- would
+    register a trigger Jamf never sends.
+
+    Task 2 stored "" here because nothing was created in Jamf at all.
+    Enabling now creates the webhook, and Jamf requires a real event, so
+    the form asks the user to pick one and that choice is what lands.
+    The invariant is unchanged: never the word "None".
     """
     from bin import data_store
 
     slug = next(
         wf["slug"] for wf in CATALOG if wf.get("trigger_event") is None
     )
-    logged_in_client.post(
-        f"/templates/{slug}/enable",
-        data=enable_form(slug, webhook_name="any-hook"),
-    )
+    form = enable_form(slug, webhook_name="any-hook")
+    logged_in_client.post(f"/templates/{slug}/enable", data=form)
     entry = data_store.get_webhook_by_name("any-hook")
     assert entry is not None
-    assert entry["event"] == ""
+    assert entry["event"] not in ("None", "Any Event", "")
+    # The picked event, verbatim -- and a real key in the schema catalog.
+    assert entry["event"] == form["event"]
+    assert entry["event"] in _schemas()["schemas"]
 
 
 def test_script_survives_every_example_payload(workflow):

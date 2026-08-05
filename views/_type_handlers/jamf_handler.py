@@ -70,6 +70,22 @@ MOBILE_DISPLAY_FIELDS_XML = (
 )
 
 
+def xml_escape(value: str) -> str:
+    """Escape a value interpolated into the webhook XML body.
+
+    The XML is hand-built with f-strings, so an unescaped & or < in a
+    webhook name produces a malformed body that Jamf rejects with an
+    opaque error.
+    """
+    return (
+        str(value)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
 def _build_auth_xml(form: Any) -> str:
     auth_xml = "<authentication_type>NONE</authentication_type>"
     if form.get("choice") == "basic":
@@ -93,13 +109,14 @@ def _build_webhook_xml(
     auth_xml: str,
     extra_xml: str,
 ) -> str:
+    safe_name = xml_escape(name)
     return (
         f"<webhook>"
-        f"<name>{name}</name>"
+        f"<name>{safe_name}</name>"
         f"<enabled>{enabled}</enabled>"
-        f"<url>{server_address}/hooks/{name}</url>"
+        f"<url>{server_address}/hooks/{safe_name}</url>"
         f"<content_type>application/json</content_type>"
-        f"<event>{event}</event>"
+        f"<event>{xml_escape(event)}</event>"
         f"{auth_xml}"
         f"{extra_xml}"
         f"</webhook>"

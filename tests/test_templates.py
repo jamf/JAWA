@@ -39,6 +39,10 @@ def test_enabled_template_writes_canonical_auth_shape(
     entry = data_store.get_webhook_by_name("dn-hook")
     assert entry is not None
     # Canonical shape: all three auth keys present, defaulting to "null".
+    # The form now offers Basic/header auth, so "open" is the
+    # unauthenticated branch of an explicit choice rather than the only
+    # thing enable could write: with no "choice" field submitted,
+    # _extract_auth_fields returns "null" for all three.
     assert entry["webhook_username"] == "null"
     assert entry["webhook_password"] == "null"
     assert entry["api_key"] == "null"
@@ -214,6 +218,120 @@ def test_substitution_rejects_a_token_no_param_declares():
         substitute_params(
             'X = "__JAWA_ORPHAN__"\n', {"config_params": []}, {}, [], ""
         )
+
+
+def test_enable_files_the_automation_under_jamfpro(
+    logged_in_client, jawa_env
+):
+    """Templates wrote tag "custom" while carrying a Jamf event, so they
+    were misfiled under Custom and edited against a form with no event
+    field -- their trigger was invisible and uneditable (bug B14).
+    """
+    resp = logged_in_client.post(
+        "/templates/device-naming/enable",
+        data={
+            "webhook_name": "Device-Naming-by-Asset-Tag",
+            "server_url": "https://prod.jamfcloud.com",
+            "client_id": "abc",
+            "client_secret": "shh",
+        },
+    )
+    assert resp.status_code in (200, 302)
+    entry = data_store.get_webhook_by_name("Device-Naming-by-Asset-Tag")
+    assert entry is not None
+    assert entry["tag"] == "jamfpro"
+    assert entry["event"] == "MobileDeviceEnrolled"
+    assert entry["jamf_id"] == "77"
+
+
+def test_enable_writes_nothing_when_jamf_rejects(
+    logged_in_client, jawa_env, monkeypatch, jamf_fake_http
+):
+    """Jamf-side creation happens BEFORE the local write, so a 409 or a
+    timeout leaves no orphaned script and no half-configured
+    automation.
+    """
+    import requests as requests_module
+
+    response_cls, default_post = jamf_fake_http
+
+    def _conflict(url, **kwargs):
+        if "/JSSResource/webhooks/id/0" in url:
+            return response_cls({}, status_code=409, text="duplicate")
+        return default_post(url, **kwargs)
+
+    monkeypatch.setattr(requests_module, "post", _conflict)
+
+    logged_in_client.post(
+        "/templates/device-naming/enable",
+        data={
+            "webhook_name": "Device-Naming-by-Asset-Tag",
+            "server_url": "https://prod.jamfcloud.com",
+            "client_id": "abc",
+            "client_secret": "shh",
+        },
+    )
+
+    assert (
+        data_store.get_webhook_by_name("Device-Naming-by-Asset-Tag") is None
+    )
+    written = os.listdir(str(jawa_env.scripts_dir))
+    assert written == [], f"orphaned script(s) left behind: {written}"
+
+
+def test_smart_group_template_warns_it_is_not_live_yet(
+    logged_in_client, jawa_env, enable_form
+):
+    """Jamf creates a smart-group webhook DISABLED (enablement "false"),
+    so it does not fire until the admin picks a smart group in Jamf Pro.
+    Three of the bundled templates use a smart-group event. Reporting a
+    bare "Enabled template" for those leaves the user believing the
+    automation is live -- the same "no indication the user must do more"
+    failure B14 exists to close.
+    """
+    resp = logged_in_client.post(
+        "/templates/smart-group-slack/enable",
+        data=enable_form("smart-group-slack", webhook_name="sg-hook"),
+    )
+    assert resp.status_code == 302
+    assert "/success" in resp.headers["Location"]
+
+    body = logged_in_client.get("/success").get_data(as_text=True)
+    assert "not yet enabled" in body, (
+        "the success page does not warn that Jamf created the webhook "
+        "disabled; the user thinks the automation is live"
+    )
+    assert "Smart Group" in body
+
+
+def test_enable_links_to_the_new_webhook_in_jamf(
+    logged_in_client, jawa_env, enable_form
+):
+    """jamf_id is captured, so the success page can deep-link the object
+    the way the create path does.
+    """
+    logged_in_client.post(
+        "/templates/device-naming/enable",
+        data=enable_form("device-naming", webhook_name="dn-link-hook"),
+    )
+    body = logged_in_client.get("/success").get_data(as_text=True)
+    assert "/webhooks.html?id=77" in body
+
+
+def test_enable_rejects_a_name_with_spaces(logged_in_client, jawa_env):
+    """The name goes into the callback URL Jamf calls; Jamf rejects
+    names containing a space.
+    """
+    logged_in_client.post(
+        "/templates/device-naming/enable",
+        data={
+            "webhook_name": "Device Naming by Asset Tag",
+            "server_url": "https://prod.jamfcloud.com",
+            "client_id": "abc",
+            "client_secret": "shh",
+        },
+    )
+    assert data_store.get_webhook_by_name("Device Naming by Asset Tag") is None
 
 
 def test_template_view_has_no_direct_webhook_io():

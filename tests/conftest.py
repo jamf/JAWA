@@ -59,9 +59,10 @@ TOKEN_EXPIRES = "2099-01-01T00:00:00.000+0000"
 class FakeJamfResponse:
     """Minimal stand-in for requests.Response."""
 
-    def __init__(self, payload=None, status_code=200):
+    def __init__(self, payload=None, status_code=200, text=""):
         self._payload = payload if payload is not None else {}
         self.status_code = status_code
+        self.text = text
 
     def json(self):
         return self._payload
@@ -80,6 +81,11 @@ def _fake_jamf_post(url, **kwargs):
         )
     if url.endswith("/api/v1/auth/invalidate-token"):
         return FakeJamfResponse({}, status_code=204)
+    if "/JSSResource/webhooks/id/0" in url:
+        # Jamf answers webhook creation with the new object's id.
+        return FakeJamfResponse(
+            {}, status_code=201, text="<webhook><id>77</id></webhook>"
+        )
     return FakeJamfResponse({})
 
 
@@ -105,6 +111,14 @@ def fake_jamf(monkeypatch):
     monkeypatch.setattr(
         requests, "delete", lambda *a, **k: FakeJamfResponse({})
     )
+
+
+@pytest.fixture()
+def jamf_fake_http():
+    """Hand a test the response class and the default POST handler so it
+    can override one endpoint without re-implementing the rest.
+    """
+    return FakeJamfResponse, _fake_jamf_post
 
 
 class JawaEnv:
@@ -251,12 +265,29 @@ def _build_enable_form(slug, **overrides):
     unfilled, so a POST carrying only webhook_name is rejected by
     design. Derive the fields from the catalog so adding a config_param
     does not silently reintroduce a half-configured POST.
+
+    An any-event template (null trigger_event) has no event to inherit
+    from the catalog, so enable makes the form supply one; mirror the
+    picker by sending the first catalog event.
     """
     with open(_WORKFLOW_CONFIG, "r", encoding="utf-8") as handle:
         catalog = json.load(handle)
     workflow = next(wf for wf in catalog if wf["slug"] == slug)
 
     form = {"webhook_name": slug}
+    if not workflow.get("trigger_event"):
+        with open(
+            os.path.join(REPO_ROOT, "data", "webhook_schemas.json"),
+            "r",
+            encoding="utf-8",
+        ) as handle:
+            categories = json.load(handle)["categories"]
+        form["event"] = next(
+            event
+            for events in categories.values()
+            if isinstance(events, list)
+            for event in events
+        )
     for param in workflow.get("config_params", []):
         if param.get("type") == "number":
             value = "12"

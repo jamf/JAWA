@@ -557,14 +557,331 @@ def test_no_html_escaping_survives_in_the_substitution_path():
     for func in (
         template_view.substitute_params,
         template_view._python_literal,
+        template_view._numeric_literal,
+        template_view._raw_literal,
     ):
         tree = ast.parse(inspect.getsource(func))
-        called = {
-            node.func.id
-            for node in ast.walk(tree)
-            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+        called = set()
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            # Bare escape(...) and dotted markupsafe.escape(...) both
+            # have to be caught; matching only ast.Name let the dotted
+            # form through.
+            if isinstance(node.func, ast.Name):
+                called.add(node.func.id)
+            elif isinstance(node.func, ast.Attribute):
+                prefix = getattr(node.func.value, "id", "")
+                called.add(
+                    f"{prefix}.{node.func.attr}" if prefix else node.func.attr
+                )
+        # re.escape is regex quoting of our OWN token needles, which is
+        # required and safe. Only HTML escaping of a value is the bug.
+        html_escapes = {
+            name
+            for name in called
+            if name.split(".")[-1] == "escape" and name != "re.escape"
         }
-        assert "escape" not in called, (
+        assert not html_escapes, (
             f"{func.__name__} HTML-escapes a value on its way into "
-            f"Python source (bug B13)"
+            f"Python source (bug B13): {sorted(html_escapes)}"
         )
+
+
+def _assign_nodes(source):
+    """Map every assigned name in `source` to its value AST node."""
+    import ast
+
+    found = {}
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.Assign):
+            continue
+        target = node.targets[0]
+        if isinstance(target, ast.Name):
+            found[target.id] = node.value
+        elif isinstance(target, ast.Attribute):
+            found[target.attr] = node.value
+    return found
+
+
+def test_one_params_value_cannot_break_out_via_a_later_token():
+    """CRITICAL regression. Substitution used to apply one str.replace
+    per param against a shared accumulator, so text a previous param had
+    already substituted got re-scanned. A value carrying a LATER param's
+    needle was therefore rewritten from the inside, breaking out of the
+    Python string literal it was supposed to be trapped in and turning a
+    config field into arbitrary code in the deployed script:
+
+        self.server_url = 'x'+__import__("os").system(...)+'y'
+
+    Single-value round-trip tests cannot see this -- it needs two params
+    interacting -- which is why it shipped.
+    """
+    import ast
+
+    from views import template_view
+
+    # Synthetic tokens without the __JAWA_ prefix, so the belt-and-
+    # braces prefix check cannot fire: this pins the single-pass
+    # property itself, not the secondary guard.
+    workflow = {
+        "config_params": [
+            {"key": "FIRST", "token": '"@@FIRST@@"', "type": "text"},
+            {"key": "SECOND", "token": '"@@SECOND@@"', "type": "text"},
+        ]
+    }
+    first = 'x"@@SECOND@@"y'
+    second = '+__import__("os").system("echo PWNED")+'
+    result = template_view.substitute_params(
+        'FIRST = "@@FIRST@@"\nSECOND = "@@SECOND@@"\n',
+        workflow,
+        {"FIRST": first, "SECOND": second},
+        [],
+        "",
+    )
+
+    # Byte-exact survival...
+    namespace = {}
+    exec(compile(result, "generated.py", "exec"), namespace)
+    assert namespace["FIRST"] == first
+    assert namespace["SECOND"] == second
+    # ...and structurally a plain string constant, not an expression.
+    # Without this the value could still evaluate equal while having
+    # executed something on the way.
+    nodes = _assign_nodes(result)
+    assert isinstance(nodes["FIRST"], ast.Constant), (
+        f"FIRST became a {type(nodes['FIRST']).__name__}, not a string "
+        f"constant: the value broke out of its literal"
+    )
+    assert nodes["FIRST"].value == first
+
+
+def test_value_carrying_a_real_jawa_token_is_rejected(logged_in_client):
+    """Belt and braces over the single pass: a submitted value that
+    contains a real __JAWA_ needle is refused outright rather than
+    relying on pass ordering to stay harmless.
+    """
+    from views import template_view
+    from views._type_handlers.base import AutomationError
+
+    workflow = next(wf for wf in CATALOG if wf["slug"] == "device-naming")
+    form = {
+        "server_url": 'x"__JAWA_CLIENT_ID__"y',
+        "client_id": '+__import__("os").system("echo PWNED")+',
+        "client_secret": "s3cret",
+    }
+    with pytest.raises(AutomationError):
+        template_view.substitute_params(
+            _script_source(workflow), workflow, form, [], ""
+        )
+
+
+def test_the_reviewers_poc_does_not_execute_through_the_route(
+    logged_in_client, jawa_env, enable_form
+):
+    """End-to-end through the real HTTP route: the PoC POST must not
+    leave behind a deployed script that executes anything. Previously
+    this returned 302, registered the webhook, and ran the payload when
+    the receiver instantiated Config().
+    """
+    import ast
+
+    marker = os.path.join(str(jawa_env.root), "pwned.txt")
+    payload = f'+__import__("os").system("touch {marker}")+'
+    try:
+        logged_in_client.post(
+            "/templates/device-naming/enable",
+            data=enable_form(
+                "device-naming",
+                webhook_name="poc-hook",
+                server_url='x"__JAWA_CLIENT_ID__"y',
+                client_id=payload,
+            ),
+        )
+    except Exception:
+        # Task 5 adds the error-page wrapper; until then the rejection
+        # propagates as an AutomationError. Being rejected IS the pass
+        # condition here -- the assertions below hold either way.
+        pass
+    from bin import data_store
+
+    entry = data_store.get_webhook_by_name("poc-hook")
+    if entry is not None:
+        # If a script was deployed at all, nothing in it may be an
+        # expression in the value position.
+        with open(entry["script"], "r", encoding="utf-8") as handle:
+            nodes = _assign_nodes(handle.read())
+        for name in ("server_url", "client_id"):
+            assert isinstance(nodes[name], ast.Constant), (
+                f"{name} is a {type(nodes[name]).__name__} in the "
+                f"deployed script: the injection is still open"
+            )
+    # Either way the payload must never have run.
+    assert not os.path.exists(marker), "the injected payload executed"
+
+
+NON_FINITE_NUMERICS = ["inf", "-inf", "nan", "Infinity", "1e400", "-1e400"]
+
+
+@pytest.mark.parametrize("value", NON_FINITE_NUMERICS)
+def test_non_finite_numeric_is_rejected(value):
+    """repr(float("inf")) is the bare word `inf`, which is not a
+    builtin, so the numeric token (written bare) produced
+    `COOLDOWN_HOURS = inf` -- NameError on the first trigger. The F821
+    guard runs against the template, not the deployed copy, so only
+    enable-time validation catches this.
+    """
+    from views import template_view
+    from views._type_handlers.base import AutomationError
+
+    workflow = {
+        "config_params": [
+            {
+                "key": "COOLDOWN_HOURS",
+                "label": "Cooldown Hours",
+                "token": "__JAWA_COOLDOWN_HOURS__",
+                "type": "number",
+            }
+        ]
+    }
+    with pytest.raises(AutomationError):
+        template_view.substitute_params(
+            "COOLDOWN_HOURS = __JAWA_COOLDOWN_HOURS__\n",
+            workflow,
+            {"COOLDOWN_HOURS": value},
+            [],
+            "",
+        )
+
+
+def test_huge_integer_is_rejected_rather_than_becoming_inf():
+    """An integer string past CPython's ~4300-digit limit fails int(),
+    then float()s to inf and shipped as the bare word `inf`.
+    """
+    from views import template_view
+    from views._type_handlers.base import AutomationError
+
+    workflow = {
+        "config_params": [
+            {
+                "key": "COOLDOWN_HOURS",
+                "label": "Cooldown Hours",
+                "token": "__JAWA_COOLDOWN_HOURS__",
+                "type": "number",
+            }
+        ]
+    }
+    with pytest.raises(AutomationError):
+        template_view.substitute_params(
+            "COOLDOWN_HOURS = __JAWA_COOLDOWN_HOURS__\n",
+            workflow,
+            {"COOLDOWN_HOURS": "9" * 5000},
+            [],
+            "",
+        )
+
+
+def test_unicode_digit_numeric_is_rejected():
+    """int("٣") is 3 and int("１２") is 12, so a unicode digit silently
+    became a different number than the glyphs an admin typed. Numerics
+    are ASCII-only by deliberate choice.
+    """
+    from views import template_view
+    from views._type_handlers.base import AutomationError
+
+    workflow = {
+        "config_params": [
+            {
+                "key": "COOLDOWN_HOURS",
+                "label": "Cooldown Hours",
+                "token": "__JAWA_COOLDOWN_HOURS__",
+                "type": "number",
+            }
+        ]
+    }
+    for value in ("٣", "１２"):
+        with pytest.raises(AutomationError):
+            template_view.substitute_params(
+                "COOLDOWN_HOURS = __JAWA_COOLDOWN_HOURS__\n",
+                workflow,
+                {"COOLDOWN_HOURS": value},
+                [],
+                "",
+            )
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [("24", 24), ("  7  ", 7), ("+5", 5), ("1e5", 100000.0), ("0.5", 0.5)],
+)
+def test_numeric_leniency_is_deliberate(value, expected):
+    """Documented, intentional leniency: whitespace, a leading +, and
+    exponent form are all things an admin plausibly types. Pinned so the
+    behaviour is a decision rather than an accident.
+    """
+    from views import template_view
+
+    workflow = {
+        "config_params": [
+            {
+                "key": "COOLDOWN_HOURS",
+                "token": "__JAWA_COOLDOWN_HOURS__",
+                "type": "number",
+            }
+        ]
+    }
+    result = template_view.substitute_params(
+        "COOLDOWN_HOURS = __JAWA_COOLDOWN_HOURS__\n",
+        workflow,
+        {"COOLDOWN_HOURS": value},
+        [],
+        "",
+    )
+    namespace = {}
+    exec(compile(result, "generated.py", "exec"), namespace)
+    assert namespace["COOLDOWN_HOURS"] == expected
+
+
+# All ASCII, so isascii() passed, and none were in the structural
+# blocklist. NUL makes the deployed .py fail to compile outright; the
+# rest produce malformed XML or get silently rewritten by the parser.
+RAW_CONTROL_CHARS = ["\x00", "\r", "\x0c", "\x0b", "\x1b", "\t", "\x7f"]
+
+
+@pytest.mark.parametrize("char", RAW_CONTROL_CHARS)
+def test_raw_param_rejects_control_characters(char):
+    from views import template_view
+    from views._type_handlers.base import AutomationError
+
+    with pytest.raises(AutomationError):
+        template_view.substitute_params(
+            "<string>__JAWA_WIFI_SSID__</string>",
+            _raw_workflow(),
+            {"wifi_ssid": f"Corp{char}WiFi"},
+            [],
+            "",
+        )
+
+
+def test_raw_nul_byte_cannot_reach_a_deployed_script(
+    logged_in_client, jawa_env, enable_form
+):
+    """A NUL in the SSID used to be accepted, and `compile()` then
+    refused the deployed file ("source code string cannot contain null
+    bytes") on the first trigger -- the script never ran.
+    """
+    form = enable_form(
+        "return-to-service",
+        webhook_name="nul-hook",
+        wifi_ssid="Corp\x00WiFi",
+    )
+    try:
+        logged_in_client.post("/templates/return-to-service/enable", data=form)
+    except Exception:
+        # Task 5 adds the error-page wrapper; until then the
+        # AutomationError propagates. Nothing may be written either way.
+        pass
+    from bin import data_store
+
+    assert data_store.get_webhook_by_name("nul-hook") is None
+    assert not os.listdir(str(jawa_env.scripts_dir))

@@ -27,7 +27,9 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import json
+import math
 import os
+import re
 from typing import Any, Dict, List, Union
 
 from flask import (
@@ -133,6 +135,95 @@ def _install_package(package: dict) -> None:
 
 CREDENTIAL_KEYS = ("server_url", "client_id", "client_secret")
 
+# Every template token starts with this. Used as a tripwire: no computed
+# replacement may reintroduce one, and none may survive substitution.
+TOKEN_PREFIX = "__JAWA_"
+
+
+def _numeric_literal(value: str, param: Dict[str, Any]) -> str:
+    """Validate a numeric config value and render it as a literal.
+
+    The one numeric token is written bare (no surrounding quotes), so
+    whatever comes back lands in an expression position. Validation --
+    not escaping -- is what keeps that safe.
+
+    Deliberately lenient: surrounding whitespace is stripped, and a
+    leading "+" or an exponent form ("1e5" -> 100000.0) is accepted,
+    because those are things an admin plausibly types into a form field.
+    Deliberately strict: the value must be ASCII, so a unicode digit
+    cannot silently become a different number, and it must be finite.
+    """
+    label = param.get("label", param["key"])
+    text = value.strip()
+    if not text.isascii():
+        raise AutomationError(
+            "Invalid Configuration",
+            f"{label} must be an ASCII number. Got: {value}",
+        )
+    try:
+        number = int(text)
+    except ValueError:
+        try:
+            number = float(text)
+        except ValueError:
+            raise AutomationError(
+                "Invalid Configuration",
+                f"{label} must be a number. Got: {value}",
+            )
+        # float() happily accepts "inf", "nan", "Infinity" and "1e400".
+        # repr(float("inf")) is the bare word inf, which is not a
+        # builtin, so the deployed script would raise NameError on its
+        # first trigger -- enable succeeds, the automation dies later.
+        if not math.isfinite(number):
+            raise AutomationError(
+                "Invalid Configuration",
+                f"{label} must be a finite number. Got: {value}",
+            )
+    return repr(number)
+
+
+def _raw_literal(value: str, param: Dict[str, Any]) -> str:
+    """Validate a raw (unquoted) config value and return it verbatim.
+
+    The only raw token sits inside an XML <string> element held in a
+    b\"\"\"...\"\"\" bytes literal, so the value is neither quoted Python
+    nor escaped XML and has to be safe in both at once.
+    """
+    label = param.get("label", param["key"])
+    # Structural characters: these would break out of the XML element or
+    # out of the enclosing Python literal. "&" is here because a bare
+    # ampersand is not well-formed XML, so the generated Apple profile
+    # would be rejected at runtime.
+    for char in ("<", ">", "&", '"', "'", "\\", "\n"):
+        if char in value:
+            raise AutomationError(
+                "Invalid Configuration",
+                f"{label} may not contain {char!r}.",
+            )
+    # A character blocklist alone is whack-a-mole, so this is a positive
+    # rule over the whole control range rather than another list of
+    # individual characters. NUL makes the deployed .py fail to
+    # compile; the other C0/C1 codes either produce malformed XML or get
+    # silently rewritten by the XML parser (CR becomes LF), which would
+    # change the SSID an admin typed without telling them.
+    for char in value:
+        code = ord(char)
+        if code < 0x20 or 0x7F <= code <= 0x9F:
+            raise AutomationError(
+                "Invalid Configuration",
+                f"{label} may not contain control characters. Got: {char!r}",
+            )
+    # That XML lives in a b\"\"\"...\"\"\" bytes literal, which cannot
+    # hold a non-ASCII character at all -- substituting one makes the
+    # deployed script fail to compile. Refuse at enable time rather
+    # than shipping a script that cannot start.
+    if not value.isascii():
+        raise AutomationError(
+            "Invalid Configuration",
+            f"{label} must be ASCII only. Got: {value}",
+        )
+    return value
+
 
 def _python_literal(value: str, param: Dict[str, Any]) -> str:
     """Render a config value as Python source text.
@@ -146,43 +237,9 @@ def _python_literal(value: str, param: Dict[str, Any]) -> str:
     serves both paths so they cannot diverge again.
     """
     if param.get("type") == "number":
-        try:
-            number = int(value)
-        except ValueError:
-            try:
-                number = float(value)
-            except ValueError:
-                raise AutomationError(
-                    "Invalid Configuration",
-                    f"{param.get('label', param['key'])} must be a "
-                    f"number. Got: {value}",
-                )
-        return repr(number)
+        return _numeric_literal(value, param)
     if param.get("raw"):
-        # Substituted into a non-Python context inside the script (for
-        # example an XML payload literal), so no quoting is applied.
-        # Reject characters that would break out of that literal. "&"
-        # is in the list because the only raw token ships inside an XML
-        # <string> element: a bare & is not well-formed XML, so the
-        # generated profile would be rejected at runtime.
-        for char in ("<", ">", "&", '"', "'", "\\", "\n"):
-            if char in value:
-                raise AutomationError(
-                    "Invalid Configuration",
-                    f"{param.get('label', param['key'])} may not "
-                    f"contain {char!r}.",
-                )
-        # That XML lives in a b"""...""" bytes literal, which cannot
-        # hold a non-ASCII character at all -- substituting one makes
-        # the deployed script fail to compile. Refuse at enable time
-        # rather than shipping a script that cannot start.
-        if not value.isascii():
-            raise AutomationError(
-                "Invalid Configuration",
-                f"{param.get('label', param['key'])} must be ASCII "
-                f"only. Got: {value}",
-            )
-        return value
+        return _raw_literal(value, param)
     return repr(value)
 
 
@@ -208,6 +265,7 @@ def substitute_params(
             cred = {}
 
     missing = []
+    replacements: Dict[str, str] = {}
     for param in workflow.get("config_params", []):
         key = param["key"]
         value = ""
@@ -218,15 +276,51 @@ def substitute_params(
         if not value:
             missing.append(param.get("label", key))
             continue
-        script_content = script_content.replace(
-            param["token"], _python_literal(str(value), param)
-        )
+        replacement = _python_literal(str(value), param)
+        # Belt and braces on top of the single pass below: a replacement
+        # that itself contains a token would be a needle for nothing
+        # now, but would come back the moment anyone reintroduces a
+        # second pass over this text.
+        if TOKEN_PREFIX in replacement:
+            raise AutomationError(
+                "Invalid Configuration",
+                f"{param.get('label', key)} may not contain {TOKEN_PREFIX}.",
+            )
+        replacements[param["token"]] = replacement
 
     if missing:
         raise AutomationError(
             "Missing Configuration",
             "Fill in every configuration field before enabling this "
             "template. Missing: " + ", ".join(missing),
+        )
+
+    if not replacements:
+        return script_content
+
+    # ONE pass over the source. Applying str.replace per param in a loop
+    # re-scanned text that earlier params had already substituted, so a
+    # value containing a later param's token got rewritten from the
+    # inside -- breaking out of the Python string literal it was
+    # supposed to be trapped in and turning a config field into
+    # arbitrary code in the deployed script. re.sub with a callback
+    # never reconsiders the text it has emitted, so a substituted value
+    # can no longer influence any later substitution.
+    pattern = "|".join(
+        re.escape(token)
+        for token in sorted(replacements, key=len, reverse=True)
+    )
+    script_content = re.sub(
+        pattern, lambda match: replacements[match.group(0)], script_content
+    )
+
+    # Nothing may survive: a leftover token means the deployed script
+    # would run against the literal string "__JAWA_...".
+    if TOKEN_PREFIX in script_content:
+        raise AutomationError(
+            "Invalid Configuration",
+            "The template script still contains unfilled placeholders "
+            "after configuration. Please report this template.",
         )
 
     return script_content

@@ -295,24 +295,29 @@ def substitute_params(
             "template. Missing: " + ", ".join(missing),
         )
 
-    if not replacements:
-        return script_content
-
-    # ONE pass over the source. Applying str.replace per param in a loop
-    # re-scanned text that earlier params had already substituted, so a
-    # value containing a later param's token got rewritten from the
-    # inside -- breaking out of the Python string literal it was
-    # supposed to be trapped in and turning a config field into
-    # arbitrary code in the deployed script. re.sub with a callback
-    # never reconsiders the text it has emitted, so a substituted value
-    # can no longer influence any later substitution.
-    pattern = "|".join(
-        re.escape(token)
-        for token in sorted(replacements, key=len, reverse=True)
-    )
-    script_content = re.sub(
-        pattern, lambda match: replacements[match.group(0)], script_content
-    )
+    # Guarded rather than an early return: a workflow declaring no
+    # config_params must still reach the survivor check below, or a
+    # template carrying an undeclared token ships with the placeholder
+    # baked in -- exactly the drift that check exists to catch.
+    if replacements:
+        # ONE pass over the source. Applying str.replace per param in a
+        # loop re-scanned text that earlier params had already
+        # substituted, so a value containing a later param's token got
+        # rewritten from the inside -- breaking out of the Python string
+        # literal it was supposed to be trapped in and turning a config
+        # field into arbitrary code in the deployed script. re.sub with
+        # a callback never reconsiders the text it has emitted, so a
+        # substituted value can no longer influence any later
+        # substitution.
+        pattern = "|".join(
+            re.escape(token)
+            for token in sorted(replacements, key=len, reverse=True)
+        )
+        script_content = re.sub(
+            pattern,
+            lambda match: replacements[match.group(0)],
+            script_content,
+        )
 
     # Nothing may survive: a leftover token means the deployed script
     # would run against the literal string "__JAWA_...".
@@ -366,6 +371,22 @@ def _validate_package(package: dict) -> Union[str, None]:
         # result is empty or differs, the package tried to write
         # outside SCRIPTS_DIR (bug B7). Reject loudly, write nothing.
         return f"Unsafe script filename: {filename}"
+
+    try:
+        compile(package["script"]["content"], filename, "exec")
+    except SyntaxError as err:
+        # Only a parse gate -- deliberately NOT undefined-name
+        # analysis. compile() catches truncated uploads and syntax
+        # errors with no false positives, while a user's own script may
+        # legitimately rely on a runtime global. Bundled scripts are
+        # held to the stricter F821 bar by the catalog tests.
+        return (
+            f"Script does not parse as Python "
+            f"(line {err.lineno}): {err.msg}"
+        )
+    except (ValueError, TypeError) as err:
+        # e.g. embedded NUL bytes in the uploaded content.
+        return f"Script content is not valid Python source: {err}"
 
     return None
 

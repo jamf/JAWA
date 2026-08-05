@@ -144,6 +144,78 @@ def test_import_rejects_traversal_filename(logged_in_client, jawa_env):
     assert not os.path.exists(os.path.join(scripts_dir, "evil.sh"))
 
 
+def _package(content, name="imported-hook"):
+    return {
+        "name": name,
+        "description": "test package",
+        "trigger": {"event": "ComputerCheckIn"},
+        "script": {"filename": "imported.py", "content": content},
+    }
+
+
+def _upload(client, package):
+    payload = json.dumps(package).encode()
+    return client.post(
+        "/templates/import",
+        data={
+            "package": (io.BytesIO(payload), "thing.jawa.json"),
+        },
+        content_type="multipart/form-data",
+    )
+
+
+def test_import_rejects_script_that_does_not_parse(
+    logged_in_client, jawa_env
+):
+    """A truncated or malformed upload used to be written, chmod 0755'd
+    and registered as a live webhook, then fail inside Popen where the
+    only signal is a logged non-zero exit code (bug B16).
+    """
+    broken = "#!/usr/bin/env python3\ndef main():\n    x = json.loads(\n"
+    resp = _upload(logged_in_client, _package(broken))
+
+    assert resp.status_code in (200, 302)
+    assert data_store.get_webhook_by_name("imported-hook") is None
+    assert not os.path.isfile(
+        os.path.join(str(jawa_env.scripts_dir), "imported.py")
+    )
+
+
+def test_import_accepts_script_using_a_runtime_global(
+    logged_in_client, jawa_env
+):
+    """The gate is compile() only, deliberately not undefined-name
+    analysis: a user's own script may legitimately rely on a runtime
+    global, and rejecting that would be a regression. Bundled content
+    is held to the stricter F821 bar in test_template_catalog.py.
+    """
+    uses_global = (
+        "#!/usr/bin/env python3\n"
+        "def main():\n"
+        "    return some_runtime_helper()\n"
+    )
+    resp = _upload(logged_in_client, _package(uses_global))
+
+    assert resp.status_code in (200, 302)
+    assert data_store.get_webhook_by_name("imported-hook") is not None
+
+
+def test_substitution_rejects_a_token_no_param_declares():
+    """The survivor check must run even when the workflow declares no
+    config_params. The early return for "nothing to substitute" used to
+    skip it, so a template carrying a token with no catalog entry --
+    exactly the drift the check exists to catch -- shipped with the
+    placeholder baked into the deployed script.
+    """
+    from views._type_handlers.base import AutomationError
+    from views.template_view import substitute_params
+
+    with pytest.raises(AutomationError):
+        substitute_params(
+            'X = "__JAWA_ORPHAN__"\n', {"config_params": []}, {}, [], ""
+        )
+
+
 def test_template_view_has_no_direct_webhook_io():
     import inspect
     from views import template_view

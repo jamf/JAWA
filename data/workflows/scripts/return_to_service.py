@@ -100,7 +100,7 @@ WIFI_PAYLOAD = b"""<?xml version="1.0" encoding="UTF-8"?>
   <key>PayloadIdentifier</key><string>RTS-UNIQUE-UUID</string>
   <key>PayloadContent</key><array><dict>
     <key>PayloadType</key><string>com.apple.wifi.managed</string>
-    <key>SSID_STR</key><string>Your-WiFi-SSID</string>
+    <key>SSID_STR</key><string>__JAWA_WIFI_SSID__</string>
     <key>AutoJoin</key><true/>
     <key>CaptiveBypass</key><true/>
   </dict></array>

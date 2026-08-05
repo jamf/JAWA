@@ -386,7 +386,9 @@ def enable_template(slug: str) -> Union[Response, str]:
             "name": webhook_name,
             "tag": "custom",
             "url": session.get("url", ""),
-            "event": workflow.get("trigger_event", ""),
+            # null trigger_event means any-event; store "" rather than
+            # the string "None", which no payload would ever match.
+            "event": workflow.get("trigger_event") or "",
             "script": dest_path,
             "description": workflow.get("description", ""),
             "enabled": True,

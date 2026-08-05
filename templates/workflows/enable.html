@@ -55,10 +55,8 @@
         </form>
     </div>
 
-    {% if workflow.trigger_event %}
     <div class="mt-3 mb-5" style="font-size: 0.82rem; color: var(--color-text-muted); text-align: center;">
-        This template listens for: <strong>{{ workflow.trigger_event }}</strong>
+        This template listens for: <strong>{{ workflow.trigger_event or "Any Event" }}</strong>
     </div>
-    {% endif %}
 </div>
 {% endblock %}

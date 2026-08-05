@@ -7,7 +7,7 @@
         "trigger_type": "webhook",
         "trigger_event": "MobileDeviceEnrolled",
         "script_file": "device_naming.py",
-        "notebook_slug": "device-naming",
+        "hook_name": "Device-Naming-by-Asset-Tag",
         "api_privileges": [
             "Read Mobile Devices",
             "Send Mobile Device Set Device Name Command"
@@ -17,18 +17,21 @@
                 "key": "server_url",
                 "label": "Jamf Pro URL",
                 "placeholder": "https://example.jamfcloud.com",
+                "token": "\"__JAWA_SERVER_URL__\"",
                 "type": "text"
             },
             {
                 "key": "client_id",
                 "label": "OAuth Client ID",
-                "placeholder": "your_client_id",
+                "placeholder": "your-api-client-id",
+                "token": "\"__JAWA_CLIENT_ID__\"",
                 "type": "text"
             },
             {
                 "key": "client_secret",
                 "label": "OAuth Client Secret",
-                "placeholder": "your_client_secret",
+                "placeholder": "your-api-client-secret",
+                "token": "\"__JAWA_CLIENT_SECRET__\"",
                 "type": "password"
             }
         ],
@@ -51,13 +54,14 @@
         "trigger_type": "webhook",
         "trigger_event": "SmartGroupComputerMembershipChange",
         "script_file": "smart_group_slack.py",
-        "notebook_slug": "smart-group-actions",
+        "hook_name": "Smart-Group-Slack-Notification",
         "api_privileges": [],
         "config_params": [
             {
                 "key": "SLACK_WEBHOOK_URL",
                 "label": "Slack Webhook URL",
-                "placeholder": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+                "placeholder": "https://hooks.slack.com/services/T00/B00/XXXX",
+                "token": "\"__JAWA_SLACK_WEBHOOK_URL__\"",
                 "type": "text"
             }
         ],
@@ -76,7 +80,7 @@
         "trigger_type": "webhook",
         "trigger_event": "SmartGroupMobileDeviceMembershipChange",
         "script_file": "smart_group_appletv.py",
-        "notebook_slug": "smart-group-actions",
+        "hook_name": "Apple-TV-Restart-on-Smart-Group",
         "api_privileges": [
             "Send Mobile Device Restart Device Command",
             "Send Mobile Device Update Inventory Command"
@@ -86,23 +90,28 @@
                 "key": "server_url",
                 "label": "Jamf Pro URL",
                 "placeholder": "https://example.jamfcloud.com",
+                "token": "\"__JAWA_SERVER_URL__\"",
                 "type": "text"
             },
             {
                 "key": "client_id",
                 "label": "OAuth Client ID",
-                "placeholder": "your_client_id",
+                "placeholder": "your-api-client-id",
+                "token": "\"__JAWA_CLIENT_ID__\"",
                 "type": "text"
             },
             {
                 "key": "client_secret",
                 "label": "OAuth Client Secret",
-                "placeholder": "your_client_secret",
+                "placeholder": "your-api-client-secret",
+                "token": "\"__JAWA_CLIENT_SECRET__\"",
                 "type": "password"
             }
         ],
         "exit_codes": [
             {"code": 0, "meaning": "Success — devices restarted"},
+            {"code": 1, "meaning": "Invalid webhook JSON"},
+            {"code": 4, "meaning": "Restart or inventory command failed"},
             {"code": 12, "meaning": "No devices entered the group"}
         ],
         "tags": ["smart-group", "apple-tv", "restart", "mobile"],
@@ -116,7 +125,7 @@
         "trigger_type": "webhook",
         "trigger_event": "SmartGroupMobileDeviceMembershipChange",
         "script_file": "return_to_service.py",
-        "notebook_slug": "return-to-service",
+        "hook_name": "Return-to-Service",
         "api_privileges": [
             "Read Mobile Devices",
             "Update Mobile Devices",
@@ -127,24 +136,29 @@
                 "key": "server_url",
                 "label": "Jamf Pro URL",
                 "placeholder": "https://example.jamfcloud.com",
+                "token": "\"__JAWA_SERVER_URL__\"",
                 "type": "text"
             },
             {
                 "key": "client_id",
                 "label": "OAuth Client ID",
-                "placeholder": "your_client_id",
+                "placeholder": "your-api-client-id",
+                "token": "\"__JAWA_CLIENT_ID__\"",
                 "type": "text"
             },
             {
                 "key": "client_secret",
                 "label": "OAuth Client Secret",
-                "placeholder": "your_client_secret",
+                "placeholder": "your-api-client-secret",
+                "token": "\"__JAWA_CLIENT_SECRET__\"",
                 "type": "password"
             },
             {
                 "key": "wifi_ssid",
                 "label": "WiFi SSID",
-                "placeholder": "Your-WiFi-SSID",
+                "placeholder": "Corporate-WiFi",
+                "token": "__JAWA_WIFI_SSID__",
+                "raw": true,
                 "type": "text"
             }
         ],
@@ -156,54 +170,6 @@
         "order": 4
     },
     {
-        "slug": "enrollment-pipeline",
-        "title": "Enrollment Pipeline",
-        "description": "Multi-stage enrollment workflow that matches devices to a CSV assignment list, updates records, and provisions automatically.",
-        "category": "provisioning",
-        "trigger_type": "webhook",
-        "trigger_event": "MobileDeviceEnrolled / ComputerAdded",
-        "script_file": "enrollment_pipeline.py",
-        "notebook_slug": "enrollment-pipeline",
-        "api_privileges": [
-            "Read Mobile Devices",
-            "Update Mobile Devices",
-            "Send Mobile Device Set Device Name Command",
-            "Send Mobile Device Erase Device Command"
-        ],
-        "config_params": [
-            {
-                "key": "server_url",
-                "label": "Jamf Pro URL",
-                "placeholder": "https://example.jamfcloud.com",
-                "type": "text"
-            },
-            {
-                "key": "client_id",
-                "label": "OAuth Client ID",
-                "placeholder": "your_client_id",
-                "type": "text"
-            },
-            {
-                "key": "client_secret",
-                "label": "OAuth Client Secret",
-                "placeholder": "your_client_secret",
-                "type": "password"
-            },
-            {
-                "key": "CSV_FILE",
-                "label": "CSV Assignment File Path",
-                "placeholder": "/usr/local/JAWA/resources/files/DeviceAssignments.csv",
-                "type": "text"
-            }
-        ],
-        "exit_codes": [
-            {"code": 0, "meaning": "Success — pipeline completed"},
-            {"code": 12, "meaning": "No devices entered the group"}
-        ],
-        "tags": ["enrollment", "mobile", "pipeline", "csv", "provisioning"],
-        "order": 5
-    },
-    {
         "slug": "event-tracker-sqlite",
         "title": "Event Tracker (SQLite)",
         "description": "Log webhook check-in events to a SQLite database with configurable cooldown to prevent duplicate processing.",
@@ -211,19 +177,21 @@
         "trigger_type": "webhook",
         "trigger_event": "ComputerCheckIn",
         "script_file": "event_tracker_sqlite.py",
-        "notebook_slug": "event-tracking",
+        "hook_name": "Event-Tracker-SQLite",
         "api_privileges": [],
         "config_params": [
             {
                 "key": "DB_PATH",
                 "label": "SQLite Database Path",
-                "placeholder": "placeholder_value",
+                "placeholder": "/usr/local/JAWA/data/check_ins.db",
+                "token": "\"__JAWA_DB_PATH__\"",
                 "type": "text"
             },
             {
                 "key": "COOLDOWN_HOURS",
                 "label": "Cooldown Hours",
                 "placeholder": "12",
+                "token": "__JAWA_COOLDOWN_HOURS__",
                 "type": "number"
             }
         ],
@@ -233,7 +201,7 @@
             {"code": 2, "meaning": "No device ID found in event"}
         ],
         "tags": ["check-in", "logging", "sqlite", "cooldown"],
-        "order": 6
+        "order": 5
     },
     {
         "slug": "teams-notification",
@@ -241,15 +209,16 @@
         "description": "Send Microsoft Teams Adaptive Card notifications for any Jamf Pro webhook event.",
         "category": "observability",
         "trigger_type": "webhook",
-        "trigger_event": "Any Event",
+        "trigger_event": null,
         "script_file": "teams_notification.py",
-        "notebook_slug": "event-tracking",
+        "hook_name": "Teams-Notification",
         "api_privileges": [],
         "config_params": [
             {
                 "key": "TEAMS_WEBHOOK_URL",
                 "label": "Teams Webhook URL",
-                "placeholder": "placeholder_value",
+                "placeholder": "https://example.webhook.office.com/webhookb2/...",
+                "token": "\"__JAWA_TEAMS_WEBHOOK_URL__\"",
                 "type": "text"
             }
         ],
@@ -259,7 +228,7 @@
             {"code": 3, "meaning": "Failed to send notification"}
         ],
         "tags": ["teams", "notification", "adaptive-card"],
-        "order": 7
+        "order": 6
     },
     {
         "slug": "ea-update",
@@ -267,9 +236,9 @@
         "description": "Update a mobile device extension attribute from webhook events, supporting both standard Jamf Pro and custom JSON formats.",
         "category": "extensions",
         "trigger_type": "webhook",
-        "trigger_event": "ComputerInventoryCompleted",
+        "trigger_event": "MobileDeviceInventoryCompleted",
         "script_file": "ea_update.py",
-        "notebook_slug": "extension-attributes",
+        "hook_name": "Extension-Attribute-Update",
         "api_privileges": [
             "Read Mobile Devices",
             "Update Mobile Devices"
@@ -279,26 +248,28 @@
                 "key": "server_url",
                 "label": "Jamf Pro URL",
                 "placeholder": "https://example.jamfcloud.com",
+                "token": "\"__JAWA_SERVER_URL__\"",
                 "type": "text"
             },
             {
                 "key": "client_id",
                 "label": "OAuth Client ID",
-                "placeholder": "your_client_id",
+                "placeholder": "your-api-client-id",
+                "token": "\"__JAWA_CLIENT_ID__\"",
                 "type": "text"
             },
             {
                 "key": "client_secret",
                 "label": "OAuth Client Secret",
-                "placeholder": "your_client_secret",
+                "placeholder": "your-api-client-secret",
+                "token": "\"__JAWA_CLIENT_SECRET__\"",
                 "type": "password"
             }
         ],
         "exit_codes": [
-            {"code": 0, "meaning": "Success — EA updated"},
-            {"code": 1, "meaning": "Invalid webhook JSON"}
+            {"code": 0, "meaning": "Success — EA updated"}
         ],
         "tags": ["extension-attribute", "mobile", "classic-api"],
-        "order": 8
+        "order": 7
     }
 ]

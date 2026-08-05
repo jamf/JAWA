@@ -41,7 +41,7 @@
             <div class="workflow-detail-sidebar">
                 <dl>
                     <dt>Trigger Event</dt>
-                    <dd>{{ workflow.trigger_event }}</dd>
+                    <dd>{{ workflow.trigger_event or "Any Event" }}</dd>
 
                     <dt>Script File</dt>
                     <dd><code>{{ workflow.script_file }}</code></dd>

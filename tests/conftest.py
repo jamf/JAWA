@@ -237,3 +237,43 @@ def logged_in_client(client, fake_jamf):
     assert resp.status_code == 302, "login should redirect on success"
     assert "/dashboard" in resp.headers["Location"]
     return client
+
+
+_WORKFLOW_CONFIG = os.path.join(
+    REPO_ROOT, "data", "workflows", "workflow_config.json"
+)
+
+
+def _build_enable_form(slug, **overrides):
+    """Build a complete enable-form payload for a bundled template.
+
+    Enabling now refuses to write a script with any config field left
+    unfilled, so a POST carrying only webhook_name is rejected by
+    design. Derive the fields from the catalog so adding a config_param
+    does not silently reintroduce a half-configured POST.
+    """
+    with open(_WORKFLOW_CONFIG, "r", encoding="utf-8") as handle:
+        catalog = json.load(handle)
+    workflow = next(wf for wf in catalog if wf["slug"] == slug)
+
+    form = {"webhook_name": slug}
+    for param in workflow.get("config_params", []):
+        if param.get("type") == "number":
+            value = "12"
+        elif param.get("raw"):
+            # Goes into an XML payload unquoted; keep it plain ASCII.
+            value = "Corporate-WiFi"
+        elif param["key"] == "server_url":
+            value = JAMF_URL
+        else:
+            value = f"test-{param['key']}"
+        form[param["key"]] = value
+
+    form.update(overrides)
+    return form
+
+
+@pytest.fixture()
+def enable_form():
+    """Callable building a fully populated enable-form payload."""
+    return _build_enable_form

@@ -45,6 +45,7 @@ from werkzeug.utils import secure_filename
 
 from bin import data_store, logger
 from bin.view_modifiers import response
+from views._type_handlers.base import AutomationError
 
 blueprint = Blueprint(
     "template_view",
@@ -130,40 +131,104 @@ def _install_package(package: dict) -> None:
     )
 
 
-def _apply_credentials(
+CREDENTIAL_KEYS = ("server_url", "client_id", "client_secret")
+
+
+def _python_literal(value: str, param: Dict[str, Any]) -> str:
+    """Render a config value as Python source text.
+
+    The value is going into a .py file, not into HTML, so it must be a
+    Python literal -- never HTML-escaped. The old engine ran
+    markupsafe.escape() over form values before string-replacing them
+    into script source, which turned every & in a Power Automate URL
+    into &amp; (bug B13); the credential path did not escape at all, so
+    a quote in a secret produced invalid Python. One function now
+    serves both paths so they cannot diverge again.
+    """
+    if param.get("type") == "number":
+        try:
+            number = int(value)
+        except ValueError:
+            try:
+                number = float(value)
+            except ValueError:
+                raise AutomationError(
+                    "Invalid Configuration",
+                    f"{param.get('label', param['key'])} must be a "
+                    f"number. Got: {value}",
+                )
+        return repr(number)
+    if param.get("raw"):
+        # Substituted into a non-Python context inside the script (for
+        # example an XML payload literal), so no quoting is applied.
+        # Reject characters that would break out of that literal. "&"
+        # is in the list because the only raw token ships inside an XML
+        # <string> element: a bare & is not well-formed XML, so the
+        # generated profile would be rejected at runtime.
+        for char in ("<", ">", "&", '"', "'", "\\", "\n"):
+            if char in value:
+                raise AutomationError(
+                    "Invalid Configuration",
+                    f"{param.get('label', param['key'])} may not "
+                    f"contain {char!r}.",
+                )
+        # That XML lives in a b"""...""" bytes literal, which cannot
+        # hold a non-ASCII character at all -- substituting one makes
+        # the deployed script fail to compile. Refuse at enable time
+        # rather than shipping a script that cannot start.
+        if not value.isascii():
+            raise AutomationError(
+                "Invalid Configuration",
+                f"{param.get('label', param['key'])} must be ASCII "
+                f"only. Got: {value}",
+            )
+        return value
+    return repr(value)
+
+
+def substitute_params(
     script_content: str,
-    workflow: dict,
+    workflow: Dict[str, Any],
+    form: Any,
+    credentials: List[Dict[str, Any]],
     credential_index: str,
-    credentials: list,
 ) -> str:
-    """Substitute credential placeholders in script content."""
-    if not credential_index or not credentials:
-        return script_content
-    try:
-        cred = credentials[int(credential_index)]
-    except (ValueError, IndexError):
-        return script_content
+    """Fill every token in a template script.
 
-    cred_keys = ("server_url", "client_id", "client_secret")
+    Values come from the selected credential set first, then the form.
+    Every declared token must end up filled: an unfilled token used to
+    leave the placeholder baked into the deployed script, so the
+    automation failed at trigger time instead of at enable time.
+    """
+    cred: Dict[str, Any] = {}
+    if credential_index and credentials:
+        try:
+            cred = credentials[int(credential_index)]
+        except (ValueError, IndexError):
+            cred = {}
+
+    missing = []
     for param in workflow.get("config_params", []):
-        key = param.get("key", "")
-        if key in cred_keys and cred.get(key):
-            script_content = script_content.replace(
-                param["placeholder"], cred[key]
-            )
-    return script_content
+        key = param["key"]
+        value = ""
+        if key in CREDENTIAL_KEYS and cred.get(key):
+            value = cred[key]
+        if not value:
+            value = form.get(key, "")
+        if not value:
+            missing.append(param.get("label", key))
+            continue
+        script_content = script_content.replace(
+            param["token"], _python_literal(str(value), param)
+        )
 
+    if missing:
+        raise AutomationError(
+            "Missing Configuration",
+            "Fill in every configuration field before enabling this "
+            "template. Missing: " + ", ".join(missing),
+        )
 
-def _apply_form_params(script_content: str, workflow: dict) -> str:
-    """Substitute remaining form-supplied placeholders."""
-    for param in workflow.get("config_params", []):
-        key = param.get("key", "")
-        form_value = request.form.get(key, "")
-        if form_value:
-            form_value = str(escape(form_value))
-            script_content = script_content.replace(
-                param["placeholder"], form_value
-            )
     return script_content
 
 
@@ -372,13 +437,13 @@ def enable_template(slug: str) -> Union[Response, str]:
     with open(src_path, "r", encoding="utf-8") as f:
         script_content = f.read()
 
-    script_content = _apply_credentials(
+    script_content = substitute_params(
         script_content,
         workflow,
-        request.form.get("credential_set", ""),
+        request.form,
         credentials,
+        request.form.get("credential_set", ""),
     )
-    script_content = _apply_form_params(script_content, workflow)
     dest_path = _write_script(webhook_name, script_content)
 
     data_store.add_webhook(

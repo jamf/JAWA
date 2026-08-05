@@ -29,11 +29,11 @@ def fake_popen(monkeypatch):
 
 
 def test_enabled_template_writes_canonical_auth_shape(
-    logged_in_client, jawa_env
+    logged_in_client, jawa_env, enable_form
 ):
     resp = logged_in_client.post(
         "/templates/device-naming/enable",
-        data={"webhook_name": "dn-hook"},
+        data=enable_form("device-naming", webhook_name="dn-hook"),
     )
     assert resp.status_code in (200, 302)
     entry = data_store.get_webhook_by_name("dn-hook")
@@ -45,11 +45,11 @@ def test_enabled_template_writes_canonical_auth_shape(
 
 
 def test_enabled_template_webhook_fires(
-    logged_in_client, jawa_env, fake_popen
+    logged_in_client, jawa_env, fake_popen, enable_form
 ):
     logged_in_client.post(
         "/templates/device-naming/enable",
-        data={"webhook_name": "dn-hook"},
+        data=enable_form("device-naming", webhook_name="dn-hook"),
     )
     resp = logged_in_client.post(
         "/hooks/dn-hook",
@@ -63,6 +63,54 @@ def test_enabled_template_webhook_fires(
     argv = fake_popen.calls[0]
     assert os.path.isabs(argv[0])
     assert os.path.exists(argv[0])
+
+
+def test_enable_deploys_a_script_with_every_token_filled(
+    logged_in_client, jawa_env, enable_form
+):
+    """End-to-end through the route: the deployed copy on disk must hold
+    the submitted values as real Python and carry no leftover token. The
+    old engine matched on placeholder, not token, so every token stayed
+    baked in and the script ran against literal "__JAWA_..." strings.
+    """
+    url = "https://logic.example.test/invoke?a=1&b=2&sig=Ab%2FCd"
+    logged_in_client.post(
+        "/templates/teams-notification/enable",
+        data=enable_form(
+            "teams-notification",
+            webhook_name="teams-hook",
+            TEAMS_WEBHOOK_URL=url,
+        ),
+    )
+    entry = data_store.get_webhook_by_name("teams-hook")
+    assert entry is not None
+    with open(entry["script"], "r", encoding="utf-8") as handle:
+        deployed = handle.read()
+    assert "__JAWA_" not in deployed
+    namespace = {}
+    exec(compile(deployed, entry["script"], "exec"), namespace)
+    assert namespace["TEAMS_WEBHOOK_URL"] == url
+
+
+def test_enable_with_a_field_left_blank_deploys_nothing(
+    logged_in_client, jawa_env, enable_form
+):
+    """Failing loud is the point: a half-filled form used to yield a
+    registered webhook pointing at a script still holding tokens.
+    """
+    form = enable_form("teams-notification", webhook_name="blank-hook")
+    form["TEAMS_WEBHOOK_URL"] = ""
+    try:
+        logged_in_client.post(
+            "/templates/teams-notification/enable", data=form
+        )
+    except Exception:
+        # Task 5 adds the try/except that renders the error page; until
+        # then the AutomationError propagates. Either way nothing must
+        # be written.
+        pass
+    assert data_store.get_webhook_by_name("blank-hook") is None
+    assert not os.listdir(str(jawa_env.scripts_dir))
 
 
 def _traversal_package():

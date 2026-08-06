@@ -48,6 +48,67 @@ def test_enabled_template_writes_canonical_auth_shape(
     assert entry["api_key"] == "null"
 
 
+# The auth fields are labelled optional, so picking a radio and leaving
+# the boxes blank is an expected action -- and the form makes that branch
+# reachable for the first time from the enable path.
+BLANK_AUTH_SUBMISSIONS = [
+    ({"choice": "basic", "basic_username": "", "basic_password": ""}),
+    ({"choice": "basic", "basic_username": "", "basic_password": "pw"}),
+    ({"choice": "custom", "api_key": ""}),
+]
+
+
+@pytest.mark.parametrize("auth_fields", BLANK_AUTH_SUBMISSIONS)
+def test_blank_auth_field_does_not_lock_the_webhook_out(
+    logged_in_client, jawa_env, enable_form, auth_fields
+):
+    """A submitted-but-empty auth input posts "", which the get()
+    default never replaced. _build_auth_xml then told Jamf NONE while
+    the stored value stayed "", and the receiver defaults an
+    unauthenticated request to "null" -- so "null" != "" made
+    validate_webhook reject EVERY inbound event, permanently, behind a
+    success page that said "Enabled".
+    """
+    from webhook import jawa_receiver
+
+    form = enable_form("device-naming", webhook_name="blank-auth-hook")
+    form.update(auth_fields)
+    logged_in_client.post("/templates/device-naming/enable", data=form)
+
+    entry = data_store.get_webhook_by_name("blank-auth-hook")
+    assert entry is not None
+    # No stored auth credential may ever be the empty string: the
+    # receiver's no-auth sentinel is the string "null".
+    for key in ("webhook_username", "webhook_password", "api_key"):
+        assert entry[key] != "", f"{key} stored as an empty string"
+
+    # The assertion with the teeth: an unauthenticated inbound request
+    # (the receiver's "null" x3 default) must still validate for any
+    # field the user left blank.
+    expected = {
+        "webhook_username": "null",
+        "webhook_password": "null",
+        "api_key": "null",
+    }
+    for key, value in expected.items():
+        if entry[key] != value:
+            # A field the user actually filled in: auth is genuinely on,
+            # so an unauthenticated request SHOULD be refused.
+            break
+    else:
+        assert jawa_receiver.validate_webhook(
+            "blank-auth-hook", "null", "null", "null"
+        ), "an all-blank auth choice locked the webhook out"
+        resp = logged_in_client.post(
+            "/hooks/blank-auth-hook",
+            json={"webhook": {"webhookEvent": "MobileDeviceEnrolled"}},
+        )
+        assert resp.status_code == 200, (
+            f"inbound event rejected {resp.status_code}; the webhook is "
+            f"permanently locked out"
+        )
+
+
 def test_enabled_template_webhook_fires(
     logged_in_client, jawa_env, fake_popen, enable_form
 ):
@@ -104,15 +165,15 @@ def test_enable_with_a_field_left_blank_deploys_nothing(
     """
     form = enable_form("teams-notification", webhook_name="blank-hook")
     form["TEAMS_WEBHOOK_URL"] = ""
-    try:
-        logged_in_client.post(
-            "/templates/teams-notification/enable", data=form
-        )
-    except Exception:
-        # Task 5 adds the try/except that renders the error page; until
-        # then the AutomationError propagates. Either way nothing must
-        # be written.
-        pass
+    resp = logged_in_client.post(
+        "/templates/teams-notification/enable", data=form
+    )
+    # The route now catches AutomationError and renders the error page.
+    # Asserting that explicitly, rather than swallowing whatever comes
+    # back: a 500 from an unrelated regression would otherwise satisfy
+    # "nothing was written" and pass silently.
+    assert resp.status_code == 302
+    assert "/error" in resp.headers["Location"]
     assert data_store.get_webhook_by_name("blank-hook") is None
     assert not os.listdir(str(jawa_env.scripts_dir))
 
@@ -303,6 +364,26 @@ def test_smart_group_template_warns_it_is_not_live_yet(
     )
     assert "Smart Group" in body
 
+    # And the stored record must agree with the remote object: Jamf
+    # created this one with enablement "false", so a flat True here
+    # would make any future "is it live?" read lie.
+    entry = data_store.get_webhook_by_name("sg-hook")
+    assert entry["enabled"] is False
+
+
+def test_non_smart_group_template_is_stored_enabled(
+    logged_in_client, jawa_env, enable_form
+):
+    """The other side of the same rule: a normal event is created
+    enabled, so the flag must not be blanket-false either.
+    """
+    logged_in_client.post(
+        "/templates/device-naming/enable",
+        data=enable_form("device-naming", webhook_name="live-hook"),
+    )
+    entry = data_store.get_webhook_by_name("live-hook")
+    assert entry["enabled"] is True
+
 
 def test_enable_links_to_the_new_webhook_in_jamf(
     logged_in_client, jawa_env, enable_form
@@ -332,6 +413,120 @@ def test_enable_rejects_a_name_with_spaces(logged_in_client, jawa_env):
         },
     )
     assert data_store.get_webhook_by_name("Device Naming by Asset Tag") is None
+
+
+def test_any_event_template_offers_a_real_event_to_pick(
+    logged_in_client, jawa_env
+):
+    """teams-notification declares trigger_event null, so the server
+    rejects the POST unless the form supplies an event. Without the
+    picker the page is a dead end: every submit hits "Choose the Jamf
+    Pro event to listen for." with no field to satisfy it.
+    """
+    with open(
+        os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "data",
+            "webhook_schemas.json",
+        ),
+        "r",
+        encoding="utf-8",
+    ) as handle:
+        schemas = json.load(handle)
+
+    body = logged_in_client.get(
+        "/templates/teams-notification/enable"
+    ).get_data(as_text=True)
+    assert 'name="event"' in body, "the any-event template has no picker"
+    # Real schema keys, not invented labels: the value is sent to Jamf.
+    assert any(f'value="{event}"' in body for event in schemas["schemas"])
+
+
+def test_fixed_event_template_does_not_offer_a_picker(
+    logged_in_client, jawa_env
+):
+    """The other six templates hard-declare their trigger. Offering a
+    picker there would let the admin choose an event the script cannot
+    parse, and the server ignores the field anyway.
+    """
+    body = logged_in_client.get(
+        "/templates/device-naming/enable"
+    ).get_data(as_text=True)
+    assert 'name="event"' not in body
+    assert "MobileDeviceEnrolled" in body
+
+
+def test_enable_form_prefills_a_name_jamf_will_accept(
+    logged_in_client, jawa_env
+):
+    """The field used to default to the human title, which contains
+    spaces -- so the prefilled value was one the server now rejects
+    outright. It must come from the catalog's hook_name (Task 2).
+    """
+    import re
+
+    catalog_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "data",
+        "workflows",
+        "workflow_config.json",
+    )
+    with open(catalog_path, "r", encoding="utf-8") as handle:
+        catalog = json.load(handle)
+
+    for workflow in catalog:
+        body = logged_in_client.get(
+            f"/templates/{workflow['slug']}/enable"
+        ).get_data(as_text=True)
+        match = re.search(
+            r'name="webhook_name"[^>]*?value="([^"]*)"', body, re.S
+        )
+        assert match, f"{workflow['slug']}: no prefilled name field"
+        value = match.group(1)
+        assert value == workflow["hook_name"], (
+            f"{workflow['slug']}: form prefills {value!r}, catalog says "
+            f"{workflow['hook_name']!r}"
+        )
+        assert " " not in value
+
+
+def test_a_rejected_config_never_reaches_jamf(
+    logged_in_client, jawa_env, monkeypatch, jamf_fake_http, enable_form
+):
+    """Ordering is the whole point: substitution runs BEFORE the Jamf
+    POST, so a config substitute_params refuses cannot leave an orphan
+    webhook in the customer's Jamf Pro that JAWA has no record of and
+    the admin has to find and delete by hand.
+    """
+    import requests as requests_module
+
+    _, default_post = jamf_fake_http
+    creations = []
+
+    def _counting_post(url, **kwargs):
+        if "/JSSResource/webhooks/id/0" in url:
+            creations.append(url)
+        return default_post(url, **kwargs)
+
+    monkeypatch.setattr(requests_module, "post", _counting_post)
+
+    # COOLDOWN_HOURS is the one numeric token: it is written bare into
+    # an expression position, so _numeric_literal refuses a non-number
+    # instead of deploying a script that will not compile.
+    form = enable_form("event-tracker-sqlite", webhook_name="reject-hook")
+    form["COOLDOWN_HOURS"] = "twelve"
+    resp = logged_in_client.post(
+        "/templates/event-tracker-sqlite/enable", data=form
+    )
+
+    assert resp.status_code == 302
+    assert "/error" in resp.headers["Location"]
+    assert creations == [], (
+        f"{len(creations)} webhook(s) created in Jamf Pro for a config "
+        f"JAWA then refused -- each one is an orphan"
+    )
+    assert data_store.get_webhook_by_name("reject-hook") is None
+    assert not os.listdir(str(jawa_env.scripts_dir))
 
 
 def test_template_view_has_no_direct_webhook_io():

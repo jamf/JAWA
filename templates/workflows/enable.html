@@ -19,14 +19,14 @@
                 <input type="text" name="webhook_name" id="webhook-name" class="form-control"
                        pattern="[^' ']+" title="No spaces, please."
                        value="{{ workflow.hook_name }}" required>
-                <div class="form-text" style="color: var(--color-text-muted); font-size: 0.82rem;">
+                <div class="form-text enable-field-hint">
                     Single string, no spaces &mdash; this becomes part of the URL Jamf Pro calls.
                 </div>
             </div>
 
             {% if not workflow.trigger_event %}
             <div class="mb-3">
-                <label for="template-event" class="form-label" style="font-weight: 500;">Jamf Event</label>
+                <label for="template-event" class="form-label enable-field-label">Jamf Event</label>
                 {# Same catalog and the same degrade-one-bad-group filtering the create
                    form and the Webhook Reference use, so the three cannot drift. #}
                 {% set event_groups = (event_categories or {}).items()
@@ -42,7 +42,7 @@
                     </optgroup>
                     {% endfor %}
                 </select>
-                <div class="form-text" style="color: var(--color-text-muted); font-size: 0.82rem;">
+                <div class="form-text enable-field-hint">
                     This template works with any event &mdash; pick the one Jamf Pro should send.
                 </div>
             </div>
@@ -72,13 +72,21 @@
             {% for param in workflow.config_params %}
             <div class="mb-3">
                 <label for="param-{{ param.key }}" class="form-label" style="font-weight: 500; font-size: 0.88rem;">{{ param.label }}</label>
+                {# Required only when a saved credential set cannot supply
+                   this field. The Credential Set dropdown above fills the
+                   credential keys and nothing populates them client-side,
+                   so requiring them would block submit until the admin
+                   retyped the client secret -- and the server already
+                   prefers the saved credential over anything typed. This
+                   mirrors that server-side rule. #}
                 <input type="{{ param.type or 'text' }}" name="{{ param.key }}" id="param-{{ param.key }}"
-                       class="form-control" placeholder="{{ param.placeholder }}" required>
+                       class="form-control" placeholder="{{ param.placeholder }}"
+                       {% if param.key not in (credential_keys or []) %}required{% endif %}>
             </div>
             {% endfor %}
             {% endif %}
 
-            <h6 style="font-weight: 600; font-size: 0.92rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">Webhook Authentication (optional)</h6>
+            <h6 class="enable-section-heading">Webhook Authentication (optional)</h6>
             {{ jamf_auth_fields() }}
 
             <div class="d-flex justify-content-center mt-4">

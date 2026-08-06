@@ -59,7 +59,13 @@ from views._type_handlers.jamf_handler import (
     _build_webhook_xml,
     _extract_auth_fields,
     _smart_group_info,
+    validate_webhook_name,
 )
+
+# Reused, not re-implemented: the one-shot success flash has to behave
+# identically on the template path and the create path, or the two drift
+# on which context keys survive the redirect.
+from views.automation_view import _flash_success
 
 blueprint = Blueprint(
     "template_view",
@@ -612,6 +618,10 @@ def enable_template(slug: str) -> Union[Response, str]:
             workflow=workflow,
             credentials=credentials,
             event_categories=get_webhook_schemas()["categories"],
+            # Passed, not hardcoded in Jinja: the template marks a param
+            # required only when a credential set cannot supply it, and
+            # duplicating the three key names there would drift.
+            credential_keys=CREDENTIAL_KEYS,
         )
 
     # POST: enable the template
@@ -619,25 +629,9 @@ def enable_template(slug: str) -> Union[Response, str]:
         webhook_name = request.form.get(
             "webhook_name", workflow["hook_name"]
         ).strip()
-        if not webhook_name:
-            raise AutomationError("Error", "Webhook name is required.")
-        if " " in webhook_name:
-            raise AutomationError(
-                "Error",
-                "Single-string name only -- the name becomes part of "
-                "the URL Jamf Pro calls.",
-            )
-        # The name is interpolated into the webhook XML body and into
-        # the callback URL. xml_escape() covers the XML; these
-        # characters would still break the URL, so reject them here.
-        # Same rule the catalog test applies to hook_name, since a user
-        # can type anything into this field.
-        for bad in ("&", "<", ">", '"', "'", "/", "\\"):
-            if bad in webhook_name:
-                raise AutomationError(
-                    "Error",
-                    f"The webhook name may not contain {bad!r}.",
-                )
+        # Shared with the jamfpro create path so the two cannot diverge:
+        # the name goes into the XML body and into the callback URL.
+        validate_webhook_name(webhook_name)
         if data_store.get_webhook_by_name(webhook_name):
             raise AutomationError(
                 "Error", f'The name "{webhook_name}" is already in use.'
@@ -727,7 +721,12 @@ def enable_template(slug: str) -> Union[Response, str]:
             "event": event,
             "script": dest_path,
             "description": workflow.get("description", ""),
-            "enabled": True,
+            # Mirror what Jamf actually did, not what we asked for: a
+            # smart-group event is created with enablement "false" and
+            # does not fire until the admin picks a Smart Group. Writing
+            # a flat True would make the stored record disagree with the
+            # remote object the notice below warns about.
+            "enabled": enablement == "true",
             "jamf_id": jamf_id,
             "webhook_username": webhook_user,
             "webhook_password": webhook_pass,
@@ -741,21 +740,19 @@ def enable_template(slug: str) -> Union[Response, str]:
         f"(script: {os.path.basename(dest_path)}, jamf id: {jamf_id})"
     )
 
-    # Same one-shot flash + PRG the create path uses, so the notices
-    # survive the redirect. A smart-group event is created DISABLED in
-    # Jamf Pro, so reporting a bare "Enabled" for those three templates
-    # would leave the user believing the automation is already live.
-    ctx = {
-        "success_msg": f"Enabled template: {webhook_name}",
-        "new_link": f"{session.get('url')}/webhooks.html?id={jamf_id}&o=r",
-        "new_here": webhook_name,
-        "smart_group_notice": notice,
-        "smart_group_instructions": instructions,
-        "extra_notice": extra_notice,
-        "custom_header": custom_header,
-    }
-    session["success_ctx"] = {k: v for k, v in ctx.items() if v}
-    return redirect(url_for("success"))
+    # The create path's own one-shot flash + PRG, so the notices survive
+    # the redirect. A smart-group event is created DISABLED in Jamf Pro,
+    # so reporting a bare "Enabled" for those three templates would
+    # leave the user believing the automation is already live.
+    return _flash_success(
+        success_msg=f"Enabled template: {webhook_name}",
+        new_link=f"{session.get('url')}/webhooks.html?id={jamf_id}&o=r",
+        new_here=webhook_name,
+        smart_group_notice=notice,
+        smart_group_instructions=instructions,
+        extra_notice=extra_notice,
+        custom_header=custom_header,
+    )
 
 
 @blueprint.route("/templates/import", methods=["GET", "POST"])

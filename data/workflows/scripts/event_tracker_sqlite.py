@@ -23,7 +23,16 @@ def _device_field(event, key, default="Unknown"):
     BOOLEAN rather than a nested object, so a bare
     event.get("computer", {}).get(key) raises AttributeError. Only
     descend when the value really is a mapping.
+
+    The event body itself is guarded the same way. No Jamf event ships a
+    non-object body, so this is hardening rather than a fix -- but the
+    body comes off the wire, this runs unattended, and `key in event`
+    raises TypeError on a bool/int/None while `.get` raises
+    AttributeError on a str/list. Returning the default keeps a
+    malformed POST a logged "Unknown" instead of a traceback.
     """
+    if not isinstance(event, dict):
+        return default
     if key in event:
         return event[key]
     nested = event.get("computer")

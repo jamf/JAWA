@@ -218,14 +218,33 @@ def test_enabling_an_any_event_template_stores_no_none_event(
     assert entry["event"] in _schemas()["schemas"]
 
 
-def test_script_survives_every_example_payload(workflow):
-    """Both smart-group schemas set event.computer to a BOOLEAN, so the
-    event.get("computer", {}).get(...) fallback pattern raised
-    AttributeError (bug B15). Replay the catalog's own examples.
+EXAMPLE_EVENTS = sorted(_schemas()["examples"])
+
+# The payloads that carry the B15 shape: event["computer"] is a BOOLEAN,
+# not a nested object, so event.get("computer", {}).get(key) raises
+# AttributeError. Computed from the schema file rather than hardcoded, so
+# the coverage claim below tracks the catalog.
+BOOLEAN_COMPUTER_EVENTS = sorted(
+    name
+    for name, payload in _schemas()["examples"].items()
+    if isinstance(payload.get("event", {}).get("computer"), bool)
+)
+
+
+def test_the_b15_payload_shape_still_exists_to_be_tested():
+    """Guards the guard. The replay below is only meaningful while some
+    example really does set event.computer to a bool -- if the schema
+    file were reshaped, every replay case would pass vacuously and B15
+    could return unnoticed. This test fails loudly in that case instead.
     """
-    event = workflow.get("trigger_event")
-    examples = _schemas()["examples"]
-    payloads = list(examples.values()) if event is None else [examples[event]]
+    assert BOOLEAN_COMPUTER_EVENTS, (
+        "no example payload sets event.computer to a bool, so the B15 "
+        "replay no longer exercises the shape that caused the bug"
+    )
+
+
+def _extract_fn(workflow):
+    """Compile a bundled script and hand back its _device_field."""
     source = _script_source(workflow)
     # Numeric tokens are written bare (no quotes) so the substituted
     # value is a real int; swap in a placeholder to make it parseable.
@@ -234,12 +253,52 @@ def test_script_survives_every_example_payload(workflow):
             source = source.replace(param["token"], "0")
     namespace = {}
     exec(compile(source, workflow["script_file"], "exec"), namespace)
-    extract = namespace.get("_device_field")
+    return namespace.get("_device_field")
+
+
+@pytest.mark.parametrize("event_name", EXAMPLE_EVENTS)
+def test_script_survives_every_example_payload(workflow, event_name):
+    """Both smart-group schemas set event.computer to a BOOLEAN, so the
+    event.get("computer", {}).get(...) fallback pattern raised
+    AttributeError (bug B15). Replay the catalog's own examples.
+
+    Every payload against every script, deliberately NOT just the one
+    the entry's trigger_event names. Pinning the replay to trigger_event
+    made this vacuous for the script that motivated it:
+    event-tracker-sqlite declares ComputerCheckIn, whose example has no
+    "computer" key at all, so the nested-dict branch never ran and the
+    boolean case -- the actual bug -- went untested. A script also has to
+    survive a mis-pointed webhook: the trigger lives in Jamf Pro, where
+    an admin can point any event at any JAWA webhook.
+    """
+    extract = _extract_fn(workflow)
     if extract is None:
         pytest.skip(f"{workflow['slug']} defines no _device_field")
-    for payload in payloads:
-        for key in ("deviceName", "serialNumber", "jssID"):
-            extract(payload.get("event", {}), key, "Unknown")
+    payload = _schemas()["examples"][event_name]
+    for key in ("deviceName", "serialNumber", "jssID"):
+        extract(payload.get("event", {}), key, "Unknown")
+
+
+# Nothing Jamf sends looks like this, so these are hardening, not a
+# fix. `key in event` raises TypeError on a bool/int/float/None; `.get`
+# raises AttributeError on a str/list.
+NON_DICT_EVENT_BODIES = [None, True, False, 42, 3.5, "string", ["list"]]
+
+
+@pytest.mark.parametrize("body", NON_DICT_EVENT_BODIES)
+def test_device_field_tolerates_a_non_dict_event_body(workflow, body):
+    """A malformed body must degrade to the default, not raise.
+
+    Both call sites already do event_data.get("event", {}), so no
+    shipped payload reaches here as a non-dict -- but the body is
+    attacker-influenced JSON off the wire and these scripts run
+    unattended under the receiver, where a traceback is just a non-zero
+    exit code in a log.
+    """
+    extract = _extract_fn(workflow)
+    if extract is None:
+        pytest.skip(f"{workflow['slug']} defines no _device_field")
+    assert extract(body, "deviceName", "Unknown") == "Unknown"
 
 
 ADVERSARIAL_VALUES = [
@@ -892,3 +951,91 @@ def test_raw_nul_byte_cannot_reach_a_deployed_script(
 
     assert data_store.get_webhook_by_name("nul-hook") is None
     assert not os.listdir(str(jawa_env.scripts_dir))
+
+
+CANONICAL_START = "# --- JAWA canonical Jamf API block"
+CANONICAL_END = "# --- end canonical block ---"
+
+
+def _canonical_block(source):
+    if CANONICAL_START not in source:
+        return None
+    start = source.index(CANONICAL_START)
+    end = source.index(CANONICAL_END) + len(CANONICAL_END)
+    return source[start:end]
+
+
+def test_canonical_api_block_has_not_drifted():
+    """The scripts stay self-contained on purpose -- a user can download
+    one and run it alone -- so the Jamf API block is duplicated rather
+    than imported. Duplication is only safe if the copies stay
+    identical.
+    """
+    blocks = {}
+    for workflow in CATALOG:
+        block = _canonical_block(_script_source(workflow))
+        if block is not None:
+            blocks[workflow["script_file"]] = block
+
+    assert len(blocks) >= 2, (
+        "expected several scripts to carry the canonical block; found "
+        f"{sorted(blocks)}"
+    )
+    distinct = set(blocks.values())
+    assert len(distinct) == 1, (
+        "the canonical Jamf API block has drifted between scripts: "
+        f"{sorted(blocks)} yielded {len(distinct)} different versions"
+    )
+
+
+def test_every_script_is_executable_and_has_a_shebang():
+    """Two separate invariants, only one of which is receiver-facing.
+
+    The SHEBANG is load-bearing here. This directory is the shipped
+    TEMPLATE SOURCE; enabling copies its content verbatim into
+    SCRIPTS_DIR, and the receiver execs that copy with a bare
+    Popen([script_path, payload]) -- no interpreter prefix. A template
+    missing its shebang therefore produces a deployed script the kernel
+    cannot start.
+
+    The EXECUTABLE BIT on the template source is NOT what the receiver
+    relies on -- _write_script chmods the deployed copy itself (pinned by
+    test_deployed_script_is_executable). It is asserted for the
+    standalone-download promise the catalog makes: a user downloads one
+    of these and runs it directly, so the shipped file has to be
+    runnable as it stands.
+    """
+    for workflow in CATALOG:
+        path = _script_path(workflow)
+        with open(path, "r", encoding="utf-8") as handle:
+            first_line = handle.readline()
+        assert first_line.startswith("#!"), (
+            f"{workflow['script_file']} has no shebang; the receiver "
+            f"execs it directly"
+        )
+        assert os.access(path, os.X_OK), (
+            f"{workflow['script_file']} is not executable"
+        )
+
+
+def test_deployed_script_is_executable(jawa_env):
+    """The invariant the receiver's bare Popen actually depends on.
+
+    script_results() runs Popen([each_webhook["script"], payload]) with
+    no interpreter prefix, so the file _write_script leaves in
+    SCRIPTS_DIR has to carry the executable bit itself -- the mode of the
+    template source is irrelevant by then, because _write_script creates
+    a new file rather than copying one.
+    """
+    import stat
+
+    from views import template_view
+
+    dest = template_view._write_script(
+        "mode-check", "#!/usr/bin/env python3\nprint('hi')\n"
+    )
+    mode = stat.S_IMODE(os.stat(dest).st_mode)
+    assert mode == 0o755, (
+        f"_write_script left {oct(mode)} on {dest}; the receiver execs "
+        f"this path directly, so it must be 0o755"
+    )

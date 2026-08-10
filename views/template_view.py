@@ -30,7 +30,7 @@ import json
 import math
 import os
 import re
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import requests
 from flask import (
@@ -121,8 +121,21 @@ def _load_credentials() -> List[Dict[str, Any]]:
         return []
 
 
-def _install_package(package: dict) -> None:
-    """Install a .jawa.json workflow package into JAWA."""
+def _install_package(
+    package: dict,
+    jamf_id: Optional[str] = None,
+    enabled: bool = True,
+    auth_fields: Optional[Dict[str, str]] = None,
+) -> None:
+    """Install a .jawa.json workflow package into JAWA.
+
+    ``jamf_id`` is the id of the webhook already created in Jamf Pro, or
+    None when the admin cleared the registration box and wants a
+    JAWA-local automation. Registered packages are filed under
+    "jamfpro" so the automation carries its trigger the way the enable
+    path's do -- filing an event-driven automation under "custom" is the
+    B14 mistake, where the trigger becomes invisible and uneditable.
+    """
     script = package["script"]
     safe_filename = secure_filename(script["filename"])
     script_path = os.path.join(SCRIPTS_DIR, safe_filename)
@@ -130,24 +143,33 @@ def _install_package(package: dict) -> None:
         f.write(script["content"])
     os.chmod(script_path, 0o755)
 
-    data_store.add_webhook(
-        {
-            "name": package["name"],
-            "tag": "custom",
-            "url": session.get("url", ""),
-            "event": package["trigger"]["event"],
-            "script": script_path,
-            "description": package.get("description", ""),
-            "enabled": True,
-            "webhook_username": "null",
-            "webhook_password": "null",
-            "api_key": "null",
-        }
-    )
+    auth = auth_fields or {
+        "webhook_username": "null",
+        "webhook_password": "null",
+        "api_key": "null",
+    }
+    entry = {
+        "name": package["name"],
+        "tag": "jamfpro" if jamf_id is not None else "custom",
+        "url": session.get("url", ""),
+        "jawa_admin": session.get("username", ""),
+        "event": package["trigger"]["event"],
+        "script": script_path,
+        "description": package.get("description", ""),
+        # Mirror what Jamf actually did: a smart-group event is created
+        # disabled and does not fire until the admin picks a Smart Group,
+        # so a flat True would make the stored record disagree with the
+        # remote object.
+        "enabled": enabled,
+        **auth,
+    }
+    if jamf_id is not None:
+        entry["jamf_id"] = jamf_id
+    data_store.add_webhook(entry)
 
     logthis.info(
         f"Installed workflow package: {package['name']} "
-        f"(script: {safe_filename})"
+        f"(script: {safe_filename}, jamf id: {jamf_id or 'not registered'})"
     )
 
 
@@ -802,14 +824,113 @@ def import_template() -> Union[Response, Dict[str, Any]]:
             )
         )
 
-    _install_package(package)
+    # Default-on, and read as "absent means cleared": an unchecked box
+    # posts nothing at all. These packages are predicated on Jamf Pro
+    # events, so registering the webhook in Jamf -- the coupling the
+    # regular create path gives -- is the expected outcome, not an extra
+    # step the admin has to discover.
+    if not request.form.get("create_in_jamf"):
+        _install_package(package)
+        logthis.info(
+            f"[{session.get('url')}] {session.get('username')} "
+            f"imported template: {package['name']} (JAWA-local)"
+        )
+        return _flash_success(
+            success_msg=f"Installed template: {package['name']}"
+        )
+
+    webhook_name = package["name"]
+    event = package["trigger"]["event"]
+    try:
+        # Shared with the create and enable paths so the three cannot
+        # diverge: the name goes into the XML body and into the callback
+        # URL Jamf Pro calls. Re-framed on the way out because this form
+        # has no name field -- the name comes from the package, so
+        # "rename it" is not advice the admin can act on here.
+        try:
+            validate_webhook_name(webhook_name)
+        except AutomationError as err:
+            raise AutomationError(
+                ERROR_INVALID_PKG,
+                f'The package name "{webhook_name}" cannot be used as a '
+                f"Jamf Pro webhook. {err.message} Fix the name in the "
+                f"package file, or clear the Jamf Pro box to install the "
+                f"script locally only.",
+            )
+        if data_store.get_webhook_by_name(webhook_name):
+            raise AutomationError(
+                "Error", f'The name "{webhook_name}" is already in use.'
+            )
+
+        server_address = get_jawa_address()
+        if not server_address:
+            raise AutomationError(
+                "Setup Required",
+                "Configure your JAWA address and Jamf Pro server "
+                "before importing a template into Jamf Pro.",
+                link="/setup",
+                link_text="Go to Setup",
+            )
+
+        if not validate_token(session.get("expires")):
+            get_token()
+
+        notice, instructions, enablement, extra_xml = _smart_group_info(
+            event
+        )
+        # The helpers rather than a hardcoded NONE + "null" x3: the
+        # import form carries no auth fields today, so both reduce to
+        # unauthenticated -- but going through them keeps the XML JAWA
+        # sends and the credentials JAWA stores derived from one place.
+        # Hardcoding the pair is how they drift into telling Jamf NONE
+        # while storing something the receiver then rejects (B14).
+        auth_xml = _build_auth_xml(request.form)
+        (
+            webhook_user,
+            webhook_pass,
+            webhook_apikey,
+            _extra_notice,
+            _custom_header,
+        ) = _extract_auth_fields(request.form)
+        xml_data = _build_webhook_xml(
+            webhook_name,
+            enablement,
+            server_address,
+            event,
+            auth_xml,
+            extra_xml,
+        )
+        jamf_id = _create_jamf_webhook(webhook_name, xml_data)
+    except AutomationError as err:
+        return redirect(
+            url_for(
+                "error",
+                error=err.title,
+                error_message=err.message,
+            )
+        )
+
+    # Jamf accepted it: only now write anything locally, so a rejection
+    # leaves no orphaned script on disk and no half-configured
+    # automation.
+    _install_package(
+        package,
+        jamf_id=jamf_id,
+        enabled=enablement == "true",
+        auth_fields={
+            "webhook_username": webhook_user,
+            "webhook_password": webhook_pass,
+            "api_key": webhook_apikey,
+        },
+    )
     logthis.info(
         f"[{session.get('url')}] {session.get('username')} "
-        f"imported template: {package['name']}"
+        f"imported template: {package['name']} (jamf id: {jamf_id})"
     )
-    return redirect(
-        url_for(
-            "success",
-            success_msg=f"Installed template: {package['name']}",
-        )
+    return _flash_success(
+        success_msg=f"Installed template: {package['name']}",
+        new_link=f"{session.get('url')}/webhooks.html?id={jamf_id}&o=r",
+        new_here=webhook_name,
+        smart_group_notice=notice,
+        smart_group_instructions=instructions,
     )

@@ -3,6 +3,7 @@
 import io
 import json
 import os
+import re
 import subprocess
 
 import pytest
@@ -218,13 +219,13 @@ def _package(content, name="imported-hook"):
     }
 
 
-def _upload(client, package):
+def _upload(client, package, **fields):
     payload = json.dumps(package).encode()
+    data = {"package": (io.BytesIO(payload), "thing.jawa.json")}
+    data.update(fields)
     return client.post(
         "/templates/import",
-        data={
-            "package": (io.BytesIO(payload), "thing.jawa.json"),
-        },
+        data=data,
         content_type="multipart/form-data",
     )
 
@@ -263,6 +264,177 @@ def test_import_accepts_script_using_a_runtime_global(
 
     assert resp.status_code in (200, 302)
     assert data_store.get_webhook_by_name("imported-hook") is not None
+
+
+def _jamf_creations(monkeypatch, jamf_fake_http, response=None):
+    """Record every webhook-creation POST, optionally answering with a
+    canned response instead of the default success.
+    """
+    import requests as requests_module
+
+    _, default_post = jamf_fake_http
+    creations = []
+
+    def _post(url, **kwargs):
+        if "/JSSResource/webhooks/id/0" in url:
+            creations.append(url)
+            if response is not None:
+                return response
+        return default_post(url, **kwargs)
+
+    monkeypatch.setattr(requests_module, "post", _post)
+    return creations
+
+
+def test_import_form_offers_jamf_registration_by_default(logged_in_client):
+    """An imported package triggers on a Jamf Pro event, so the coupling
+    regular webhooks get -- JAWA creates the webhook in Jamf for you --
+    is the default, not an extra step the admin has to know about.
+    """
+    body = logged_in_client.get("/templates/import").get_data(as_text=True)
+    match = re.search(
+        r'<input[^>]*name="create_in_jamf"[^>]*>', body, re.S
+    )
+    assert match, "no create_in_jamf control on the import form"
+    assert "checked" in match.group(0), (
+        "the Jamf Pro registration box is not checked by default"
+    )
+
+
+def test_import_with_the_box_checked_creates_the_webhook_in_jamf(
+    logged_in_client, jawa_env
+):
+    """Checked is the same deal the enable path gives: JAWA creates the
+    webhook in Jamf Pro and files the automation under jamfpro, so its
+    trigger is visible and editable (the B14 rule).
+    """
+    resp = _upload(
+        logged_in_client,
+        _package("#!/usr/bin/env python3\nprint('hi')\n"),
+        create_in_jamf="yes",
+    )
+    assert resp.status_code == 302
+
+    entry = data_store.get_webhook_by_name("imported-hook")
+    assert entry is not None
+    assert entry["tag"] == "jamfpro"
+    assert entry["event"] == "ComputerCheckIn"
+    assert entry["jamf_id"] == "77"
+
+
+def test_a_jamf_registered_import_actually_fires(
+    logged_in_client, jawa_env, fake_popen
+):
+    """The whole point of this module (B1): registering in Jamf must not
+    change the stored shape in a way that stops the receiver validating
+    the inbound event or finding the script on disk.
+    """
+    _upload(
+        logged_in_client,
+        _package("#!/usr/bin/env python3\nprint('hi')\n"),
+        create_in_jamf="yes",
+    )
+    resp = logged_in_client.post(
+        "/hooks/imported-hook",
+        json={"webhook": {"webhookEvent": "ComputerCheckIn"}},
+    )
+    assert resp.status_code == 200
+    assert len(fake_popen.calls) == 1
+    argv = fake_popen.calls[0]
+    assert os.path.isabs(argv[0])
+    assert os.path.exists(argv[0])
+
+
+def test_import_with_the_box_cleared_stays_local(
+    logged_in_client, jawa_env, monkeypatch, jamf_fake_http
+):
+    """Clearing the box is the pre-existing behaviour: a JAWA-local
+    automation, nothing created in the customer's Jamf Pro.
+    """
+    creations = _jamf_creations(monkeypatch, jamf_fake_http)
+
+    resp = _upload(
+        logged_in_client, _package("#!/usr/bin/env python3\nprint('hi')\n")
+    )
+    assert resp.status_code == 302
+
+    entry = data_store.get_webhook_by_name("imported-hook")
+    assert entry is not None
+    assert entry["tag"] == "custom"
+    assert "jamf_id" not in entry
+    assert creations == [], (
+        "a webhook was created in Jamf Pro for an import the admin "
+        "asked to keep local"
+    )
+
+
+def test_import_writes_nothing_when_jamf_rejects(
+    logged_in_client, jawa_env, monkeypatch, jamf_fake_http
+):
+    """Same ordering guarantee the enable path makes: Jamf is asked
+    first, so a 409 leaves no orphaned script on disk and no
+    half-configured automation.
+    """
+    response_cls, _ = jamf_fake_http
+    _jamf_creations(
+        monkeypatch,
+        jamf_fake_http,
+        response=response_cls({}, status_code=409, text="duplicate"),
+    )
+
+    resp = _upload(
+        logged_in_client,
+        _package("#!/usr/bin/env python3\nprint('hi')\n"),
+        create_in_jamf="yes",
+    )
+    assert resp.status_code == 302
+    assert "/error" in resp.headers["Location"]
+    assert data_store.get_webhook_by_name("imported-hook") is None
+    written = os.listdir(str(jawa_env.scripts_dir))
+    assert written == [], f"orphaned script(s) left behind: {written}"
+
+
+def test_import_rejects_a_name_jamf_cannot_use(
+    logged_in_client, jawa_env, monkeypatch, jamf_fake_http
+):
+    """The package name becomes part of the URL Jamf Pro calls, so the
+    checked path holds it to the same rule as the create and enable
+    forms -- and rejects before anything is written either side.
+    """
+    creations = _jamf_creations(monkeypatch, jamf_fake_http)
+
+    resp = _upload(
+        logged_in_client,
+        _package(
+            "#!/usr/bin/env python3\nprint('hi')\n",
+            name="Imported Hook With Spaces",
+        ),
+        create_in_jamf="yes",
+    )
+    assert resp.status_code == 302
+    assert "/error" in resp.headers["Location"]
+    assert data_store.get_webhook_by_name("Imported Hook With Spaces") is None
+    assert creations == []
+    assert not os.listdir(str(jawa_env.scripts_dir))
+
+
+def test_import_of_a_smart_group_package_warns_it_is_not_live_yet(
+    logged_in_client, jawa_env
+):
+    """Jamf creates a smart-group webhook DISABLED, so the import path
+    owes the admin the same warning the enable path gives -- and must
+    store the flag Jamf actually applied, not a flat True.
+    """
+    package = _package("#!/usr/bin/env python3\nprint('hi')\n")
+    package["trigger"]["event"] = "SmartGroupComputerMembershipChange"
+    resp = _upload(logged_in_client, package, create_in_jamf="yes")
+    assert resp.status_code == 302
+    assert "/success" in resp.headers["Location"]
+
+    body = logged_in_client.get("/success").get_data(as_text=True)
+    assert "not yet enabled" in body
+    assert "Smart Group" in body
+    assert data_store.get_webhook_by_name("imported-hook")["enabled"] is False
 
 
 def test_substitution_rejects_a_token_no_param_declares():

@@ -43,7 +43,7 @@ from bin.data_store import (
 from bin.tokens import validate_token, get_token
 from views._type_handlers.base import AutomationError, AutomationHandler
 
-USER_AGENT_STRING = "JAWA%20v3.1.1"
+USER_AGENT_STRING = "JAWA%20v3.2.0"
 
 XML = "application/xml"
 

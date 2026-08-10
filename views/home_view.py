@@ -127,7 +127,7 @@ def _verify_jamf_access() -> Union[Response, None]:
             headers={
                 "Accept": "application/json",
                 "Authorization": f"Bearer {session.get('token')}",
-                "User-Agent": "JAWA%20v3.1.1",
+                "User-Agent": "JAWA%20v3.2.0",
             },
             verify=verify_ssl,
         )

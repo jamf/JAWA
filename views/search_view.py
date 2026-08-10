@@ -202,7 +202,7 @@ def _index_templates() -> List[Dict[str, Any]]:
         title = tmpl.get("title", "")
         desc = tmpl.get("description", "")
         tags = " ".join(tmpl.get("tags", []))
-        event = tmpl.get("trigger_event", "")
+        event = tmpl.get("trigger_event") or ""
         slug = tmpl.get("slug", "")
         results.append(
             {

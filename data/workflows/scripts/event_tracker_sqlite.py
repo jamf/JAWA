@@ -10,8 +10,35 @@ import json
 import sqlite3
 import sys
 
-DB_PATH = "placeholder_value"  # Path to SQLite database file
-COOLDOWN_HOURS = 12  # Hours between recording repeat check-ins
+DB_PATH = "__JAWA_DB_PATH__"
+# Hours between recording repeat check-ins. Numeric token: substituted
+# bare (no quotes) so the installed script holds a real int literal.
+COOLDOWN_HOURS = __JAWA_COOLDOWN_HOURS__  # noqa: F821
+
+
+def _device_field(event, key, default="Unknown"):
+    """Read a device field from a Jamf webhook event.
+
+    Some events (the smart-group ones) set event["computer"] to a
+    BOOLEAN rather than a nested object, so a bare
+    event.get("computer", {}).get(key) raises AttributeError. Only
+    descend when the value really is a mapping.
+
+    The event body itself is guarded the same way. No Jamf event ships a
+    non-object body, so this is hardening rather than a fix -- but the
+    body comes off the wire, this runs unattended, and `key in event`
+    raises TypeError on a bool/int/None while `.get` raises
+    AttributeError on a str/list. Returning the default keeps a
+    malformed POST a logged "Unknown" instead of a traceback.
+    """
+    if not isinstance(event, dict):
+        return default
+    if key in event:
+        return event[key]
+    nested = event.get("computer")
+    if isinstance(nested, dict):
+        return nested.get(key, default)
+    return default
 
 
 def create_check_in_db(db_path):
@@ -90,11 +117,9 @@ def main():
         sys.exit(1)
 
     event = event_data.get("event", {})
-    jss_id = event.get("jssID") or event.get("computer", {}).get("jssID")
-    serial = event.get("serialNumber", "Unknown")
-    device_name = event.get("deviceName") or event.get("computer", {}).get(
-        "deviceName", "Unknown"
-    )
+    jss_id = _device_field(event, "jssID", None)
+    serial = _device_field(event, "serialNumber")
+    device_name = _device_field(event, "deviceName")
 
     if not jss_id:
         print("No device ID found in event data.")

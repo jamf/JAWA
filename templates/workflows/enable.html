@@ -1,4 +1,5 @@
 {% extends "shared/_layout.html" %}
+{% from "shared/_macros.html" import jamf_auth_fields %}
 {% block title %}Enable {{ workflow.title }} - JAWA{% endblock %}
 {% block content %}
 <div class="container" style="max-width: 750px; padding-top: 2rem;">
@@ -16,8 +17,36 @@
             <div class="mb-3">
                 <label for="webhook-name" class="form-label" style="font-weight: 500;">Webhook Name</label>
                 <input type="text" name="webhook_name" id="webhook-name" class="form-control"
-                       value="{{ workflow.title }}" required>
+                       pattern="[^' ']+" title="No spaces, please."
+                       value="{{ workflow.hook_name }}" required>
+                <div class="form-text enable-field-hint">
+                    Single string, no spaces &mdash; this becomes part of the URL Jamf Pro calls.
+                </div>
             </div>
+
+            {% if not workflow.trigger_event %}
+            <div class="mb-3">
+                <label for="template-event" class="form-label enable-field-label">Jamf Event</label>
+                {# Same catalog and the same degrade-one-bad-group filtering the create
+                   form and the Webhook Reference use, so the three cannot drift. #}
+                {% set event_groups = (event_categories or {}).items()
+                   | selectattr('1', 'sequence') | rejectattr('1', 'string')
+                   | rejectattr('1', 'mapping') | list %}
+                <select class="form-control" name="event" id="template-event" required>
+                    <option value="">-- Select an event --</option>
+                    {% for category, events in event_groups %}
+                    <optgroup label="{{ category }}">
+                        {% for event in events %}
+                        <option value="{{ event }}">{{ event }}</option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endfor %}
+                </select>
+                <div class="form-text enable-field-hint">
+                    This template works with any event &mdash; pick the one Jamf Pro should send.
+                </div>
+            </div>
+            {% endif %}
 
             {% if credentials %}
             <div class="mb-4">
@@ -43,11 +72,22 @@
             {% for param in workflow.config_params %}
             <div class="mb-3">
                 <label for="param-{{ param.key }}" class="form-label" style="font-weight: 500; font-size: 0.88rem;">{{ param.label }}</label>
+                {# Required only when a saved credential set cannot supply
+                   this field. The Credential Set dropdown above fills the
+                   credential keys and nothing populates them client-side,
+                   so requiring them would block submit until the admin
+                   retyped the client secret -- and the server already
+                   prefers the saved credential over anything typed. This
+                   mirrors that server-side rule. #}
                 <input type="{{ param.type or 'text' }}" name="{{ param.key }}" id="param-{{ param.key }}"
-                       class="form-control" placeholder="{{ param.placeholder }}">
+                       class="form-control" placeholder="{{ param.placeholder }}"
+                       {% if param.key not in (credential_keys or []) %}required{% endif %}>
             </div>
             {% endfor %}
             {% endif %}
+
+            <h6 class="enable-section-heading">Webhook Authentication (optional)</h6>
+            {{ jamf_auth_fields() }}
 
             <div class="d-flex justify-content-center mt-4">
                 <button type="submit" class="btn btn-jawa">Enable Template</button>
@@ -55,10 +95,23 @@
         </form>
     </div>
 
-    {% if workflow.trigger_event %}
     <div class="mt-3 mb-5" style="font-size: 0.82rem; color: var(--color-text-muted); text-align: center;">
-        This template listens for: <strong>{{ workflow.trigger_event }}</strong>
+        This template listens for: <strong>{{ workflow.trigger_event or "Any Event" }}</strong>
     </div>
-    {% endif %}
 </div>
+{% endblock %}
+
+{% block additional_js %}
+<script>
+{# Copied verbatim from automations/create.html rather than written afresh:
+   the jamf_auth_fields macro's radios call this, and a third divergent
+   implementation is worse than an identical duplicate. Consolidating all
+   three copies into a static JS file is tracked separately. #}
+function toggleAuthField(divId) {
+    var el = document.getElementById(divId);
+    if (el) {
+        el.style.display = el.style.display === 'none' ? 'inline-block' : 'none';
+    }
+}
+</script>
 {% endblock %}

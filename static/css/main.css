@@ -1152,6 +1152,26 @@ a.btn-hero-secondary:visited {
     color: #fff;
 }
 
+/* Template enable form: field labels, helper text and section headings.
+   The rest of enable.html still carries inline styles predating the
+   tokens-only rule; these classes cover the fields added with the Jamf
+   Pro registration work so no new inline styles ship. */
+.enable-field-label {
+    font-weight: 500;
+}
+
+.enable-field-hint {
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+}
+
+.enable-section-heading {
+    font-weight: 600;
+    font-size: 0.92rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
 .workflow-detail-sidebar {
     background: var(--color-surface);
     border: 1px solid var(--color-border);

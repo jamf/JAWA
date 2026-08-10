@@ -70,6 +70,45 @@ MOBILE_DISPLAY_FIELDS_XML = (
 )
 
 
+def xml_escape(value: str) -> str:
+    """Escape a value interpolated into the webhook XML body.
+
+    The XML is hand-built with f-strings, so an unescaped & or < in a
+    webhook name produces a malformed body that Jamf rejects with an
+    opaque error.
+    """
+    return (
+        str(value)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+# A webhook name is interpolated into the XML body AND into the callback
+# URL Jamf calls. A positive rule, not a blocklist: xml_escape() makes
+# "Dev&Prod" well-formed XML, so Jamf then calls /hooks/Dev&Prod, and
+# Flask's /hooks/<webhook_name> route matches "Dev" with "Prod" as a
+# query param -- the webhook silently never fires. A blocklist also
+# missed "#", "?", "%" and an interior tab (`" " in name` catches none of
+# those). Same argument _raw_literal makes in template_view.
+WEBHOOK_NAME_RE = re.compile(r"[A-Za-z0-9._-]+")
+
+WEBHOOK_NAME_RULE = (
+    "Use only letters, numbers, dots, underscores and hyphens -- the "
+    "name becomes part of the URL Jamf Pro calls."
+)
+
+
+def validate_webhook_name(name: str) -> None:
+    """Raise AutomationError unless the name is URL- and XML-safe."""
+    if not name:
+        raise AutomationError("Error", "Webhook name is required.")
+    if not WEBHOOK_NAME_RE.fullmatch(name):
+        raise AutomationError("Error", WEBHOOK_NAME_RULE)
+
+
 def _build_auth_xml(form: Any) -> str:
     auth_xml = "<authentication_type>NONE</authentication_type>"
     if form.get("choice") == "basic":
@@ -93,13 +132,14 @@ def _build_webhook_xml(
     auth_xml: str,
     extra_xml: str,
 ) -> str:
+    safe_name = xml_escape(name)
     return (
         f"<webhook>"
-        f"<name>{name}</name>"
+        f"<name>{safe_name}</name>"
         f"<enabled>{enabled}</enabled>"
-        f"<url>{server_address}/hooks/{name}</url>"
+        f"<url>{server_address}/hooks/{safe_name}</url>"
         f"<content_type>application/json</content_type>"
-        f"<event>{event}</event>"
+        f"<event>{xml_escape(event)}</event>"
         f"{auth_xml}"
         f"{extra_xml}"
         f"</webhook>"
@@ -127,15 +167,22 @@ def _smart_group_info(event: str) -> Tuple[str, str, str, str]:
 
 def _extract_auth_fields(form: Any) -> Tuple[str, str, str, Any, Any]:
     """Extract auth fields from form. Returns (user, pass, apikey, extra_notice, custom_header)."""
+    # `or "null"`, not a get() default: the default only fires when the
+    # key is ABSENT, but a submitted-yet-empty input posts "". Since the
+    # auth fields are labelled optional, picking a radio and leaving the
+    # boxes blank is expected -- and storing "" there meant
+    # _build_auth_xml told Jamf NONE while validate_webhook compared the
+    # receiver's "null" default against "", so every inbound event was
+    # rejected 401 forever behind a success page saying "Enabled".
     if form.get("choice") == "basic":
-        webhook_user = form.get("basic_username", "null")
-        webhook_pass = form.get("basic_password", "null")
+        webhook_user = form.get("basic_username") or "null"
+        webhook_pass = form.get("basic_password") or "null"
     else:
         webhook_user = "null"
         webhook_pass = "null"
 
     if form.get("choice") == "custom":
-        webhook_apikey = form.get("api_key", "null")
+        webhook_apikey = form.get("api_key") or "null"
         extra_notice = (
             "Copy and paste the following into the Header "
             "Authentication section of Jamf Pro webhooks:"
@@ -181,10 +228,10 @@ class JamfHandler(AutomationHandler):
         event = form.get("event", "")
         description = form.get("description", "")
 
-        if not webhook_name:
-            raise AutomationError("Error", "Webhook name is required.")
-        if " " in webhook_name:
-            raise AutomationError("Error", "Single-string name only.")
+        # Was `" " in webhook_name` only. xml_escape() now makes a name
+        # containing "&" or "<" well-formed XML, which turned a visible
+        # Jamf API error into a webhook Jamf creates but can never reach.
+        validate_webhook_name(webhook_name)
 
         server_address = get_jawa_address()
         if not server_address:

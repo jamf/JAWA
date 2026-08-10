@@ -9,7 +9,7 @@ import requests
 import sys
 from datetime import datetime
 
-SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+SLACK_WEBHOOK_URL = "__JAWA_SLACK_WEBHOOK_URL__"
 
 
 def main():

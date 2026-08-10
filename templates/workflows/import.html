@@ -20,6 +20,19 @@
                     Select a <code>.jawa.json</code> file exported from the template documentation site.
                 </div>
             </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" name="create_in_jamf"
+                       id="create-in-jamf" value="yes" checked>
+                <label class="form-check-label" for="create-in-jamf">Create webhook in Jamf Pro?</label>
+                <div class="form-text enable-field-hint">
+                    JAWA creates the webhook in Jamf Pro for you, pointed at this
+                    server. Clear this to install the script locally only &mdash;
+                    you will have to create the Jamf Pro webhook by hand.
+                    The package name becomes part of the URL Jamf Pro calls, so it
+                    must contain only letters, numbers, dots, underscores and hyphens.
+                </div>
+            </div>
+
             <button type="submit" class="btn btn-jawa mt-2">Import</button>
         </form>
     </div>

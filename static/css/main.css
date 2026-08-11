@@ -772,13 +772,41 @@ form.table-view {
 
 form.files-form {
     margin: auto;
-    max-height: 45vh;
-    max-width: 800px;
     background-color: var(--color-surface);
     color: var(--color-text);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     padding: 1rem;
+}
+
+/* The overflow wrapper for .hippocrates: tables scroll sideways on a
+   phone instead of forcing the whole page wide. */
+.table-scroll {
+    overflow-x: auto;
+}
+
+/* The resources path is a caption, not code -- the navy+mono block it
+   used to sit in reads as output the admin should be looking at. */
+.files-directory-caption {
+    color: var(--color-text-secondary);
+    font-size: 0.88rem;
+    margin-bottom: 1rem;
+}
+
+.files-directory-path {
+    font-family: var(--font-mono);
+    word-break: break-all;
+}
+
+/* Whole-cell hit target: the radio used to be a bare control the
+   filename happened to sit beside. */
+.file-row-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    cursor: pointer;
+    word-break: break-all;
 }
 
 .error-msg {

@@ -67,6 +67,36 @@ img_dir = os.path.abspath(
 
 blueprint = Blueprint("resources_view", __name__, template_folder="templates")
 
+_SIZE_UNITS = ("KB", "MB", "GB", "TB")
+
+
+def _format_size(num_bytes: int) -> str:
+    """Render a byte count the way an admin reads it.
+
+    Bytes stay whole below 1 KB so a 40-byte script does not read
+    "0.0 KB". Above that, one decimal place is enough to tell a 200 KB
+    plist from a 2 MB installer -- which is the decision this column
+    exists to support.
+    """
+    if num_bytes < 1024:
+        return f"{num_bytes} B"
+    size = float(num_bytes)
+    for unit in _SIZE_UNITS:
+        size /= 1024
+        if size < 1024 or unit == _SIZE_UNITS[-1]:
+            return f"{size:.1f} {unit}"
+    return f"{size:.1f} {_SIZE_UNITS[-1]}"
+
+
+def _format_type(filename: str) -> str:
+    """The extension as a short uppercase label, or a dash if there is none.
+
+    A dash rather than an empty cell or a Python None: the column is
+    scanned down, so every row needs something in it.
+    """
+    extension = os.path.splitext(filename)[1].lstrip(".")
+    return extension.upper() if extension else "—"
+
 
 @blueprint.route("/resources/files", methods=["GET", "POST"])
 def files() -> Union[Response, Tuple[str, int]]:
@@ -129,17 +159,36 @@ def files() -> Union[Response, Tuple[str, int]]:
     logthis.info(
         f"[{session.get('url')}] {session.get('username')} {request.path} {request.method}"
     )
-    file_list = os.listdir(files_dir)
-    for file in file_list:
-        if file[0] == ".":
-            file_list.remove(file)
+    # Sorted, and filtered by comprehension rather than by removing from
+    # the list being iterated -- that shifts the next element past the
+    # cursor, so two adjacent dotfiles leaked the second one into the page.
+    file_list = sorted(
+        each for each in os.listdir(files_dir) if not each.startswith(".")
+    )
     files_list = []
     for each_file in file_list:
-        mtime = os.path.getmtime(os.path.join(files_dir, each_file))
+        each_path = os.path.join(files_dir, each_file)
+        try:
+            mtime = os.path.getmtime(each_path)
+            size = os.path.getsize(each_path)
+        except OSError:
+            # listdir-then-stat is a race: a second admin deleting a file
+            # mid-request must not take the whole listing down with it.
+            logthis.debug(
+                f"Skipping {each_file}: vanished while listing resources."
+            )
+            continue
         pretty_mtime = datetime.fromtimestamp(mtime).strftime(
             "%Y-%m-%d %H:%M:%S"
         )
-        files_list.append({"name": each_file, "mtime": pretty_mtime})
+        files_list.append(
+            {
+                "name": each_file,
+                "mtime": pretty_mtime,
+                "size": _format_size(size),
+                "type": _format_type(each_file),
+            }
+        )
     return render_template(
         "resources/files.html",
         username=session.get("username"),

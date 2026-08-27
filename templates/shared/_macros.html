@@ -50,7 +50,12 @@
 </div>
 {% endmacro %}
 
-{% macro delete_confirmation(item_name, item_type, delete_url) %}
+{# cancel_url: where Cancel goes. Left empty it falls back to
+   history.back(), which walks to a spent form -- pass an explicit
+   destination on any page that knows where the admin came from.
+   warning_detail: overrides the consequence line. The default speaks of
+   "associated data", which is true of an automation but not of a file. #}
+{% macro delete_confirmation(item_name, item_type, delete_url, cancel_url="", warning_detail="") %}
 <style>
     .delete-container {
         min-height: calc(100vh - 300px);
@@ -163,12 +168,12 @@
 
         <div class="delete-warning">
             <strong>This action cannot be undone.</strong><br>
-            This will permanently delete this {{ item_type|lower }} and all associated data.
+            {% if warning_detail %}{{ warning_detail }}{% else %}This will permanently delete this {{ item_type|lower }} and all associated data.{% endif %}
         </div>
 
         <form method="POST" action="{{ delete_url }}">
             <div class="delete-actions">
-                <a href="javascript:history.back()" class="btn-delete-cancel">
+                <a href="{{ cancel_url if cancel_url else 'javascript:history.back()' }}" class="btn-delete-cancel">
                     Cancel
                 </a>
                 <button type="submit" class="btn-delete-confirm">

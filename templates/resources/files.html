@@ -26,65 +26,72 @@
 {###}
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {% extends "shared/_layout.html" %}
+{% from "shared/_macros.html" import hero_section, empty_state %}
 {% block title %}JAWA Resource Files{% endblock %}
 {% block content %}
-<div class="hero-section">
-    <div class="container">
-        <h2>Resource Files</h2>
-        <p>Upload, download, and manage script resources.</p>
-        <div class="hero-cta">
-            <a href="{{ url_for('log_view.log_home') }}" class="btn btn-hero-secondary">View Log</a>
-        </div>
-    </div>
-</div>
+{{ hero_section(
+    title="Resource Files",
+    subtitle="Upload, download, and manage script resources.",
+    secondary_url=url_for('log_view.log_home'),
+    secondary_label="View Log"
+) }}
 <div class="container">
-    <div class="form-container">
-        <div class="form-section">
-            <div class="overflow-auto pre-scrollable">
-            <h4 class="text-center mb-3">Upload a file</h4>
-            <p>Files directory:
-            <pre><code>{{ files_repo }}/</code></pre>
-            </p>
-            <form action="#" method="post" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <input type="file" name="upload" class="form-control"
-                           formenctype="multipart/form-data" id="file-upload"/>
-                </div>
-                <div class="d-flex justify-content-center">
-                    <input type="submit" id="file-submit" class="btn btn-jawa btn-action" value="Upload" disabled/>
-                </div>
-            </form>
+    <div class="content-narrow">
+        <div class="section-header">
+            <h3>Upload a file</h3>
         </div>
+        <p class="files-directory-caption">
+            Files directory: <span class="files-directory-path">{{ files_repo }}/</span>
+        </p>
+        <form class="form-section" action="#" method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+                <input type="file" name="upload" class="form-control"
+                       formenctype="multipart/form-data" id="file-upload"/>
+            </div>
+            <div class="button-align">
+                <input type="submit" id="file-submit" class="btn btn-jawa btn-action" value="Upload" disabled/>
+            </div>
+        </form>
     </div>
-</div>
-        {% if not files %}
 
-            <div class="d-flex justify-content-center font-weight-bolder"> No files uploaded</div>
-        {% endif %}
-    {% if files %}
-        <form class="files-form overflow-auto">
-            <h4 class="text-center mb-3">Uploaded files</h4>
-            <div class="btn-padded">
-                <table id="files_table" class="table">
+    <div class="section-header">
+        <h3>Uploaded files</h3>
+    </div>
+    {% if not files %}
+        {{ empty_state("No files uploaded yet. Upload one above to make it available to your scripts.") }}
+    {% else %}
+        <form class="files-form">
+            <div class="table-scroll">
+                <table id="files_table" class="hippocrates">
                     <tr>
                         <th>Name</th>
+                        <th>Size</th>
+                        <th>Type</th>
                         <th>Date Modified</th>
                     </tr>
                     {% for file in files %}
                         <tr>
-                            <td><input type="radio" id="{{ file.name }}" name="target_file"
-                                       value="{{ file.name }}"> {{ file.name }}</td>
+                            <td>
+                                <label class="file-row-label" for="file-{{ loop.index }}">
+                                    <input type="radio" id="file-{{ loop.index }}" name="target_file"
+                                           value="{{ file.name }}">
+                                    <span>{{ file.name }}</span>
+                                </label>
+                            </td>
+                            <td>{{ file.size }}</td>
+                            <td>{{ file.type }}</td>
                             <td>{{ file.mtime }}</td>
                         </tr>
                     {% endfor %}
                 </table>
             </div>
-            <div class="d-flex justify-content-center">
+            <div class="d-flex justify-content-center gap-3 btn-padded">
                 <button type="submit" name="button_choice" value="Download"
                         class="btn btn-jawa btn-action">
                     Download
                 </button>
-                <button name="button_choice" type="submit" value="Delete" class="btn btn-danger btn-action">
+                <button name="button_choice" type="submit" value="Delete"
+                        class="btn btn-danger btn-action">
                     Delete
                 </button>
             </div>

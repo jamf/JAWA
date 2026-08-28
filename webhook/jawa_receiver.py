@@ -197,7 +197,12 @@ def webhook_handler(
         logthis.warning(
             f"401 - Incorrect authentication provided for /hooks/{webhook_name}."
         )
+        # webhook_name is caller-controlled path input, and a bare-string
+        # return is served as text/html -- interpolating it here reflected
+        # unescaped markup back onto JAWA's own origin. The name is already
+        # on the log line above, which is where an operator debugging a 401
+        # actually looks.
         return (
-            f"Unauthorized - incorrect authentication provided for /hooks/{webhook_name}.",
+            "Unauthorized - incorrect authentication provided.",
             401,
         )

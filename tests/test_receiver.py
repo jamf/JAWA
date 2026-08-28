@@ -94,6 +94,28 @@ def test_unknown_webhook_is_rejected(client, jawa_env, fake_popen):
     assert fake_popen.calls == []
 
 
+def test_401_body_does_not_reflect_the_webhook_name(
+    client, jawa_env, fake_popen
+):
+    """A bare-string return is served as text/html, so the caller-supplied
+    webhook name must never reach the 401 body raw -- that was a reflected
+    XSS on JAWA's own origin. The payload carries no slash because the
+    route's default converter matches a single path segment.
+    """
+    marker = "<img src=x onerror=alert(1)>"
+    resp = client.post(
+        f"/hooks/{marker}",
+        json=PAYLOAD,
+        headers=_basic_auth("any", "any"),
+    )
+    assert resp.status_code == 401
+    body = resp.get_data(as_text=True)
+    assert marker not in body
+    assert "onerror" not in body
+    assert "<img" not in body
+    assert fake_popen.calls == []
+
+
 def test_api_key_auth_runs_script(client, jawa_env, fake_popen):
     _make_webhook(
         jawa_env,

@@ -36,11 +36,16 @@ JAWA and [Jamf Routines](https://learn.jamf.com/r/en-US/jamf-routines-documentat
 
 ### General Server Requirements:
 
-- Ubuntu 20.04+ or RHEL 8.x+
+- Ubuntu 22.04+ or RHEL / Rocky 9.x+
 - Minimum: 8GB RAM (16GB recommended)
 - Minimum: 128GB Storage (512GB recommended)
 - Minimum: 2 CPU Core (4 Cores recommended)
-- Python 3.8+ (with pip)
+- Python 3.9+ (with pip)
+
+> The installer uses the distribution's default `python3` to build JAWA's virtual environment, so
+> the OS version is what determines the Python version. Ubuntu 20.04 ships Python 3.8 and
+> RHEL/Rocky 8 ships Python 3.6, neither of which satisfies JAWA's dependencies — use Ubuntu 22.04
+> or later, or RHEL/Rocky 9 or later.
 
 ### Network Requirements:
 
@@ -218,6 +223,12 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
 - **New webhook names are validated more strictly.** `#` and `%` are no longer accepted in a new
   webhook name, because Jamf Pro cannot call a URL containing them. Existing automations are
   unaffected.
+- **Minimum platform is now Ubuntu 22.04 or RHEL/Rocky 9, and Python 3.9.** The installer builds
+  JAWA's virtual environment from the distribution's default `python3`, and JAWA's dependencies no
+  longer support Python 3.8. Ubuntu 20.04 (Python 3.8) and RHEL/Rocky 8 (Python 3.6) can no longer
+  run JAWA — RHEL/Rocky 8 in fact stopped being able to when JAWA moved to Flask 3, which the
+  stated requirements had not caught up with. Check `python3 --version` on the host before
+  upgrading.
 - **Content JAWA ships inside `data/` is not upgraded in place.** The installer preserves your
   `data/` directory across an upgrade, which protects your automations and settings, but it also
   means the bundled template scripts and the webhook event catalog stay at the version you first

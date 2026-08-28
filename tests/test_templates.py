@@ -843,9 +843,13 @@ def test_partial_credential_set_still_takes_typed_value(jawa_env):
         [{"name": "partial", "server_url": "https://saved.jamfcloud.com"}],
         "0",
     )
-    # Saved set wins where it has a value...
-    assert "https://saved.jamfcloud.com" in out
-    assert "https://typed.example.com" not in out
-    # ...and the form fills the gap it cannot. Values are emitted via
-    # repr(), hence the single quotes.
-    assert "s = 'typed'" in out
+    # Whole-line equality rather than substring containment: it pins the
+    # exact emitted value (repr(), hence single quotes), and a "URL not in
+    # output" assertion reads to static analysis like URL sanitization
+    # done by substring match, which is a real bug pattern -- just not
+    # this. Line 1 proves the saved set won; line 2 proves the form
+    # filled the key the partial set could not.
+    assert out.strip().split("\n") == [
+        "u = 'https://saved.jamfcloud.com'",
+        "s = 'typed'",
+    ]

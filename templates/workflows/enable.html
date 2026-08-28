@@ -51,14 +51,21 @@
             {% if credentials %}
             <div class="mb-4">
                 <label for="credential-set" class="form-label" style="font-weight: 500;">Credential Set</label>
-                <select name="credential_set" id="credential-set" class="form-control">
-                    <option value="">-- None (configure manually below) --</option>
+                <select name="credential_set" id="credential-set" class="form-control"
+                        data-cred-select>
+                    <option value="" data-supplies="">-- None (configure manually below) --</option>
                     {% for cred in credentials %}
-                    <option value="{{ loop.index0 }}">{{ cred.name }} ({{ cred.server_url }})</option>
+                    {# Key NAMES only. Rendering a client secret here would put it in
+                       the DOM and in view-source. #}
+                    <option value="{{ loop.index0 }}"
+                            data-supplies="{{ (credential_supplies[loop.index0] or []) | join(' ') }}">
+                        {{ cred.name }} ({{ cred.server_url }})</option>
                     {% endfor %}
                 </select>
-                <div class="form-text" style="color: var(--color-text-muted); font-size: 0.82rem;">
-                    Select a saved credential set to auto-fill server URL, client ID, and client secret.
+                <div class="form-text enable-field-hint">
+                    The selected set supplies its own server URL, client ID and client secret.
+                    Those fields disappear below, because the saved set is used in preference
+                    to anything typed here.
                 </div>
             </div>
             {% else %}
@@ -70,8 +77,8 @@
             {% if workflow.config_params %}
             <h6 style="font-weight: 600; font-size: 0.92rem; margin-top: 1.5rem; margin-bottom: 0.75rem;">Template Configuration</h6>
             {% for param in workflow.config_params %}
-            <div class="mb-3">
-                <label for="param-{{ param.key }}" class="form-label" style="font-weight: 500; font-size: 0.88rem;">{{ param.label }}</label>
+            <div class="mb-3" {% if param.key in (credential_keys or []) %}data-cred-field="{{ param.key }}"{% endif %}>
+                <label for="param-{{ param.key }}" class="form-label enable-param-label">{{ param.label }}</label>
                 {# Required only when a saved credential set cannot supply
                    this field. The Credential Set dropdown above fills the
                    credential keys and nothing populates them client-side,
@@ -113,5 +120,54 @@ function toggleAuthField(divId) {
         el.style.display = el.style.display === 'none' ? 'inline-block' : 'none';
     }
 }
+
+{# Credential-set fields.
+
+   The server prefers a selected credential set over anything typed into
+   these inputs (substitute_params), so leaving them visible both asked
+   for values that were already available and silently discarded what was
+   typed. Hide exactly the fields the chosen set fills, and disable them
+   so the browser does not submit them at all.
+
+   Per-set, not blanket: only "name" is required when saving a credential
+   set, so a set may supply any subset of the three. A field the set
+   cannot fill stays visible and becomes required, which turns what used
+   to be a server-side "missing value" error at enable time into ordinary
+   form validation.
+
+   No JS: every field stays visible and none is required -- the previous
+   behaviour, and still correct, because the server applies the same
+   precedence regardless. #}
+(function () {
+    var select = document.querySelector('[data-cred-select]');
+    if (!select) {
+        return;
+    }
+    var groups = document.querySelectorAll('[data-cred-field]');
+
+    function applyCredentialSet() {
+        var chosen = select.options[select.selectedIndex];
+        var supplied = ((chosen && chosen.dataset.supplies) || '')
+            .split(' ')
+            .filter(function (key) { return key !== ''; });
+
+        groups.forEach(function (group) {
+            var key = group.dataset.credField;
+            var input = group.querySelector('input');
+            var isSupplied = supplied.indexOf(key) !== -1;
+
+            group.classList.toggle('is-hidden', isSupplied);
+            if (input) {
+                // Disabled inputs are not submitted, so a stale typed
+                // value cannot reach the server and be silently dropped.
+                input.disabled = isSupplied;
+                input.required = !isSupplied;
+            }
+        });
+    }
+
+    select.addEventListener('change', applyCredentialSet);
+    applyCredentialSet();
+})();
 </script>
 {% endblock %}

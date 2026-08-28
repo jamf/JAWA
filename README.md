@@ -261,6 +261,11 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
     - Configuration values containing `&`, quotes, or angle brackets — Microsoft Teams and Power
       Automate URLs, and some secrets — are no longer corrupted when written into a generated
       script.
+    - Selecting a saved credential set on the template enable form now hides the server URL,
+      client ID and client secret fields it supplies, instead of showing empty fields alongside a
+      hint that claimed they would be auto-filled. A value typed into one of those fields was
+      previously discarded without warning, because the saved set takes precedence. Fields a
+      partial credential set cannot supply stay visible.
     - Enabling a template no longer stores authentication values that locked the webhook out.
     - Imported template packages are validated before installation: a `.jawa.json` whose script
       is truncated or has a syntax error is rejected with the offending line number, instead of

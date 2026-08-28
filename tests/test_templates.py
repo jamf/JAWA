@@ -710,3 +710,142 @@ def test_template_view_has_no_direct_webhook_io():
     assert "_load_webhooks" not in src
     # No direct open() of the webhooks file remains.
     assert "open(WEBHOOKS_FILE" not in src
+
+
+# ---- credential-set fields on the enable form ----
+#
+# substitute_params prefers a selected credential set over anything typed
+# into the matching inputs. The form used to render those inputs anyway,
+# with a hint promising it would "auto-fill" them, and nothing populated
+# them. So the admin was asked for a client ID that was already
+# available, and anything typed there was silently discarded. The form
+# now hides exactly the fields the chosen set fills.
+
+
+def _write_credentials(jawa_env, sets):
+    jawa_env.credentials_file.write_text(json.dumps(sets))
+
+
+def test_credential_supplies_reports_only_keys_the_set_carries(jawa_env):
+    """Only "name" is required when saving a set, so sets can be partial."""
+    from views import template_view
+
+    supplies = template_view._credential_supplies(
+        [
+            {
+                "name": "full",
+                "server_url": "https://a.jamfcloud.com",
+                "client_id": "cid",
+                "client_secret": "sec",
+            },
+            # Partial: no secret. Its field must stay visible.
+            {
+                "name": "partial",
+                "server_url": "https://b.jamfcloud.com",
+                "client_id": "cid2",
+                "client_secret": "",
+            },
+            {"name": "name-only"},
+        ]
+    )
+    assert supplies == [
+        ["server_url", "client_id", "client_secret"],
+        ["server_url", "client_id"],
+        [],
+    ]
+
+
+def test_enable_form_marks_which_keys_each_set_supplies(
+    logged_in_client, jawa_env
+):
+    _write_credentials(
+        jawa_env,
+        [
+            {
+                "name": "full",
+                "server_url": "https://a.jamfcloud.com",
+                "client_id": "cid",
+                "client_secret": "sec",
+            },
+            {
+                "name": "partial",
+                "server_url": "https://b.jamfcloud.com",
+                "client_id": "",
+                "client_secret": "",
+            },
+        ],
+    )
+    body = logged_in_client.get(
+        "/templates/device-naming/enable"
+    ).get_data(as_text=True)
+
+    assert 'data-supplies="server_url client_id client_secret"' in body
+    assert 'data-supplies="server_url"' in body
+    # The credential-key field groups must be addressable by the toggle.
+    for key in ("server_url", "client_id", "client_secret"):
+        assert f'data-cred-field="{key}"' in body
+
+
+def test_enable_form_never_renders_credential_values(
+    logged_in_client, jawa_env
+):
+    """The page must carry key NAMES only.
+
+    Auto-filling the inputs would be the obvious fix and is the wrong
+    one: it puts the OAuth client secret in the DOM and in view-source.
+    """
+    secret = "sup3r-secret-value"
+    client_id = "sekrit-client-id"
+    _write_credentials(
+        jawa_env,
+        [
+            {
+                "name": "prod",
+                "server_url": "https://prod.jamfcloud.com",
+                "client_id": client_id,
+                "client_secret": secret,
+            }
+        ],
+    )
+    body = logged_in_client.get(
+        "/templates/device-naming/enable"
+    ).get_data(as_text=True)
+
+    assert secret not in body
+    assert client_id not in body
+    # The set's name and server URL are shown deliberately, to identify
+    # it in the dropdown.
+    assert "prod" in body
+
+
+def test_partial_credential_set_still_takes_typed_value(jawa_env):
+    """A key the set cannot supply falls through to the form."""
+    from views import template_view
+
+    workflow = {
+        "config_params": [
+            {
+                "key": "server_url",
+                "token": '"__JAWA_SERVER_URL__"',
+                "type": "text",
+            },
+            {
+                "key": "client_secret",
+                "token": '"__JAWA_CLIENT_SECRET__"',
+                "type": "password",
+            },
+        ]
+    }
+    out = template_view.substitute_params(
+        'u = "__JAWA_SERVER_URL__"\ns = "__JAWA_CLIENT_SECRET__"\n',
+        workflow,
+        {"server_url": "https://typed.example.com", "client_secret": "typed"},
+        [{"name": "partial", "server_url": "https://saved.jamfcloud.com"}],
+        "0",
+    )
+    # Saved set wins where it has a value...
+    assert "https://saved.jamfcloud.com" in out
+    assert "https://typed.example.com" not in out
+    # ...and the form fills the gap it cannot. Values are emitted via
+    # repr(), hence the single quotes.
+    assert "s = 'typed'" in out

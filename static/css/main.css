@@ -1494,3 +1494,16 @@ a.btn-hero-secondary:visited {
     font-size: 0.95rem;
     color: var(--color-text-secondary);
 }
+
+/* Field group whose value comes from the selected saved credential set.
+   Toggled by workflows/enable.html; the input is also disabled so the
+   browser omits it from the submission. */
+.is-hidden {
+    display: none;
+}
+
+/* Template Configuration param label. Replaces a per-field inline style. */
+.enable-param-label {
+    font-weight: 500;
+    font-size: 0.88rem;
+}

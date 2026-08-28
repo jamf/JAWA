@@ -175,6 +175,22 @@ def _install_package(
 
 CREDENTIAL_KEYS = ("server_url", "client_id", "client_secret")
 
+
+def _credential_supplies(
+    credentials: List[Dict[str, Any]],
+) -> List[List[str]]:
+    """For each saved credential set, the credential keys it can fill.
+
+    Key names only -- never the values. Mirrors the truth test in
+    substitute_params (``cred.get(key)`` must be non-empty) so the form
+    hides precisely the fields the server will override.
+    """
+    return [
+        [key for key in CREDENTIAL_KEYS if cred.get(key)]
+        for cred in credentials
+    ]
+
+
 # Every template token starts with this. Used as a tripwire: no computed
 # replacement may reintroduce one, and none may survive substitution.
 TOKEN_PREFIX = "__JAWA_"
@@ -644,6 +660,16 @@ def enable_template(slug: str) -> Union[Response, str]:
             # required only when a credential set cannot supply it, and
             # duplicating the three key names there would drift.
             credential_keys=CREDENTIAL_KEYS,
+            # Which credential keys each saved set can actually supply --
+            # names only, never values, because rendering a client secret
+            # into the page would expose it in the DOM and in view-source.
+            # Per-set rather than blanket, because only "name" is required
+            # when saving a credential set, so a set may carry any subset
+            # of the three. The form hides exactly the fields the chosen
+            # set fills, which is also what stops a typed value being
+            # silently discarded by substitute_params' credential-first
+            # precedence.
+            credential_supplies=_credential_supplies(credentials),
         )
 
     # POST: enable the template

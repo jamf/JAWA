@@ -203,19 +203,83 @@ if __name__ == "__main__":
 
 Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
 
-### JAWA v3.2 release
+### JAWA v3.2.0 release
+
+**Upgrade notes — please read before upgrading**
+
+- **v3.2 is the last release that can migrate a JAWA v2 install.** The v2 upgrade path works in
+  this release and is unchanged. If you are still on v2, move to v3.2 before upgrading further.
+- **Template webhooks you previously enabled will begin firing.** A bug meant enabled and
+  imported template webhooks silently never triggered. Template webhooks run **without
+  authentication by default** — anyone who knows the hook name can trigger one. Review your
+  enabled templates and add webhook authentication in the automation's edit screen if an
+  endpoint should be protected. Authenticated-by-default templates are planned for a future
+  release.
+- **New webhook names are validated more strictly.** `#` and `%` are no longer accepted in a new
+  webhook name, because Jamf Pro cannot call a URL containing them. Existing automations are
+  unaffected.
+- **Content JAWA ships inside `data/` is not upgraded in place.** The installer preserves your
+  `data/` directory across an upgrade, which protects your automations and settings, but it also
+  means the bundled template scripts and the webhook event catalog stay at the version you first
+  installed. A fresh install gets the current copies.
+
 - New features
-    - smoke-test harness + CI (ruff + pytest) for safer releases
-    - admin-configurable session timeout with hardened session cookies
-    - documentation for writing automation scripts
+    - **Bundled templates now work as shipped.** Every bundled template runs when triggered; two
+      were incomplete sketches that failed immediately. Enabling a template also creates the
+      matching webhook in Jamf Pro for you and files the automation under Jamf Pro, so its
+      trigger event is visible and editable. Templates can be protected with Basic
+      authentication at enable time.
+    - **Importing a template package can create its webhook in Jamf Pro too** — a new *Create
+      webhook in Jamf Pro?* option, on by default. Clear it to install the script locally only.
+      Because the package name becomes part of the URL Jamf Pro calls, a name with spaces or
+      other URL-unsafe characters is refused on that path; fix the package file, or clear the box
+      to install locally under any name.
+    - **Webhook Reference page** documenting the Jamf Pro webhook events with sample payloads.
+      One event, `DeviceRateLimited`, is listed with its sample payload still pending.
+    - **Admin-configurable session timeout** in Setup: 15 minutes (default), 1 hour, 4 hours, or
+      8 hours, with hardened session cookies. The 15-minute default remains the most secure; the
+      longer options are convenient for workflow testing but leave an unattended signed-in
+      console exposed for longer. Choose deliberately.
+    - Smoke-test harness and CI (ruff + pytest) running on every push and pull request.
+    - Documentation for writing automation scripts.
+    - Script Preview and Download Script now show the real substitution tokens rather than
+      generic placeholder text, so a downloaded script is self-documenting.
+    - Resource Files listing gained Size and Type columns.
 - Bugfixes
-    - template webhooks now fire correctly
-    - rejected path traversal in template import
-    - fixed resource deletion, error pages, and receiver edge cases
-    - session-timeout warning now survives sleep/idle
-    - "Setup Required" error page links directly to Setup
+    - Template webhooks now fire (see upgrade notes).
+    - Configuration values containing `&`, quotes, or angle brackets — Microsoft Teams and Power
+      Automate URLs, and some secrets — are no longer corrupted when written into a generated
+      script.
+    - Enabling a template no longer stores authentication values that locked the webhook out.
+    - Imported template packages are validated before installation: a `.jawa.json` whose script
+      is truncated or has a syntax error is rejected with the offending line number, instead of
+      installing a webhook that fails silently when it fires.
+    - Fixed a crash on templates whose trigger event was a boolean.
+    - The 401 response from an inbound webhook no longer echoes the requested hook name back.
+    - Rejected path traversal in template package import, and guarded the legacy redirect routes
+      against open redirects.
+    - Resource Files page: Download and Delete are no longer adjacent, identical buttons, Delete
+      routes through the shared confirmation screen, and hidden files no longer leak into the
+      listing.
+    - The success-page Back button no longer re-submits the action it just completed.
+    - Corrected dashboard links and removed dead Extras links.
+    - Uploads between 1 MB and 16 MB no longer fail with an opaque error; the server upload cap
+      is now set explicitly.
+    - Setup strips trailing slashes from Jamf Pro URLs, so generated webhook URLs no longer
+      contain double slashes.
+    - Script uploads with no `#!` shebang are rejected with a clear message instead of failing
+      cryptically at trigger time.
+    - The session-timeout warning now survives laptop sleep and backgrounded tabs.
+    - Fixed resource file deletion, added 403/405/500 error pages, and hardened receiver edge
+      cases including malformed form payloads.
+    - The "Setup Required" error page links directly to Setup.
+- Removed
+    - The *Enrollment Pipeline* template, which shipped as an incomplete outline and needs a
+      device-assignment CSV contract that will be designed properly in a future release.
 - Repository maintenance
-    - removed dead code (legacy MongoEngine, stale stubs)
+    - Removed dead code (legacy MongoEngine, stale stubs).
+    - `data/cron.json` is no longer tracked in git, so a checkout can no longer overwrite real
+      cron definitions with an empty seed file.
 
 ### JAWA v3.1.1 release
 - Bugfix

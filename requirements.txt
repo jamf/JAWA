@@ -9,7 +9,7 @@ itsdangerous
 MarkupSafe~=2.1.5
 python-crontab~=3.0.0
 python-dateutil
-requests~=2.33.0
+requests~=2.32.4
 setuptools
 six
 urllib3

@@ -94,8 +94,16 @@ def _fake_jamf_get(url, **kwargs):
     # the host is really Jamf Pro; answer with the Jamf-shaped JSON so
     # _verify_jamf_access accepts it. Other GETs get a benign payload.
     if url.endswith("/JSSResource/activationcode"):
+        # This is the shape a live Jamf Pro returns. It previously mocked
+        # {"activation_code": ...}, which no instance sends, so the suite
+        # validated the login guard against a contract it had invented.
         return FakeJamfResponse(
-            {"activation_code": {"organization_name": "Test Org"}}
+            {
+                "license_information": {
+                    "organization_name": "Test Org",
+                    "code": "AAAA-BBBB-CCCC-DDDD",
+                }
+            }
         )
     return FakeJamfResponse({})
 

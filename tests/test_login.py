@@ -254,3 +254,106 @@ def test_failed_login_does_not_reflect_script_injection(
     body = resp.data.decode()
     # Autoescaped -- the raw tag must not appear unescaped in the body.
     assert "<script>alert(1)</script>" not in body
+
+
+# ---- activationcode shape acceptance (login regression) ----
+#
+# The guard in _verify_jamf_access exists to stop a reachable non-Jamf
+# host from counting as a successful login. It originally required a
+# top-level "activation_code" key, which no live instance sends -- real
+# Jamf Pro answers with "license_information" -- so it rejected genuine
+# logins against genuine servers. The suite did not catch it because the
+# fixture mocked the invented shape. These tests pin both real spellings
+# and keep the non-Jamf rejection honest.
+
+
+class _ShapedActivationCode:
+    """Token endpoint plus an activationcode body of a chosen shape."""
+
+    status_code = 200
+
+    def __init__(self, kind, body=None):
+        self.kind = kind
+        self.body = body
+
+    def json(self):
+        if self.kind == "token":
+            return {
+                "token": "looks-real",
+                "expires": "2099-01-01T00:00:00.000+0000",
+            }
+        return self.body
+
+    def raise_for_status(self):
+        pass
+
+
+def _login_with_activationcode_body(client, jawa_env, monkeypatch, body):
+    import json as _json
+
+    import requests
+
+    jawa_env.server_file.write_text(_json.dumps({"brand": "JAWA"}))
+    monkeypatch.setattr(
+        requests, "post", lambda *a, **k: _ShapedActivationCode("token")
+    )
+    monkeypatch.setattr(
+        requests,
+        "get",
+        lambda *a, **k: _ShapedActivationCode("activationcode", body),
+    )
+    return client.post(
+        "/login",
+        data={
+            "url": "https://jamf.example.test",
+            "username": "admin",
+            "password": "hunter2",
+        },
+    )
+
+
+def test_login_accepts_license_information_shape(
+    client, jawa_env, monkeypatch
+):
+    """The shape a live Jamf Pro actually returns must be accepted."""
+    resp = _login_with_activationcode_body(
+        client,
+        jawa_env,
+        monkeypatch,
+        {
+            "license_information": {
+                "organization_name": "Shinra Electric Power Company",
+                "code": "AAAA-BBBB-CCCC-DDDD",
+            }
+        },
+    )
+    assert resp.status_code == 302
+    assert "/dashboard" in resp.headers.get("Location", "")
+
+
+def test_login_accepts_activation_code_shape(client, jawa_env, monkeypatch):
+    """The other published spelling must be accepted too."""
+    resp = _login_with_activationcode_body(
+        client,
+        jawa_env,
+        monkeypatch,
+        {"activation_code": {"organization_name": "Test Org"}},
+    )
+    assert resp.status_code == 302
+    assert "/dashboard" in resp.headers.get("Location", "")
+
+
+def test_login_rejects_json_200_that_is_not_jamf(
+    client, jawa_env, monkeypatch
+):
+    """A non-Jamf host answering valid JSON still must not log in.
+
+    Tighter than the non-JSON case: this body parses fine and carries
+    neither wrapper key, which is the only thing the guard keys off.
+    """
+    resp = _login_with_activationcode_body(
+        client, jawa_env, monkeypatch, {"welcome": "to my blog"}
+    )
+    assert resp.status_code == 302
+    assert "/dashboard" not in resp.headers.get("Location", "")
+    assert "/logout" in resp.headers.get("Location", "")

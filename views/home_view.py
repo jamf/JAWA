@@ -119,6 +119,14 @@ def _validate_credentials() -> Union[Response, None]:
     return None
 
 
+# Jamf Pro wraps /JSSResource/activationcode in a single top-level key.
+# Live instances answer with "license_information"; the resource is also
+# published as "activation_code". Accept either: a random website's JSON
+# carries neither, which is all this guard has to distinguish. Checking
+# for one spelling only locked real operators out of their own console.
+_JAMF_ACTIVATION_KEYS = ("license_information", "activation_code")
+
+
 def _verify_jamf_access() -> Union[Response, None]:
     """Verify Jamf Pro API access, returning a redirect on failure."""
     try:
@@ -137,7 +145,9 @@ def _verify_jamf_access() -> Union[Response, None]:
         # Any random website returning an HTML 200 must NOT count as a
         # successful Jamf login (defense in depth behind the token check).
         body = resp.json()
-        if not isinstance(body, dict) or "activation_code" not in body:
+        if not isinstance(body, dict) or not any(
+            key in body for key in _JAMF_ACTIVATION_KEYS
+        ):
             logthis.error(
                 f"[{session.get('url')}] activationcode response was not "
                 "Jamf-shaped; refusing login."

@@ -245,6 +245,19 @@ jawaMinPyMinor=9
 werkzeugPy38Fallback="3.0.6"
 holdWerkzeug="no"
 
+normalizeInstallDir() {
+  # Strip trailing slashes so "$installDir/jawa" cannot become
+  # "/usr/local//jawa". The paths were inconsistent -- one assignment used
+  # "/usr/local/" while two others used "/usr/local" -- which put a double
+  # slash into the systemd unit's ExecStart, the pip -r argument, and the
+  # final "JAWA installed at" line. Harmless to the kernel, but it makes
+  # the unit file and the logs look broken and defeats string comparison
+  # of paths. Keep "/" itself intact rather than reducing it to "".
+  while [ "$installDir" != "/" ] && [ "${installDir%/}" != "$installDir" ]; do
+    installDir="${installDir%/}"
+  done
+}
+
 checkPythonFloor() {
   # Runs FIRST, before anything destructive. This used to be discovered at
   # the 85% mark -- after cleaninstall had already removed the operator's
@@ -303,31 +316,111 @@ checkPythonFloor() {
   exit 2
 }
 
+# Prints a certificate's expiry date, or "unreadable" if it will not parse.
+certExpiry() {
+  local enddate
+  enddate=$(/usr/bin/openssl x509 -enddate -noout -in "$1" 2>/dev/null) || {
+    /bin/echo "unreadable"
+    return
+  }
+  /bin/echo "${enddate#notAfter=}"
+}
+
+# 0 when the certificate is already expired. An unparseable file returns 1: a
+# file we cannot read is not a file we can call expired.
+certIsExpired() {
+  /usr/bin/openssl x509 -noout -in "$1" >/dev/null 2>&1 || return 1
+  ! /usr/bin/openssl x509 -checkend 0 -noout -in "$1" >/dev/null 2>&1
+}
+
+# 0 when the certificate both parses and has not expired -- i.e. nginx can
+# actually serve it. `-checkend 0` already fails on an unreadable file, which
+# is the behaviour we want here: garbage is not usable either.
+certIsUsable() {
+  /usr/bin/openssl x509 -checkend 0 -noout -in "$1" >/dev/null 2>&1
+}
+
+# Say so when the certificate JAWA will actually serve is expired or close to
+# it. An expired cert makes the console unreachable in a browser while every
+# service check still passes, so silence here reads as an installer bug.
+warnIfCertStale() {
+  if certIsExpired "$1"; then
+    /bin/echo ""
+    /bin/echo "WARNING: $1 EXPIRED on $(certExpiry "$1")."
+    /bin/echo "         Browsers will refuse the JAWA console until it is replaced."
+    /bin/echo ""
+    /bin/echo "WARNING: serving expired cert $1" >>/var/log/jawaInstall.log 2>&1
+  elif /usr/bin/openssl x509 -noout -in "$1" >/dev/null 2>&1 &&
+    ! /usr/bin/openssl x509 -checkend 2592000 -noout -in "$1" >/dev/null 2>&1; then
+    /bin/echo "NOTE: $1 expires within 30 days ($(certExpiry "$1"))."
+    /bin/echo "NOTE: cert $1 expires within 30 days" >>/var/log/jawaInstall.log 2>&1
+  fi
+}
+
 install() {
   checkPythonFloor
   /usr/bin/clear
   # Variables
 
 
-  x=0
-
-  if [ ! -f ./jawa.crt ] >/dev/null 2>&1; then
-    /bin/echo "Unable to locate jawa.crt in $currentDir" >>/var/log/jawaInstall.log 2>&1
-    x=$(($x + 1))
+  # Certificates. nginx reads /etc/ssl/certs/jawa.{crt,key}, so a host that
+  # already runs JAWA has a working pair there and the copy sitting in the
+  # current directory is often a stale leftover from the first install. This
+  # used to `cp` over the installed pair unconditionally, which is how a valid
+  # certificate gets replaced by an expired one -- a downgrade the operator
+  # only discovers later, as a browser error on a console the installer just
+  # reported as a success. Never trade a valid certificate for an expired one,
+  # and never make an upgrade re-supply certificates it already has.
+  certsDir="/etc/ssl/certs"
+  haveLocalCerts="no"
+  haveInstalledCerts="no"
+  if [ -f ./jawa.crt ] && [ -e ./jawa.key ]; then
+    haveLocalCerts="yes"
+  else
+    if [ ! -f ./jawa.crt ]; then
+      /bin/echo "Unable to locate jawa.crt in $currentDir" >>/var/log/jawaInstall.log 2>&1
+    fi
+    if [ ! -e ./jawa.key ]; then
+      /bin/echo "Unable to locate jawa.key in $currentDir" >>/var/log/jawaInstall.log 2>&1
+    fi
   fi
-  if [ ! -e ./jawa.key ] >/dev/null 2>&1; then
-    /bin/echo "Unable to locate jawa.key in $currentDir" >>/var/log/jawaInstall.log 2>&1
-    x=$(($x + 1))
+  if [ -f "$certsDir/jawa.crt" ] && [ -e "$certsDir/jawa.key" ]; then
+    haveInstalledCerts="yes"
   fi
 
-  if [[ $x -ne 0 ]]; then
+  if [ "$haveLocalCerts" == "no" ] && [ "$haveInstalledCerts" == "yes" ]; then
+    # Upgrading a host that already has certificates. Demanding them in the
+    # current directory again would push a working install into the
+    # self-signed menu for no reason.
+    /bin/echo "Keeping the certificate already installed at $certsDir/jawa.crt (expires: $(certExpiry "$certsDir/jawa.crt"))."
+    /bin/echo "Keeping installed cert $certsDir/jawa.crt" >>/var/log/jawaInstall.log 2>&1
+    warnIfCertStale "$certsDir/jawa.crt"
+  elif [ "$haveLocalCerts" == "no" ]; then
     /bin/echo "Security requirements are not satisfied.
         Missing items are identified above--please provide the items in the installer directory before installing.
 
         Consult the admin guide for more information concerning certificates."
     certsMenu
+  elif [ "$haveInstalledCerts" == "yes" ] && certIsUsable "$certsDir/jawa.crt" && ! certIsUsable ./jawa.crt; then
+    # The copy in the current directory is expired or unreadable and the
+    # installed one still works. Installing the bad copy would take the
+    # console offline, so keep what works and say why.
+    if /usr/bin/openssl x509 -noout -in ./jawa.crt >/dev/null 2>&1; then
+      certRejectReason="has EXPIRED (expired: $(certExpiry ./jawa.crt))"
+    else
+      certRejectReason="is not a readable certificate"
+    fi
+    /bin/echo ""
+    /bin/echo "NOT replacing the installed certificate."
+    /bin/echo "  $currentDir/jawa.crt $certRejectReason"
+    /bin/echo "  $certsDir/jawa.crt is still valid (expires: $(certExpiry "$certsDir/jawa.crt"))"
+    /bin/echo "  Keeping the valid one. Replace the copy in $currentDir to install a new certificate."
+    /bin/echo ""
+    /bin/echo "Refused to overwrite valid $certsDir/jawa.crt with unusable ./jawa.crt ($certRejectReason)" >>/var/log/jawaInstall.log 2>&1
+  else
+    /bin/cp ./{jawa.crt,jawa.key} "$certsDir/"
+    warnIfCertStale "$certsDir/jawa.crt"
   fi
-  /bin/cp ./{jawa.crt,jawa.key} /etc/ssl/certs/
   # checking for service
   if [ -e /etc/systemd/system/jawa.service ]; then
     status=$(/bin/systemctl is-active --quiet jawa && echo Service is running)
@@ -339,7 +432,7 @@ install() {
     fi
     installDir=$(dirname "$projectDir")
     if [[ $installDir != "" ]]; then
-      installDir="/usr/local/"
+      installDir="/usr/local"
     fi
     echo "JAWA directory detected at $installDir" >> /var/log/jawaInstall.log 2>&1
     read -r -p "Existing JAWA detected - would you like to upgrade? [y/n]:  " yn
@@ -363,6 +456,8 @@ install() {
         else
           installDir="/usr/local/$new_dir"
         fi
+        # An operator answering "/opt/jawa/" must not produce "/opt/jawa//jawa".
+        normalizeInstallDir
       fi
       read -p "The jawa project directory will be created in $installDir
          Please confirm [y|n]: " yn
@@ -873,7 +968,10 @@ certsMenu() {
 }
 selfsigned() {
   /bin/echo "Creating SSL cert" >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/openssl req -x509 -nodes -days 365 -newkey rsa:2048 -subj "/C=US/ST=MN/L=Minneapolis/CN=jawa" -keyout "$installDir/jawa.key" -out "$installDir/jawa.crt" >>/var/log/jawaInstall.log 2>&1
+  # Must land in $currentDir, not $installDir: install() re-checks ./jawa.crt
+  # in the current directory, so writing elsewhere sent the operator back to
+  # certsMenu forever unless they happened to be running from /usr/local.
+  /usr/bin/openssl req -x509 -nodes -days 365 -newkey rsa:2048 -subj "/C=US/ST=MN/L=Minneapolis/CN=jawa" -keyout "$currentDir/jawa.key" -out "$currentDir/jawa.crt" >>/var/log/jawaInstall.log 2>&1
   install
 }
 upgradeFromV2() {

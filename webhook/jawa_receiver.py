@@ -52,6 +52,16 @@ scripts_dir = os.path.abspath(
 blueprint = Blueprint("jawa_receiver", __name__, template_folder="templates")
 
 
+class ScriptExecutionError(Exception):
+    """The automation's script could not be run, or exited non-zero.
+
+    Raised instead of returning the error text, because a returned value
+    is indistinguishable from script stdout and the caller then answers
+    2xx either way -- the same "reports success, did nothing" shape that
+    made template webhooks appear to fire for a whole release.
+    """
+
+
 def load_json(file_path: str) -> Union[Dict[str, Any], List[Any]]:
     with open(file_path, "r") as fin:
         return json.load(fin)
@@ -67,6 +77,17 @@ def validate_webhook(
     truth_test = False
     for each_webhook in webhooks_json:
         if each_webhook["name"] == webhook_name:
+            # A webhook Jamf Pro created in the disabled state must not
+            # have a live JAWA endpoint: the enable screen tells the
+            # operator it is not yet enabled, and until this was read
+            # that notice was false. Only an explicit False rejects --
+            # entries from the non-template handlers carry no such key.
+            if each_webhook.get("enabled") is False:
+                logthis.warning(
+                    f"Rejecting /hooks/{webhook_name}: the automation is "
+                    "not enabled."
+                )
+                return False
             truth_test = True
             if (
                 # Missing auth keys default to the "null" no-auth
@@ -79,6 +100,10 @@ def validate_webhook(
                 or each_webhook.get("api_key", "null") != webhook_apikey
             ):
                 truth_test = False
+            # Stop at the first name match. Without this, two entries
+            # sharing a name let the LAST decide authentication while
+            # run_script executes the FIRST.
+            break
 
     return truth_test
 
@@ -101,7 +126,13 @@ def script_results(webhook_data: JSONType, each_webhook: Dict) -> bytes:
         output = proc.stdout.read()
         return_code = proc.wait()
 
-        for each_line in output.decode().split("\n"):
+        # Tolerant for the same reason as the response decode below: a
+        # script that exited 0 must not be turned into a failure by the
+        # bytes it chose to print. Strict decode here raised before the
+        # response path was ever reached.
+        for each_line in output.decode(
+            "utf-8", errors="replace"
+        ).split("\n"):
             if each_line:
                 logthis.info(f"{each_webhook.get('name')} - {each_line}")
 
@@ -110,13 +141,18 @@ def script_results(webhook_data: JSONType, each_webhook: Dict) -> bytes:
                 f"Script execution failed for {each_webhook.get('name')} "
                 f"with exit code {return_code}"
             )
+            raise ScriptExecutionError(
+                f"script exited {return_code}"
+            )
 
         return output
+    except ScriptExecutionError:
+        raise
     except Exception as err:
         logthis.error(
             f"Error executing script for webhook {each_webhook.get('name')}: {err}"
         )
-        return str(err).encode()
+        raise ScriptExecutionError(str(err)) from err
 
 
 def custom_output_options(
@@ -185,7 +221,23 @@ def webhook_handler(
             f"Validated authentication for /hooks/{webhook_name}, running script..."
         )
         webhook_tag, custom_output = custom_output_options(webhook_name)
-        output = run_script(webhook_data, webhook_name).decode("ascii")
+        try:
+            raw = run_script(webhook_data, webhook_name)
+        except ScriptExecutionError as err:
+            # Never answer 2xx for a script that did not run: Jamf Pro
+            # records delivery status, and a 200 here is what made a dead
+            # automation indistinguishable from a working one.
+            return {"webhook": f"{webhook_name}", "error": str(err)}, 500
+        if raw is None:
+            logthis.error(
+                f"Webhook {webhook_name} disappeared between validation "
+                "and execution; nothing ran."
+            )
+            return {"webhook": f"{webhook_name}", "error": "not found"}, 404
+        # Match the decode used for the log lines above. A device name
+        # with an accent is not an error, and decode("ascii") turned a
+        # SUCCESSFUL run into a 500 that Jamf Pro then retried.
+        output = raw.decode("utf-8", errors="replace")
         if custom_output and webhook_tag == "custom":
             return {"webhook": f"{webhook_name}", "result": f"{output}"}, 202
         else:

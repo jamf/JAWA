@@ -254,15 +254,35 @@
 {% endmacro %}
 
 {% macro jamf_auth_fields(webhook_info=none) %}
+{# These are RADIOS, so they need hide-all-then-show-one. The shared
+   toggleAuthField() FLIPS one div, which is right for the checkboxes in
+   auth_fields() above but wrong here: a radio's change event fires only
+   on gaining selection, never on losing it. Basic -> Custom -> Basic
+   therefore ended with Basic SELECTED and its fields HIDDEN, and
+   submitting that wrote authentication_type NONE while the screen said
+   Basic -- a silently unauthenticated webhook. An explicit "No
+   authentication" radio also makes the documented default visible and
+   gives the operator a way back, which two radios alone did not. #}
+{% set has_basic = webhook_info and webhook_info[0].webhook_username not in (none, '', 'null') %}
+{% set has_custom = webhook_info and webhook_info[0].api_key not in (none, '', 'null') %}
+<div class="d-flex justify-content-center">
+    <label>
+        <input type="radio" name="choice" value="none"
+               {% if not has_basic and not has_custom %}checked{% endif %}
+               onchange="selectJamfAuthMode('none')">
+        <b>&nbsp;No authentication</b>
+    </label>
+</div>
 <div class="d-flex justify-content-center">
     <label>
         <input type="radio" name="choice" value="basic"
-               onchange="toggleAuthField('jamf-auth-basic-fields')">
+               {% if has_basic %}checked{% endif %}
+               onchange="selectJamfAuthMode('basic')">
         <b>&nbsp;Basic Authentication (optional):</b>
     </label>
 </div>
 <div class="d-flex justify-content-center">
-    <div id="jamf-auth-basic-fields" style="display:none" class="center_box">
+    <div id="jamf-auth-basic-fields" class="center_box{% if not has_basic %} is-hidden{% endif %}">
         <div class="d-flex justify-content-center">
             <input class="form-control-sm" name="basic_username" title="Username (optional)"
                    autocomplete="off" placeholder="Username (optional)" style="padding: unset"
@@ -275,12 +295,13 @@
 <div class="d-flex justify-content-center">
     <label>
         <input type="radio" name="choice" value="custom"
-               onchange="toggleAuthField('jamf-auth-custom-fields')">
+               {% if has_custom %}checked{% endif %}
+               onchange="selectJamfAuthMode('custom')">
         <b>&nbsp;Custom Authentication (optional):</b>
     </label>
 </div>
 <div class="d-flex justify-content-center">
-    <div id="jamf-auth-custom-fields" style="display:none">
+    <div id="jamf-auth-custom-fields"{% if not has_custom %} class="is-hidden"{% endif %}>
         <input name="api_key" class="form-control-sm" title="x-api-key (optional)"
                placeholder="x-api-key value (optional)" autocomplete="off"
                {% if webhook_info and webhook_info[0].api_key != 'null' %}value="{{ webhook_info[0].api_key }}"{% endif %}>

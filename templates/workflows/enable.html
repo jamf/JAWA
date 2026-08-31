@@ -121,6 +121,16 @@ function toggleAuthField(divId) {
     }
 }
 
+function selectJamfAuthMode(mode) {
+    // Radios, not checkboxes: show exactly one mode's fields and hide
+    // the rest. toggleAuthField() flips a single div, which cannot
+    // clear the mode a radio just lost.
+    ['basic', 'custom'].forEach(function (m) {
+        var el = document.getElementById('jamf-auth-' + m + '-fields');
+        if (el) { el.classList.toggle('is-hidden', m !== mode); }
+    });
+}
+
 {# Credential-set fields.
 
    The server prefers a selected credential set over anything typed into

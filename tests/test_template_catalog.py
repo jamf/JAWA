@@ -1035,7 +1035,148 @@ def test_deployed_script_is_executable(jawa_env):
         "mode-check", "#!/usr/bin/env python3\nprint('hi')\n"
     )
     mode = stat.S_IMODE(os.stat(dest).st_mode)
-    assert mode == 0o755, (
+    assert mode & stat.S_IXUSR, (
         f"_write_script left {oct(mode)} on {dest}; the receiver execs "
-        f"this path directly, so it must be 0o755"
+        f"this path directly, so the owner execute bit is required"
+    )
+    # The receiver runs as the same `jawa` user that owns the file, so
+    # owner-execute is the whole requirement -- and substitute_params
+    # bakes the credential set's client_secret into this source, so any
+    # group or other bit hands that secret to every local account.
+    leaked = mode & (
+        stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP
+        | stat.S_IROTH | stat.S_IWOTH | stat.S_IXOTH
+    )
+    assert not leaked, (
+        f"_write_script left {oct(mode)} on {dest}; this file can hold a "
+        f"client_secret and must not be readable beyond its owner"
+    )
+
+
+def test_write_script_retargets_a_python_shebang(jawa_env):
+    """J17: the deployed script must name an interpreter that has the deps.
+
+    The receiver spawns scripts bare -- Popen([script_path, payload]) --
+    so the shebang alone picks the interpreter. `#!/usr/bin/env python3`
+    resolves to the SYSTEM python, but installer.sh pip-installs
+    requirements.txt into JAWA's venv only, and six of the seven bundled
+    templates import `requests`. They raised ModuleNotFoundError on
+    first trigger while the receiver reported success.
+    """
+    import sys
+
+    from views import template_view
+
+    dest = template_view._write_script(
+        "shebang-check", "#!/usr/bin/env python3\nprint('hi')\n"
+    )
+    first_line = open(dest, encoding="utf-8").readline().rstrip("\n")
+    assert first_line == f"#!{sys.executable}", (
+        f"deployed shebang is {first_line!r}; it must name the "
+        f"interpreter JAWA itself runs under, which is the one with "
+        f"requirements.txt installed"
+    )
+
+
+def test_write_script_leaves_a_non_python_shebang_alone(jawa_env):
+    """An operator's bash script is theirs; only python is retargeted."""
+    from views import template_view
+
+    dest = template_view._write_script(
+        "bash-check", "#!/bin/bash\necho hi\n"
+    )
+    first_line = open(dest, encoding="utf-8").readline().rstrip("\n")
+    assert first_line == "#!/bin/bash"
+
+
+def _non_stdlib_imports(source: str) -> set:
+    """Top-level third-party module names imported by a script."""
+    import ast
+    import sys
+
+    stdlib = getattr(sys, "stdlib_module_names", frozenset())
+    found = set()
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                found.add(alias.name.split(".")[0])
+        elif isinstance(node, ast.ImportFrom) and node.level == 0:
+            if node.module:
+                found.add(node.module.split(".")[0])
+    return {m for m in found if m and m not in stdlib}
+
+
+def test_deployed_script_interpreter_can_import_its_dependencies(
+    workflow, jawa_env
+):
+    """The invariant "JAWA never registers a template it cannot run".
+
+    The three pre-existing gates all verified the WRONG interpreter:
+    `ruff --select F821,F401` does not resolve packages, the
+    exec(compile(...)) helper runs inside the pytest process where
+    `requests` is importable by definition, and the shebang test only
+    asserted a `#!` exists. This one runs the deployed script's own
+    interpreter, which is the resolution the receiver actually uses.
+    """
+    import subprocess
+
+    from views import template_view
+
+    slug = workflow["slug"]
+    source = _script_source(workflow)
+    needed = _non_stdlib_imports(source)
+    if not needed:
+        pytest.skip(f"{slug} imports nothing outside the stdlib")
+
+    dest = template_view._write_script(f"dep-check-{slug}", source)
+    shebang = open(dest, encoding="utf-8").readline().rstrip("\n")
+    assert shebang.startswith("#!"), f"{slug} lost its shebang"
+    interpreter = shebang[2:].strip().split()
+
+    for module in sorted(needed):
+        proc = subprocess.run(
+            interpreter + ["-c", f"import {module}"],
+            capture_output=True,
+        )
+        assert proc.returncode == 0, (
+            f"{slug} imports {module!r}, but the interpreter its deployed "
+            f"shebang names ({' '.join(interpreter)}) cannot import it. "
+            f"The receiver spawns this script bare, so this is the "
+            f"interpreter that will actually run it.\n"
+            f"{proc.stderr.decode('utf-8', errors='replace')}"
+        )
+
+
+def test_every_outbound_call_in_a_bundled_script_is_bounded(workflow):
+    """An unbounded HTTP call pins a Waitress worker until the kernel gives up.
+
+    The receiver blocks the request thread for the whole life of the
+    script (proc.stdout.read() then proc.wait(), no timeout), and the
+    app serves with threads=15 shared with the console. `requests`
+    without `timeout=` inherits no socket timeout at all -- indefinitely
+    for a peer that stops responding without closing. Slack and Teams are
+    internet endpoints reached from a self-hosted box behind a corporate
+    egress path, which is exactly where silent drops happen.
+    """
+    import ast
+
+    source = _script_source(workflow)
+    unbounded = []
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if not isinstance(func, ast.Attribute):
+            continue
+        if not (isinstance(func.value, ast.Name) and func.value.id == "requests"):
+            continue
+        if func.attr not in ("get", "post", "put", "delete", "patch", "request"):
+            continue
+        if not any(kw.arg == "timeout" for kw in node.keywords):
+            unbounded.append(f"line {node.lineno}: requests.{func.attr}")
+
+    assert not unbounded, (
+        f"{workflow['slug']} makes outbound calls with no timeout, each of "
+        f"which can pin a webhook worker indefinitely:\n  "
+        + "\n  ".join(unbounded)
     )

@@ -128,14 +128,58 @@ def build_ea_xml(ea_name, value):
     )
 
 
+def current_group_member_ids(config, group_id):
+    """Jamf Pro's own view of who is in the smart group, right now.
+
+    The webhook payload arrives on an endpoint that may be
+    unauthenticated, and this script issues ERASE_DEVICE for every id the
+    payload names -- so without this it is a confused deputy: it holds
+    OAuth credentials the caller does not and acts on the caller's target
+    list. Re-reading membership from Jamf Pro means a forged payload can
+    only name devices that are genuinely in the group, which is exactly
+    what the automation is meant to act on.
+    """
+    resp = requests.get(
+        f"{config.server_url}/JSSResource/mobiledevicegroups/id/{group_id}",
+        headers=get_headers(),
+        timeout=30,
+    )
+    resp.raise_for_status()
+    group = resp.json().get("mobile_device_group", {})
+    return {
+        int(device["id"])
+        for device in group.get("mobile_devices", [])
+        if str(device.get("id", "")).isdigit()
+    }
+
+
 def main():
     config = Config()
     # 1. Parse event
     event_data = json.loads(sys.argv[1])
-    id_list = event_data["event"]["groupAddedDevicesIds"]
+    event = event_data["event"]
+    id_list = event["groupAddedDevicesIds"]
     if not id_list:
         print("No devices entered the group.")
         sys.exit(12)
+
+    # Never erase on the payload's word alone.
+    group_id = event.get("jssID")
+    if not group_id:
+        print("Payload named no smart group (jssID); refusing to erase.")
+        sys.exit(13)
+    members = current_group_member_ids(config, group_id)
+    verified = [i for i in id_list if str(i).isdigit() and int(i) in members]
+    refused = [i for i in id_list if i not in verified]
+    if refused:
+        print(
+            f"Refusing {len(refused)} device(s) the payload named but smart "
+            f"group {group_id} does not currently contain: {refused}"
+        )
+    if not verified:
+        print("No payload device is a current group member; nothing to do.")
+        sys.exit(14)
+    id_list = verified
 
     # 2. Encode WiFi payload
     wifi_b64 = base64.b64encode(WIFI_PAYLOAD).decode("ascii")
@@ -149,6 +193,7 @@ def main():
             f"{config.server_url}/JSSResource/mobiledevices/id/{jss_id}",
             headers=headers,
             data=ea_xml,
+            timeout=30,
         )
 
         # Look up managementId
@@ -156,6 +201,7 @@ def main():
         resp = requests.get(
             f"{config.server_url}/api/v2/mobile-devices/{jss_id}",
             headers=headers,
+            timeout=30,
         )
         mgmt_id = resp.json().get("managementId")
 
@@ -176,6 +222,7 @@ def main():
             f"{config.server_url}/api/v2/mdm/commands",
             headers=get_headers(),
             json=erase_json,
+            timeout=30,
         )
         resp.raise_for_status()
         print(f"Device {jss_id}: RtS command sent.")

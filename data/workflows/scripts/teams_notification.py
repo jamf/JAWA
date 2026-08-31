@@ -81,6 +81,7 @@ def send_teams_notification(webhook_url, title, message, facts=None):
         webhook_url,
         data=json.dumps(card),
         headers={"Content-Type": "application/json"},
+        timeout=30,
     )
     return response.status_code == 200
 

@@ -164,7 +164,9 @@
         ],
         "exit_codes": [
             {"code": 0, "meaning": "Success — erase with RtS sent"},
-            {"code": 12, "meaning": "No devices entered the group"}
+            {"code": 12, "meaning": "No devices entered the group"},
+            {"code": 13, "meaning": "Payload named no smart group (jssID) to verify against"},
+            {"code": 14, "meaning": "No payload device is a current member of the smart group"}
         ],
         "tags": ["smart-group", "mobile", "erase", "return-to-service", "wipe"],
         "order": 4

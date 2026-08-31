@@ -40,6 +40,7 @@ def main():
         SLACK_WEBHOOK_URL,
         data=json.dumps(slack_data),
         headers={"Content-Type": "application/json"},
+        timeout=30,
     )
     print(f"Slack notification: {resp.status_code}")
 

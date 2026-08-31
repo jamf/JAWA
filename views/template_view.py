@@ -30,6 +30,7 @@ import json
 import math
 import os
 import re
+import sys
 from typing import Any, Dict, List, Optional, Union
 
 import requests
@@ -87,6 +88,19 @@ WORKFLOW_CONFIG = os.path.join(
 )
 TEMPLATE_SCRIPTS_DIR = os.path.join(BASE_DIR, "data", "workflows", "scripts")
 SCRIPTS_DIR = os.path.join(BASE_DIR, "scripts")
+
+
+def _ensure_scripts_dir() -> None:
+    """Create the deployed-script directory if it is not there yet.
+
+    `scripts/` is gitignored and carries no tracked file, so a fresh
+    `git clone` install has no such directory. Both writers below open a
+    path inside it directly, and the template path does so *after*
+    creating the webhook in Jamf Pro -- so without this the first
+    template a new operator enables strands a live Jamf webhook that
+    JAWA has no record of, and every retry gets HTTP 409.
+    """
+    os.makedirs(SCRIPTS_DIR, exist_ok=True)
 WEBHOOKS_FILE = os.path.join(BASE_DIR, "data", "webhooks.json")
 CREDENTIALS_FILE = os.path.join(BASE_DIR, "data", "credentials.json")
 
@@ -137,11 +151,15 @@ def _install_package(
     B14 mistake, where the trigger becomes invisible and uneditable.
     """
     script = package["script"]
+    _ensure_scripts_dir()
     safe_filename = secure_filename(script["filename"])
     script_path = os.path.join(SCRIPTS_DIR, safe_filename)
     with open(script_path, "w", encoding="utf-8") as f:
-        f.write(script["content"])
-    os.chmod(script_path, 0o755)
+        f.write(_retarget_shebang(script["content"]))
+    # Owner-only, and the same reason as _write_script: an imported
+    # package can carry credential values, and the explicit chmod
+    # overrides the operator's umask.
+    os.chmod(script_path, 0o700)
 
     auth = auth_fields or {
         "webhook_username": "null",
@@ -387,8 +405,37 @@ def substitute_params(
     return script_content
 
 
+_PYTHON_SHEBANG_RE = re.compile(r"^#!.*python[0-9.]*\s*$")
+
+
+def _retarget_shebang(content: str) -> str:
+    """Point a bundled template's shebang at JAWA's own interpreter.
+
+    The receiver spawns scripts bare -- `Popen([script_path, payload])`
+    -- so the shebang alone chooses the interpreter. Every bundled
+    template shipped `#!/usr/bin/env python3`, which resolves to the
+    SYSTEM python, while the installer pip-installs requirements.txt
+    into JAWA's venv only. Six of the seven bundled templates import
+    `requests`, so they raised ModuleNotFoundError on their first real
+    trigger and the receiver reported success anyway.
+
+    `sys.executable` is the venv interpreter the service already runs
+    under (`ExecStart=.../venv/bin/python3`), so writing it here makes
+    the guarantee true by construction rather than by convention.
+
+    Only a python shebang is retargeted: an operator-supplied script may
+    legitimately be bash, and its shebang is theirs to choose.
+    """
+    lines = content.split("\n")
+    if lines and _PYTHON_SHEBANG_RE.match(lines[0]):
+        lines[0] = f"#!{sys.executable}"
+        return "\n".join(lines)
+    return content
+
+
 def _write_script(name: str, content: str) -> str:
     """Write script content to a unique file and return the absolute path."""
+    _ensure_scripts_dir()
     safe_name = name.replace(" ", "_").replace("/", "_").lower()
     dest_filename = f"{safe_name}.py"
     dest_path = os.path.join(SCRIPTS_DIR, dest_filename)
@@ -400,8 +447,14 @@ def _write_script(name: str, content: str) -> str:
         counter += 1
 
     with open(dest_path, "w", encoding="utf-8") as f:
-        f.write(content)
-    os.chmod(dest_path, 0o755)
+        f.write(_retarget_shebang(content))
+    # Owner-only: substitute_params bakes the credential set's
+    # client_secret into this source, and the explicit chmod overrides a
+    # hardened umask, so 0o755 handed the secret to every local account
+    # on a host whose whole point is an isolated `jawa` service user.
+    # The receiver runs it as the same user that owns it, so 0o700 is
+    # all it ever needs.
+    os.chmod(dest_path, 0o700)
     return dest_path
 
 

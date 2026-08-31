@@ -119,8 +119,18 @@ def _build_auth_xml(form: Any) -> str:
             if basic_user == "null" and basic_pass == "null":
                 auth_xml = "<authentication_type>NONE</authentication_type>"
             else:
-                auth_xml += f"<username>{basic_user or 'null'}</username>"
-                auth_xml += f"<password>{basic_pass or 'null'}</password>"
+                # Escaped for the same reason _build_webhook_xml escapes
+                # name and event: this is hand-built f-string XML, and a
+                # value that closes its own element injects sibling
+                # elements into the <webhook> object -- including a
+                # second <url>, which would point Jamf Pro's deliveries
+                # elsewhere while JAWA's record still showed its own
+                # callback. A password containing a bare & or < also just
+                # produces a body Jamf rejects with an opaque error.
+                safe_user = xml_escape(basic_user or "null")
+                safe_pass = xml_escape(basic_pass or "null")
+                auth_xml += f"<username>{safe_user}</username>"
+                auth_xml += f"<password>{safe_pass}</password>"
     return auth_xml
 
 

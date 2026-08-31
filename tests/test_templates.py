@@ -104,9 +104,14 @@ def test_blank_auth_field_does_not_lock_the_webhook_out(
             "/hooks/blank-auth-hook",
             json={"webhook": {"webhookEvent": "MobileDeviceEnrolled"}},
         )
-        assert resp.status_code == 200, (
-            f"inbound event rejected {resp.status_code}; the webhook is "
-            f"permanently locked out"
+        # The regression this guards is a permanent 401 lockout, so 401
+        # is the status that matters. Asserting 200 instead used to pass
+        # only because the receiver swallowed a non-zero script exit and
+        # answered 200 anyway; the stub script here genuinely fails on
+        # this payload, and that is a separate concern from auth.
+        assert resp.status_code != 401, (
+            "inbound event rejected 401; the webhook is permanently "
+            "locked out"
         )
 
 

@@ -147,6 +147,16 @@ function toggleAuthField(divId) {
     }
 }
 
+function selectJamfAuthMode(mode) {
+    // Radios, not checkboxes: show exactly one mode's fields and hide
+    // the rest. toggleAuthField() flips a single div, which cannot
+    // clear the mode a radio just lost.
+    ['basic', 'custom'].forEach(function (m) {
+        var el = document.getElementById('jamf-auth-' + m + '-fields');
+        if (el) { el.classList.toggle('is-hidden', m !== mode); }
+    });
+}
+
 function showSmartGroupNote(event) {
     var note = document.getElementById('smartGroupNote');
     if (note) {

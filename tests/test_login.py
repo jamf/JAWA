@@ -1,5 +1,7 @@
 """Console login flow against a fully faked Jamf Pro."""
 
+import pytest
+
 
 def test_successful_login_reaches_dashboard(logged_in_client):
     resp = logged_in_client.get("/dashboard")
@@ -357,3 +359,138 @@ def test_login_rejects_json_200_that_is_not_jamf(
     assert resp.status_code == 302
     assert "/dashboard" not in resp.headers.get("Location", "")
     assert "/logout" in resp.headers.get("Location", "")
+
+
+# --- active_url must be one of the URLs this JAWA is configured for ---
+#
+# Both login gates query whatever host session["url"] names, so a host
+# the caller chooses answers both of them: get_token() had no
+# raise_for_status (any status with a JSON "token" passed) and
+# _verify_jamf_access only checks the activationcode body's shape. The
+# login page renders active_url as a two-option <select> over the
+# configured URLs, so the UI presents the server as pinned -- but the
+# resolver honoured any POSTed value. An allow-list here is what makes
+# the downstream gates mean anything.
+
+
+def _login_against(client, jawa_env, monkeypatch, active_url, configured):
+    """POST /login with a chosen active_url against a Jamf-shaped host."""
+    import json as _json
+
+    import requests
+
+    jawa_env.server_file.write_text(_json.dumps(configured))
+    monkeypatch.setattr(
+        requests, "post", lambda *a, **k: _ShapedActivationCode("token")
+    )
+    monkeypatch.setattr(
+        requests,
+        "get",
+        lambda *a, **k: _ShapedActivationCode(
+            "activationcode",
+            {"license_information": {"organization_name": "Test Org"}},
+        ),
+    )
+    return client.post(
+        "/login",
+        data={
+            "active_url": active_url,
+            "username": "admin",
+            "password": "hunter2",
+        },
+    )
+
+
+CONFIGURED = {
+    "brand": "JAWA",
+    "jps_url": "https://primary.jamfcloud.test",
+    "alternate_jps": "https://alternate.jamfcloud.test",
+}
+
+
+@pytest.mark.parametrize(
+    "hostile",
+    [
+        pytest.param("https://attacker.example", id="off-list-host"),
+        pytest.param("http://127.0.0.1:8000", id="loopback"),
+        pytest.param(
+            "https://primary.jamfcloud.test.attacker.example",
+            id="suffix-lookalike",
+        ),
+        pytest.param(
+            "https://attacker.example#https://primary.jamfcloud.test",
+            id="fragment-smuggle",
+        ),
+    ],
+)
+def test_login_refuses_an_unconfigured_active_url(
+    client, jawa_env, monkeypatch, hostile
+):
+    """The attacker's host answers both gates Jamf-shaped and still fails.
+
+    Both mocks here are deliberately cooperative -- they return exactly
+    what a real Jamf Pro returns. That is the point: the shape checks
+    cannot distinguish an attacker-chosen host, so only the allow-list
+    can.
+    """
+    resp = _login_against(client, jawa_env, monkeypatch, hostile, CONFIGURED)
+    with client.session_transaction() as sess:
+        assert "username" not in sess, (
+            f"logged in against {hostile!r}, which is not a configured "
+            f"Jamf Pro URL"
+        )
+    location = resp.headers.get("Location", "")
+    assert resp.status_code == 302
+    assert "/dashboard" not in location
+    assert "/logout" in location
+    assert "Unrecognized+server" in location or "Unrecognized%20server" in location
+
+
+@pytest.mark.parametrize(
+    "allowed",
+    [
+        pytest.param("https://primary.jamfcloud.test", id="primary"),
+        pytest.param("https://alternate.jamfcloud.test", id="alternate"),
+        pytest.param("https://primary.jamfcloud.test/", id="trailing-slash"),
+    ],
+)
+def test_login_still_accepts_a_configured_active_url(
+    client, jawa_env, monkeypatch, allowed
+):
+    """The alternate-JPS feature must keep working, slash-insensitively."""
+    resp = _login_against(client, jawa_env, monkeypatch, allowed, CONFIGURED)
+    with client.session_transaction() as sess:
+        assert sess.get("username") == "admin", (
+            f"a configured URL ({allowed!r}) was refused"
+        )
+    assert "/dashboard" in resp.headers.get("Location", "")
+
+
+def test_unconfigured_install_still_accepts_a_typed_url(
+    client, jawa_env, monkeypatch
+):
+    """First-time setup has nothing to check against, so free text stands."""
+    import json as _json
+
+    import requests
+
+    jawa_env.server_file.write_text(_json.dumps({"brand": "JAWA"}))
+    monkeypatch.setattr(
+        requests, "post", lambda *a, **k: _ShapedActivationCode("token")
+    )
+    monkeypatch.setattr(
+        requests,
+        "get",
+        lambda *a, **k: _ShapedActivationCode(
+            "activationcode", {"activation_code": {"code": "AAAA"}}
+        ),
+    )
+    resp = client.post(
+        "/login",
+        data={
+            "url": "https://fresh.jamfcloud.test",
+            "username": "admin",
+            "password": "hunter2",
+        },
+    )
+    assert "/dashboard" in resp.headers.get("Location", "")

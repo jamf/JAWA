@@ -120,6 +120,7 @@ def main():
             "Authorization": f"Bearer {token}",
         },
         data=xml_data,
+        timeout=30,
     )
     resp.raise_for_status()
     print(f"Updated EA '{ea_name}' = '{value}' for device {device_id}")

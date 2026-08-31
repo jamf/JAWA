@@ -48,9 +48,20 @@ def get_token() -> Optional[Response]:
             f"{session['url']}/api/v1/auth/token",
             headers={"Authorization": f"Basic {session['b64_auth'].decode()}"},
         )
+        # Without this, a non-2xx passes: Jamf Pro answers a JSON body on
+        # 401/503 too, so resp.json() succeeds and data.get("token")
+        # returns None -- which was then stored and returned exactly like
+        # a success, leaving _validate_credentials' truthiness check as
+        # the only thing standing between a failed fetch and a session.
+        resp.raise_for_status()
         data = resp.json()
-        session["token"] = data.get("token")
-        session["expires"] = data.get("expires")
+        token = data.get("token")
+        expires = data.get("expires")
+        if not token or not expires:
+            # A 2xx carrying no token is not a token.
+            raise ValueError("token response contained no token/expires")
+        session["token"] = token
+        session["expires"] = expires
     except Exception as err:
         logthis.error(
             f"[{session.get('url')}] Could not get a token using session credentials: {err}.  Logging out."

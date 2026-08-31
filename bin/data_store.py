@@ -257,7 +257,12 @@ def save_script(
     safe_name = secure_filename(new_filename)
     filepath = os.path.join(SCRIPTS_DIR, safe_name)
     file_storage.save(filepath)
-    os.chmod(filepath, mode=0o0755)
+    # Owner-only. The receiver runs this as the same `jawa` user that
+    # owns it, so the group/other read bits only ever widened who could
+    # read a script that may hold credentials. The shebang is left as
+    # the operator wrote it -- an uploaded script may legitimately be
+    # bash, and choosing its interpreter is theirs.
+    os.chmod(filepath, mode=0o0700)
     return filepath
 
 

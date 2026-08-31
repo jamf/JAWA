@@ -29,7 +29,7 @@
 import base64
 import json
 import os
-from typing import Union
+from typing import Optional, Union
 
 import requests
 from flask import (
@@ -80,13 +80,39 @@ ERROR_TITLE_SESSION = "Session Timed Out"
 ERROR_MSG_SIGN_IN = "Please sign in again"
 
 
-def _resolve_url_from_server(form, server_json: dict) -> str:
-    """Determine the Jamf Pro URL from form data and server config."""
-    if form.get("active_url"):
-        return str(form.get("active_url"))
-    jps_url = server_json.get("jps_url")
-    if jps_url:
-        return str(jps_url)
+def _resolve_url_from_server(form, server_json: dict) -> Optional[str]:
+    """Determine the Jamf Pro URL from form data and server config.
+
+    Returns None when the form asks for a host this instance is not
+    configured for, which the caller must treat as a failed login.
+
+    `active_url` renders only as a two-option <select> over the URLs the
+    operator configured, so the UI presents the server as pinned -- but
+    this resolver used to honour whatever a POST supplied. Every gate
+    after this point (the token fetch, the activationcode shape check)
+    queries *this* URL, so an attacker-chosen host answers all of them
+    and none of them authenticates anything. The allow-list is what
+    makes those gates meaningful, so it belongs here rather than in
+    them.
+    """
+    configured = [
+        _strip_trailing_slash(str(url))
+        for url in (
+            server_json.get("jps_url"),
+            server_json.get("alternate_jps"),
+        )
+        if url
+    ]
+    requested = form.get("active_url")
+    if requested:
+        candidate = _strip_trailing_slash(str(requested))
+        if configured and candidate not in configured:
+            return None
+        return candidate
+    if configured:
+        return configured[0]
+    # No JPS pinned yet (first-time setup): the login form still offers a
+    # free-text URL field, and there is nothing to check it against.
     return _strip_trailing_slash(form.get("url", ""))
 
 
@@ -183,9 +209,18 @@ def login() -> Response:
         if os.path.isfile(server_file):
             with open(server_file) as json_file:
                 server_json = json.load(json_file)
-            session["url"] = _resolve_url_from_server(
-                request.form, server_json
-            )
+            resolved = _resolve_url_from_server(request.form, server_json)
+            if resolved is None:
+                logthis.warning(
+                    "Refusing a login against an unconfigured Jamf Pro "
+                    f"URL: {request.form.get('active_url')!r}"
+                )
+                return _login_error(
+                    "Unrecognized server",
+                    "That Jamf Pro server is not one this JAWA is "
+                    "configured to use.",
+                )
+            session["url"] = resolved
         else:
             session["url"] = _strip_trailing_slash(request.form.get("url", ""))
 

@@ -210,3 +210,150 @@ def test_get_method_returns_405(client, jawa_env, fake_popen):
     resp = client.get("/hooks/testhook")
     assert resp.status_code == 405
     assert fake_popen.calls == []
+
+
+class ConfigurablePopen:
+    """A Popen stub whose failure dimensions are actually variable.
+
+    RecordingPopen hard-codes ASCII stdout and `wait() -> 0`, so the two
+    dimensions the receiver narrows -- the decode and the exit code --
+    could not fail in the suite. Inverting `if return_code != 0:` in
+    jawa_receiver used to leave all 419 tests passing.
+    """
+
+    def __init__(self, stdout=b"", returncode=0, raises=None):
+        self._stdout = stdout
+        self._returncode = returncode
+        self._raises = raises
+
+    def __call__(self, args, stdout=None, stderr=None):
+        if self._raises is not None:
+            raise self._raises
+        self.stdout = io.BytesIO(self._stdout)
+        return self
+
+    def wait(self):
+        return self._returncode
+
+
+def _post_hook(client, jawa_env, monkeypatch, popen, **overrides):
+    _make_webhook(jawa_env, **overrides)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    return client.post(
+        "/hooks/testhook",
+        json=PAYLOAD,
+        headers=_basic_auth("hookuser", "hookpass"),
+    )
+
+
+@pytest.mark.parametrize(
+    "stdout",
+    [
+        pytest.param("Renamed café-MacBook\n".encode(), id="utf8-accent"),
+        pytest.param("記録しました\n".encode(), id="utf8-cjk"),
+        pytest.param(b"latin-1 caf\xe9\n", id="invalid-utf8"),
+    ],
+)
+def test_non_ascii_script_output_does_not_fail_the_request(
+    client, jawa_env, monkeypatch, stdout
+):
+    """A device name with an accent is not an error.
+
+    The response path decoded ascii while the log path decoded utf-8, so
+    a script that exited 0 and printed a non-ASCII device name raised
+    UnicodeDecodeError -> HTTP 500. Jamf Pro then recorded a failed
+    delivery for work that had already succeeded, and retried it.
+    Jamf device names are user-assigned and routinely non-ASCII.
+    """
+    resp = _post_hook(
+        client,
+        jawa_env,
+        monkeypatch,
+        ConfigurablePopen(stdout=stdout, returncode=0),
+        output=True,
+    )
+    assert resp.status_code == 202, (
+        f"successful script with non-ASCII stdout returned "
+        f"{resp.status_code}"
+    )
+
+
+def test_non_zero_exit_is_not_reported_as_success(
+    client, jawa_env, monkeypatch
+):
+    """A script that ran and failed must not answer 2xx.
+
+    This is the assertion whose absence let `if return_code != 0:` be
+    inverted with the whole suite still green.
+    """
+    resp = _post_hook(
+        client,
+        jawa_env,
+        monkeypatch,
+        ConfigurablePopen(stdout=b"boom\n", returncode=1),
+    )
+    assert resp.status_code >= 500, (
+        f"script exited 1 but the receiver answered {resp.status_code}; "
+        f"Jamf Pro would record a successful delivery"
+    )
+
+
+@pytest.mark.parametrize(
+    "err",
+    [
+        pytest.param(FileNotFoundError("no such script"), id="missing"),
+        pytest.param(PermissionError("not executable"), id="not-executable"),
+    ],
+)
+def test_script_that_cannot_start_is_not_reported_as_success(
+    client, jawa_env, monkeypatch, err
+):
+    """A retired or chmod-stripped script must not answer 2xx.
+
+    Deleting a webhook while Jamf Pro is unreachable retires the script
+    but leaves the Jamf webhook enabled, so this is reachable without
+    anyone hand-editing anything.
+    """
+    resp = _post_hook(
+        client, jawa_env, monkeypatch, ConfigurablePopen(raises=err)
+    )
+    assert resp.status_code >= 500, (
+        f"Popen raised {type(err).__name__} but the receiver answered "
+        f"{resp.status_code}"
+    )
+    assert "valid webhook received" not in resp.get_data(as_text=True)
+
+
+def test_disabled_template_webhook_is_refused(client, jawa_env, fake_popen):
+    """`enabled: False` must mean the JAWA endpoint is not live.
+
+    template_view stores enabled=False for triggers Jamf Pro creates in
+    the disabled state, and the enable screen tells the operator the
+    webhook "is not yet enabled". The receiver never read the field, so
+    that notice was false and the endpoint was open from that moment.
+    """
+    _make_webhook(jawa_env, enabled=False)
+    resp = client.post(
+        "/hooks/testhook",
+        json=PAYLOAD,
+        headers=_basic_auth("hookuser", "hookpass"),
+    )
+    assert resp.status_code == 401
+    assert fake_popen.calls == [], "a disabled automation executed its script"
+
+
+def test_absent_enabled_key_still_runs(client, jawa_env, fake_popen):
+    """Only an explicit False rejects.
+
+    The non-template handlers write no `enabled` key at all, so treating
+    a missing key as disabled would break every Jamf Pro, Okta, custom
+    and timed automation.
+    """
+    _make_webhook(jawa_env)
+    resp = client.post(
+        "/hooks/testhook",
+        json=PAYLOAD,
+        headers=_basic_auth("hookuser", "hookpass"),
+    )
+    assert resp.status_code == 200
+    assert len(fake_popen.calls) == 1

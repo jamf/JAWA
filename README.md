@@ -46,6 +46,22 @@ JAWA and [Jamf Routines](https://learn.jamf.com/r/en-US/jamf-routines-documentat
 > the OS version is what determines the Python version. Ubuntu 20.04 ships Python 3.8 and
 > RHEL/Rocky 8 ships Python 3.6, neither of which satisfies JAWA's dependencies — use Ubuntu 22.04
 > or later, or RHEL/Rocky 9 or later.
+>
+> The installer checks this **before it touches an existing install** and stops with the detected
+> version if the host is below Python 3.9. The specific blocker is Werkzeug: its patched releases
+> require Python 3.9 or later, and no patched Werkzeug exists for 3.8, so a 3.8 host cannot run
+> JAWA without a known security advisory.
+>
+> If you accept that advisory and need to install on Python 3.8 anyway, set
+> `JAWA_ALLOW_UNPATCHED_WERKZEUG=1`:
+>
+> ```bash
+> sudo JAWA_ALLOW_UNPATCHED_WERKZEUG=1 bash ./installer.sh
+> ```
+>
+> This holds Werkzeug at 3.0.6 — the newest release available to Python 3.8 — and prints the
+> advisory you are accepting. It is a stopgap for hosts that cannot be upgraded yet, not a
+> supported configuration.
 
 ### Network Requirements:
 
@@ -228,7 +244,10 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
   longer support Python 3.8. Ubuntu 20.04 (Python 3.8) and RHEL/Rocky 8 (Python 3.6) can no longer
   run JAWA — RHEL/Rocky 8 in fact stopped being able to when JAWA moved to Flask 3, which the
   stated requirements had not caught up with. Check `python3 --version` on the host before
-  upgrading.
+  upgrading. The installer now enforces this itself: it verifies the Python version **before**
+  backing up or removing anything, so an unsupported host is refused with its existing install
+  intact rather than left with a dead service. If you must install on Python 3.8 and accept an
+  unpatched Werkzeug, see `JAWA_ALLOW_UNPATCHED_WERKZEUG` under Server Requirements.
 - **Content JAWA ships inside `data/` is not upgraded in place.** The installer preserves your
   `data/` directory across an upgrade, which protects your automations and settings, but it also
   means the bundled template scripts and the webhook event catalog stay at the version you first

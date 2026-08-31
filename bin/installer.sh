@@ -237,7 +237,74 @@ Please make sure you:
 "
 }
 
+# Minimum Python minor version. Werkzeug's patched releases (3.1.4+) require
+# Python >= 3.9, and there is no patched Werkzeug for 3.8 -- PyPI serves
+# nothing above 3.0.6 to a 3.8 interpreter. So "runs on 3.8" and "ships
+# without the open Werkzeug advisory" are mutually exclusive.
+jawaMinPyMinor=9
+werkzeugPy38Fallback="3.0.6"
+holdWerkzeug="no"
+
+checkPythonFloor() {
+  # Runs FIRST, before anything destructive. This used to be discovered at
+  # the 85% mark -- after cleaninstall had already removed the operator's
+  # working install -- so a 3.8 host was left with a dead service behind a
+  # "[########################](100%) Installation complete!" message.
+  if [ ! -x /usr/bin/python3 ]; then
+    /bin/echo "Python 3 is not present at /usr/bin/python3."
+    /bin/echo "JAWA requires Python 3.${jawaMinPyMinor} or later. Install it and run this installer again."
+    /bin/echo "Your existing JAWA install, if any, has NOT been modified. Exiting..."
+    exit 2
+  fi
+  local pyMajor pyMinor pyVer
+  pyVer=$(/usr/bin/python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)
+  pyMajor=${pyVer%%.*}
+  pyMinor=${pyVer##*.}
+  if [ -z "$pyMajor" ] || [ -z "$pyMinor" ]; then
+    /bin/echo "Could not determine the Python version reported by /usr/bin/python3."
+    /bin/echo "Your existing JAWA install, if any, has NOT been modified. Exiting..."
+    exit 2
+  fi
+  /bin/echo "Detected Python $pyVer" >>/var/log/jawaInstall.log 2>&1
+  if [ "$pyMajor" -gt 3 ]; then
+    return 0
+  fi
+  if [ "$pyMajor" -eq 3 ] && [ "$pyMinor" -ge "$jawaMinPyMinor" ]; then
+    return 0
+  fi
+  if [ "${JAWA_ALLOW_UNPATCHED_WERKZEUG:-0}" = "1" ]; then
+    holdWerkzeug="yes"
+    /bin/echo ""
+    /bin/echo "WARNING: Python $pyVer is below JAWA's 3.${jawaMinPyMinor} floor, and"
+    /bin/echo "JAWA_ALLOW_UNPATCHED_WERKZEUG=1 is set. Werkzeug will be held at"
+    /bin/echo "$werkzeugPy38Fallback, which is the newest release available to Python $pyVer and"
+    /bin/echo "carries an OPEN, UNPATCHED security advisory. You are accepting that."
+    /bin/echo "The supported fix is Ubuntu 22.04+ / RHEL-Rocky 9+ (Python 3.${jawaMinPyMinor}+)."
+    /bin/echo ""
+    /bin/echo "Holding Werkzeug at $werkzeugPy38Fallback for Python $pyVer per JAWA_ALLOW_UNPATCHED_WERKZEUG=1" >>/var/log/jawaInstall.log 2>&1
+    /bin/sleep 5
+    return 0
+  fi
+  /bin/echo ""
+  /bin/echo "JAWA 3.2 requires Python 3.${jawaMinPyMinor} or later. This host has Python $pyVer."
+  /bin/echo ""
+  /bin/echo "  Ubuntu 20.04 ships Python 3.8 and RHEL/Rocky 8 ships 3.6; neither is supported."
+  /bin/echo "  Supported: Ubuntu 22.04+ or RHEL/Rocky 9+."
+  /bin/echo ""
+  /bin/echo "  Reason: JAWA's Werkzeug security fix is only published for Python 3.${jawaMinPyMinor}+."
+  /bin/echo "  There is no patched Werkzeug for Python $pyVer."
+  /bin/echo ""
+  /bin/echo "  To install anyway with an UNPATCHED Werkzeug ($werkzeugPy38Fallback), re-run with"
+  /bin/echo "  JAWA_ALLOW_UNPATCHED_WERKZEUG=1 set, e.g.:"
+  /bin/echo "      sudo JAWA_ALLOW_UNPATCHED_WERKZEUG=1 bash ./installer.sh"
+  /bin/echo ""
+  /bin/echo "Your existing JAWA install, if any, has NOT been modified. Exiting..."
+  /bin/echo "Refusing to install: Python $pyVer is below the 3.${jawaMinPyMinor} floor." >>/var/log/jawaInstall.log 2>&1
+  exit 2
+}
+
 install() {
+  checkPythonFloor
   /usr/bin/clear
   # Variables
 
@@ -368,7 +435,11 @@ install() {
     /bin/echo "Exiting..."
     exit 2
   fi
-  /usr/bin/python3 -m pip
+  # `python3 -m pip` with no subcommand dumps 30 lines of usage onto the
+  # operator's terminal, and its exit code is version-dependent -- newer
+  # pip exits 1 for no-args, which made this abort with "python3-pip was
+  # not installed successfully" while pip was in fact installed.
+  /usr/bin/python3 -m pip --version >>/var/log/jawaInstall.log 2>&1
   if [ $? -eq 0 ]; then
     /bin/echo "python3-pip installed." >>/var/log/jawaInstall.log 2>&1
   else
@@ -427,8 +498,8 @@ if [ -d "$currentDir/jawabackup-$timenow" ]; then
   # for gzip support in uwsgi
   #/usr/bin/apt-get install --no-install-recommends -y -q libpcre3-dev libz-dev
 
-  /bin/echo -ne '[#############           ](65%) Setting permissions for $installDir/jawa... '
-  /bin/echo '[#############           ](65%) Setting permissions for $installDir/jawa ' >>/var/log/jawaInstall.log 2>&1
+  /bin/echo -ne "[#############           ](65%) Setting permissions for $installDir/jawa... "
+  /bin/echo "[#############           ](65%) Setting permissions for $installDir/jawa " >>/var/log/jawaInstall.log 2>&1
   chown -R jawa "$installDir/jawa" & spinner $! ""
 
 
@@ -453,7 +524,29 @@ if [ -d "$currentDir/jawabackup-$timenow" ]; then
   /usr/bin/clear
   /bin/echo -ne '[#################       ](85%) pip installing jawa requirements.txt file in venv... '
   /bin/echo '[#################       ](85%) pip installing jawa requirements.txt file in venv... ' >>/var/log/jawaInstall.log 2>&1
-  "$installDir/jawa/venv/bin/python" -m pip install -r "$installDir/jawa/requirements.txt" >>/var/log/jawaInstall.log 2>&1 & spinner $! "" #
+  if [ "$holdWerkzeug" = "yes" ]; then
+    /bin/sed -i "s/^Werkzeug~=.*/Werkzeug~=$werkzeugPy38Fallback/" "$installDir/jawa/requirements.txt" >>/var/log/jawaInstall.log 2>&1
+    /bin/echo "Held Werkzeug at $werkzeugPy38Fallback in requirements.txt" >>/var/log/jawaInstall.log 2>&1
+  fi
+  "$installDir/jawa/venv/bin/python" -m pip install -r "$installDir/jawa/requirements.txt" >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  # spinner propagates the background job's exit code (see the clone step).
+  # Unchecked, a failed resolve here marched on to "100% Installation
+  # complete!" and enabled a systemd unit that crash-looped on
+  # ModuleNotFoundError -- the dependency failure was only visible in the log.
+  requirementsStatus=$?
+  if [ "$requirementsStatus" -ne 0 ] || ! "$installDir/jawa/venv/bin/python" -c 'import flask' >/dev/null 2>&1; then
+    /usr/bin/clear
+    /bin/echo ""
+    /bin/echo "JAWA's Python dependencies failed to install, so the service cannot start."
+    /bin/echo "This is NOT a missing python3/pip/git/curl -- those are present."
+    /bin/echo ""
+    /bin/echo "The failing lines are in /var/log/jawaInstall.log. To see them:"
+    /bin/echo "    grep -E 'ERROR|No matching distribution' /var/log/jawaInstall.log | tail"
+    /bin/echo ""
+    /bin/echo "Aborting before the service is created." 
+    /bin/echo "Python dependency install FAILED (status $requirementsStatus); flask not importable. Aborting." >>/var/log/jawaInstall.log 2>&1
+    exit 2
+  fi #
   #pip install --upgrade uwsgi
   /usr/bin/clear
   /bin/echo -ne '[##################      ](90%) Creating jawa service in systemd... '
@@ -500,22 +593,55 @@ EOF
   /bin/echo '[######################  ](98%) Restarting services... ' >>/var/log/jawaInstall.log 2>&1
   /bin/systemctl enable jawa.service >>/var/log/jawaInstall.log 2>&1
   /bin/systemctl restart jawa.service >>/var/log/jawaInstall.log 2>&1
+  jawaRestart=$?
+  [ "$jawaRestart" -ne 0 ] && /bin/echo "systemctl restart jawa.service exited $jawaRestart" >>/var/log/jawaInstall.log 2>&1
   /usr/bin/clear
   /bin/echo -ne '[####################### ](99%) Restarting services... \r'
   /bin/echo '[####################### ](99%) Restarting services... ' >>/var/log/jawaInstall.log 2>&1
   /bin/systemctl restart nginx.service >>/var/log/jawaInstall.log 2>&1
+  nginxRestart=$?
+  [ "$nginxRestart" -ne 0 ] && /bin/echo "systemctl restart nginx.service exited $nginxRestart" >>/var/log/jawaInstall.log 2>&1
   /usr/bin/clear
   /bin/echo -ne '[########################](100%) Installation complete! \r'
   /bin/echo '[########################](100%) Restarting services... untini! ' >>/var/log/jawaInstall.log 2>&1
   /bin/sleep 1.5
 
   /usr/bin/clear
-  status=$(/bin/systemctl is-active --quiet jawa && echo Service is running)
-  if [ "$status" != "Service is running" ]; then
-      echo "Uh oh!  The jawa service is not running. Check /var/log/jawaInstall.log for errors and restart the service."
-      echo "Uh oh!  The jawa service is not running. Check /var/log/jawaInstall.log for errors and restart the service." >>/var/log/jawaInstall.log 2>&1
-      echo "Double-check your dependencies (python3, python3-pip, git, curl, etc.) and try again."
-      echo "Double-check your dependencies (python3, python3-pip, git, curl, etc.) and try again." >>/var/log/jawaInstall.log 2>&1
+  # Check every unit the install depends on and name the ones that failed.
+  # Only jawa was ever verified, so a broken nginx reported "Installation
+  # complete!" with an unreachable console -- and real installs failed nginx
+  # repeatedly while this said nothing. The diagnostic differs per unit:
+  # jawa's reason is in journalctl, nginx's is almost always a config or
+  # certificate error, which `nginx -t` prints with the offending line.
+  failedUnits=""
+  for unit in jawa nginx; do
+    if ! /bin/systemctl is-active --quiet "$unit"; then
+      failedUnits="$failedUnits $unit"
+    fi
+  done
+  if [ -n "$failedUnits" ]; then
+      echo "Uh oh!  The installation finished, but these services are NOT running:$failedUnits"
+      echo "Uh oh!  Services not running after install:$failedUnits" >>/var/log/jawaInstall.log 2>&1
+      echo ""
+      for unit in $failedUnits; do
+        case "$unit" in
+        jawa)
+          echo "  jawa.service - the JAWA application itself."
+          echo "    JAWA will not answer at all until this starts."
+          echo "    See why:  journalctl -u jawa.service -n 50 --no-pager"
+          ;;
+        nginx)
+          echo "  nginx.service - the TLS reverse proxy in front of JAWA."
+          echo "    The web console is unreachable without it, even if jawa is healthy."
+          echo "    Usually a config or certificate problem. Check the config first,"
+          echo "    which names the offending file and line:"
+          echo "      nginx -t"
+          echo "    Then:  journalctl -u nginx.service -n 30 --no-pager"
+          ;;
+        esac
+        echo ""
+      done
+      echo "The full installer log is at /var/log/jawaInstall.log"
       echo ""
       if [[ $jawaPassword != "" ]]; then
         /bin/echo "The following service account was created on your OS for running the JAWA application, and for creating the cron tasks."
@@ -525,7 +651,7 @@ EOF
       fi
       exit 2
   else
-      echo "Jawa service is running!" >>/var/log/jawaInstall.log 2>&1
+      echo "jawa.service and nginx.service are both running." >>/var/log/jawaInstall.log 2>&1
   fi
 
   if [ -e "$installDir/jawa/static/jawadone.txt" ]; then
@@ -793,10 +919,25 @@ restoreBackup() {
               /usr/bin/python3 "$installDir/jawa/bin/v2_upgrade.py" "$currentDir/jawabackup-$timenow" >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
             fi
           fi
-        /bin/cp -R "$currentDir/jawabackup-$timenow/data/" $installDir/jawa/
-        /bin/cp -R "$currentDir/jawabackup-$timenow/resources/" $installDir/jawa/
-        /bin/cp -R "$currentDir/jawabackup-$timenow/scripts/" $installDir/jawa/
-        /bin/cp -R "$currentDir/jawabackup-$timenow/jawa_icon.png" $installDir/jawa/static/img/jawa_icon.png
+        # Guarded and logged, to match the backup half above. These four
+        # copies previously ran bare: an upgrade from an install that
+        # never had a scripts/ or resources/ directory -- the common
+        # case, since neither is tracked -- printed "cp: ... No such
+        # file or directory" straight onto the operator's terminal in
+        # the middle of the progress bar.
+        #
+        # "$item/." rather than "$item/": the trailing-slash form means
+        # different things to GNU and BSD cp (contents vs. the directory
+        # itself), and "/." is the explicit contents-merge on both.
+        for item in data resources scripts; do
+          if [ -d "$currentDir/jawabackup-$timenow/$item" ]; then
+            /bin/mkdir -p "$installDir/jawa/$item" >>/var/log/jawaInstall.log 2>&1
+            /bin/cp -R "$currentDir/jawabackup-$timenow/$item/." "$installDir/jawa/$item/" >>/var/log/jawaInstall.log 2>&1
+          fi
+        done
+        if [ -e "$currentDir/jawabackup-$timenow/jawa_icon.png" ]; then
+          /bin/cp "$currentDir/jawabackup-$timenow/jawa_icon.png" "$installDir/jawa/static/img/jawa_icon.png" >>/var/log/jawaInstall.log 2>&1
+        fi
 }
 
 
@@ -939,6 +1080,16 @@ fi
 if [ "$EUID" -ne 0 ]; then
   echo "Please run as root"
   exit 1
+fi
+
+# 47 `clear` calls and 3 `tput` calls assume the host's terminfo knows
+# $TERM. A modern terminal forwarded over SSH (ghostty, kitty, wezterm) is
+# often absent from a server's terminfo, and every one of them then fails --
+# which also breaks the carriage-return progress redraw, so lines arrive
+# mangled ("'xterm-ghostty': unknown terminal type.ing services...").
+if ! tput clear >/dev/null 2>&1; then
+  /bin/echo "TERM='${TERM:-}' is unknown to this host's terminfo; falling back to TERM=xterm." >>/var/log/jawaInstall.log 2>&1
+  export TERM=xterm
 fi
 
 readme

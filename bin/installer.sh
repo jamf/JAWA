@@ -245,6 +245,39 @@ jawaMinPyMinor=9
 werkzeugPy38Fallback="3.0.6"
 holdWerkzeug="no"
 
+# Colour, as raw ANSI rather than tput: a server's terminfo frequently does not
+# know a modern $TERM forwarded over SSH (see the TERM fallback at the bottom),
+# and every tput call then fails. printf puts real ESC bytes into these
+# variables, so a plain `/bin/echo "${cRed}..."` prints them -- this script has
+# never relied on `echo -e`, whose behaviour differs between shells and builds.
+#
+# All six are empty unless stdout is a terminal, so a redirected run stays
+# clean, and the >>jawaInstall.log lines are written uncoloured on purpose: the
+# log must stay greppable. NO_COLOR is honoured (https://no-color.org).
+initColour() {
+  cReset=""
+  cBold=""
+  cRed=""
+  cGreen=""
+  cYellow=""
+  cDate=""
+  if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+    cReset=$(printf '\033[0m')
+    cBold=$(printf '\033[1m')
+    cRed=$(printf '\033[1;31m')
+    cGreen=$(printf '\033[1;32m')
+    cYellow=$(printf '\033[1;33m')
+    cDate=$(printf '\033[36m')
+  fi
+}
+
+# Pads a role label to a fixed width BEFORE it is wrapped in colour. Padding
+# afterwards would count the ESC bytes toward the field width and misalign the
+# column by exactly the length of the escape sequence.
+certLabel() {
+  printf "%-${2:-8}s" "$1"
+}
+
 normalizeInstallDir() {
   # Strip trailing slashes so "$installDir/jawa" cannot become
   # "/usr/local//jawa". The paths were inconsistent -- one assignment used
@@ -346,13 +379,19 @@ certIsUsable() {
 warnIfCertStale() {
   if certIsExpired "$1"; then
     /bin/echo ""
-    /bin/echo "WARNING: $1 EXPIRED on $(certExpiry "$1")."
+    /bin/echo "${cRed}WARNING${cReset}  the certificate JAWA will serve is ${cRed}EXPIRED${cReset}."
+    /bin/echo "         $1"
+    /bin/echo "         expired ${cDate}$(certExpiry "$1")${cReset}"
     /bin/echo "         Browsers will refuse the JAWA console until it is replaced."
     /bin/echo ""
     /bin/echo "WARNING: serving expired cert $1" >>/var/log/jawaInstall.log 2>&1
   elif /usr/bin/openssl x509 -noout -in "$1" >/dev/null 2>&1 &&
     ! /usr/bin/openssl x509 -checkend 2592000 -noout -in "$1" >/dev/null 2>&1; then
-    /bin/echo "NOTE: $1 expires within 30 days ($(certExpiry "$1"))."
+    /bin/echo ""
+    /bin/echo "${cYellow}NOTE${cReset}     the certificate JAWA will serve expires within 30 days."
+    /bin/echo "         $1"
+    /bin/echo "         expires ${cDate}$(certExpiry "$1")${cReset}"
+    /bin/echo ""
     /bin/echo "NOTE: cert $1 expires within 30 days" >>/var/log/jawaInstall.log 2>&1
   fi
 }
@@ -392,7 +431,12 @@ install() {
     # Upgrading a host that already has certificates. Demanding them in the
     # current directory again would push a working install into the
     # self-signed menu for no reason.
-    /bin/echo "Keeping the certificate already installed at $certsDir/jawa.crt (expires: $(certExpiry "$certsDir/jawa.crt"))."
+    /bin/echo ""
+    /bin/echo "${cBold}Certificate: no jawa.crt/jawa.key here, so the installed one is kept.${cReset}"
+    /bin/echo ""
+    /bin/echo "  ${cBold}$(certLabel "IN USE")${cReset}  $certsDir/jawa.crt"
+    /bin/echo "            ${cGreen}$(certLabel "VALID" 10)${cReset}  expires ${cDate}$(certExpiry "$certsDir/jawa.crt")${cReset}"
+    /bin/echo ""
     /bin/echo "Keeping installed cert $certsDir/jawa.crt" >>/var/log/jawaInstall.log 2>&1
     warnIfCertStale "$certsDir/jawa.crt"
   elif [ "$haveLocalCerts" == "no" ]; then
@@ -405,18 +449,34 @@ install() {
     # The copy in the current directory is expired or unreadable and the
     # installed one still works. Installing the bad copy would take the
     # console offline, so keep what works and say why.
+    # Roles first, paths second. The operator reading this at a progress bar
+    # needs to know which certificate is which and what it means before they
+    # need to know where either one lives.
     if /usr/bin/openssl x509 -noout -in ./jawa.crt >/dev/null 2>&1; then
-      certRejectReason="has EXPIRED (expired: $(certExpiry ./jawa.crt))"
+      certRejectState="EXPIRED"
+      certRejectDetail="expired ${cDate}$(certExpiry ./jawa.crt)${cReset}"
+      certRejectReason="has expired ($(certExpiry ./jawa.crt))"
     else
+      certRejectState="UNREADABLE"
+      certRejectDetail="not a valid certificate file"
       certRejectReason="is not a readable certificate"
     fi
     /bin/echo ""
-    /bin/echo "NOT replacing the installed certificate."
-    /bin/echo "  $currentDir/jawa.crt $certRejectReason"
-    /bin/echo "  $certsDir/jawa.crt is still valid (expires: $(certExpiry "$certsDir/jawa.crt"))"
-    /bin/echo "  Keeping the valid one. Replace the copy in $currentDir to install a new certificate."
+    /bin/echo "${cBold}Certificate: keeping the one already in use. Nothing was replaced.${cReset}"
     /bin/echo ""
-    /bin/echo "Refused to overwrite valid $certsDir/jawa.crt with unusable ./jawa.crt ($certRejectReason)" >>/var/log/jawaInstall.log 2>&1
+    /bin/echo "  ${cBold}$(certLabel "IN USE")${cReset}  $certsDir/jawa.crt"
+    /bin/echo "            ${cGreen}$(certLabel "VALID" 10)${cReset}  expires ${cDate}$(certExpiry "$certsDir/jawa.crt")${cReset}"
+    /bin/echo ""
+    /bin/echo "  ${cBold}$(certLabel "OFFERED")${cReset}  $currentDir/jawa.crt"
+    /bin/echo "            ${cRed}$(certLabel "$certRejectState" 10)${cReset}  $certRejectDetail"
+    /bin/echo ""
+    /bin/echo "  ${cBold}Impact:${cReset} none. JAWA keeps serving the certificate marked IN USE,"
+    /bin/echo "  so the console stays reachable. The OFFERED file was left untouched."
+    /bin/echo ""
+    /bin/echo "  To install a new certificate, replace jawa.crt and jawa.key in"
+    /bin/echo "  $currentDir and run this installer again."
+    /bin/echo ""
+    /bin/echo "Refused to overwrite valid $certsDir/jawa.crt with unusable ./jawa.crt (offered cert $certRejectReason)" >>/var/log/jawaInstall.log 2>&1
   else
     /bin/cp ./{jawa.crt,jawa.key} "$certsDir/"
     warnIfCertStale "$certsDir/jawa.crt"
@@ -1148,6 +1208,7 @@ EOF
 currentDir=$(pwd)
 installDir=/usr/local
 timenow=$(date +%m-%d-%y_%T)
+initColour
 
 #branch="main"  # Default branch name if no arguments are provided
 

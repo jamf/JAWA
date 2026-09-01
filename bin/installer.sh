@@ -491,9 +491,29 @@ install() {
       projectDir=$(systemctl status jawa.service | grep -i /jawa/app.py | awk '{ print $3 }' | rev | cut -c 7- | rev)
     fi
     installDir=$(dirname "$projectDir")
-    if [[ $installDir != "" ]]; then
+    # Trust the detected directory only after checking it, and fall back only
+    # when the check fails.
+    #
+    # This used to read `if [[ $installDir != "" ]]; then installDir=/usr/local`,
+    # which threw the detection away precisely when it had SUCCEEDED. That is
+    # not cosmetic: the backup below reads "$installDir/jawa/{scripts,resources,
+    # data}", so an operator who installed anywhere but /usr/local had their
+    # real install left untouched and unreferenced -- nothing backed up, a
+    # fresh install written to /usr/local, and every automation orphaned in the
+    # old directory.
+    #
+    # The fallback still has to exist, because the parse above is brittle: it
+    # slices a fixed number of characters off a `systemctl status` line, with a
+    # *different* width depending on whether the service is running. A garbage
+    # parse must never become the install target. Requiring app.py to actually
+    # be there is what separates the two cases -- it confirms the parse landed
+    # on a real JAWA install rather than merely producing a plausible string.
+    if [ -z "$installDir" ] || [ "${installDir:0:1}" != "/" ] ||
+      [ ! -f "$installDir/jawa/app.py" ]; then
+      /bin/echo "Detected install dir '$installDir' is not a JAWA install (no jawa/app.py); falling back to /usr/local" >>/var/log/jawaInstall.log 2>&1
       installDir="/usr/local"
     fi
+    normalizeInstallDir
     echo "JAWA directory detected at $installDir" >> /var/log/jawaInstall.log 2>&1
     read -r -p "Existing JAWA detected - would you like to upgrade? [y/n]:  " yn
     case $yn in
@@ -506,7 +526,8 @@ install() {
     esac
   fi
   if [ "$upgradeOption" != "yes" ]; then
-    # prompting for install directory (upgrades reuse the detected installDir)
+    # prompting for install directory (upgrades reuse the detected installDir,
+    # which is now validated above rather than overwritten)
     read -r -p "Where would you like to install JAWA? [Press RETURN for $installDir]:  " new_dir
     while true; do
       if [ "$new_dir" != "" ]; then

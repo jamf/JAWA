@@ -774,8 +774,26 @@ EOF
   /usr/bin/clear
   /bin/echo -ne '[####################### ](99%) Restarting services... \r'
   /bin/echo '[####################### ](99%) Restarting services... ' >>/var/log/jawaInstall.log 2>&1
-  /bin/systemctl restart nginx.service >>/var/log/jawaInstall.log 2>&1
-  nginxRestart=$?
+  # Validate before restarting. `systemctl restart` on a bad config takes
+  # nginx DOWN -- not just JAWA -- whereas `nginx -t` catches the problem
+  # first and names the offending file and line. Without this the installer
+  # wrote a config, restarted into it, and reported success while the console
+  # was unreachable, which is precisely how an upgrade lost a working site.
+  nginxBin=$(command -v nginx 2>/dev/null || /bin/echo /usr/sbin/nginx)
+  if ! "$nginxBin" -t >>/var/log/jawaInstall.log 2>&1; then
+    nginxTest=$("$nginxBin" -t 2>&1)
+    /bin/echo ""
+    /bin/echo "${cRed}ERROR${cReset}    the nginx configuration is invalid; not restarting nginx."
+    /bin/echo "         Leaving the running configuration in place so the host stays up."
+    /bin/echo ""
+    /bin/echo "$nginxTest" | while IFS= read -r line; do /bin/echo "         $line"; done
+    /bin/echo ""
+    /bin/echo "ERROR: nginx -t failed, skipped restart" >>/var/log/jawaInstall.log 2>&1
+    nginxRestart=1
+  else
+    /bin/systemctl restart nginx.service >>/var/log/jawaInstall.log 2>&1
+    nginxRestart=$?
+  fi
   [ "$nginxRestart" -ne 0 ] && /bin/echo "systemctl restart nginx.service exited $nginxRestart" >>/var/log/jawaInstall.log 2>&1
   /usr/bin/clear
   /bin/echo -ne '[########################](100%) Installation complete! \r'
@@ -1164,9 +1182,21 @@ configure_nginx_ubuntu() {
     nginx_path="/etc/nginx/sites-available"
     nginx_enabled="/etc/nginx/sites-enabled"
     # Creating the nginx site
-    if [ -e ${nginx_path}/jawa ]; then
-      rm -f ${nginx_enabled}/jawa
-      rm -f ${nginx_path}/jawa
+    # Clear each side independently. This used to gate BOTH removals on
+    # `[ -e $nginx_path/jawa ]` -- the availability file deciding whether the
+    # *enabled* symlink was cleaned, although they are separate files. Two ways
+    # that bites on an upgrade: `-e` is false for a dangling symlink, so a
+    # stale sites-enabled/jawa survived; and an older installer that wrote a
+    # regular file there left it in place. Either way the `ln` below then
+    # failed with "File exists" and nginx went on loading the old file -- or
+    # no JAWA site at all. -L catches the broken-symlink case that -e misses.
+    if [ -e "${nginx_enabled}/jawa" ] || [ -L "${nginx_enabled}/jawa" ]; then
+      /bin/echo "Removing existing ${nginx_enabled}/jawa" >>/var/log/jawaInstall.log 2>&1
+      rm -f "${nginx_enabled}/jawa" >>/var/log/jawaInstall.log 2>&1
+    fi
+    if [ -e "${nginx_path}/jawa" ] || [ -L "${nginx_path}/jawa" ]; then
+      /bin/echo "Removing existing ${nginx_path}/jawa" >>/var/log/jawaInstall.log 2>&1
+      rm -f "${nginx_path}/jawa" >>/var/log/jawaInstall.log 2>&1
     fi
     cat << EOF > ${nginx_path}/jawa
       server {
@@ -1197,8 +1227,20 @@ configure_nginx_ubuntu() {
 
 EOF
 
-    # Enabling nginx
-    /bin/ln -s ${nginx_path}/jawa ${nginx_enabled}
+    # Enabling nginx. This was `ln -s <target> <dir>` with no exit check and
+    # no redirect, so a failure printed "File exists" to the terminal and the
+    # `clear` on the next line of install() erased it -- the install then
+    # reported success with an unreachable console. Name the destination
+    # explicitly and use -f -n so an existing file or symlink is replaced
+    # rather than being a fatal collision.
+    if ! /bin/ln -sfn "${nginx_path}/jawa" "${nginx_enabled}/jawa" >>/var/log/jawaInstall.log 2>&1; then
+      /bin/echo ""
+      /bin/echo "${cRed}ERROR${cReset}    could not enable the JAWA nginx site."
+      /bin/echo "         ${nginx_enabled}/jawa could not be created."
+      /bin/echo "         The console will NOT be reachable. See /var/log/jawaInstall.log."
+      /bin/echo ""
+      /bin/echo "ERROR: failed to link ${nginx_enabled}/jawa -> ${nginx_path}/jawa" >>/var/log/jawaInstall.log 2>&1
+    fi
 
     if [ -e ${nginx_path}/default ]; then
       while true; do

@@ -47,6 +47,13 @@ JAWA and [Jamf Routines](https://learn.jamf.com/r/en-US/jamf-routines-documentat
 > RHEL/Rocky 8 ships Python 3.6, neither of which satisfies JAWA's dependencies — use Ubuntu 22.04
 > or later, or RHEL/Rocky 9 or later.
 >
+> **Upgrading the OS of an existing JAWA server.** If your JAWA host is on Ubuntu 20.04, reaching a
+> supported platform means an in-place distribution upgrade (`do-release-upgrade`). That upgrade can
+> leave nginx no longer serving JAWA — the console becomes unreachable even though the `jawa`
+> service is running. **Re-run the JAWA installer after the distribution upgrade completes** and
+> choose the upgrade option; it rewrites and re-enables JAWA's nginx site, which restores the
+> console. Take a snapshot of the server before starting, as with any distribution upgrade.
+>
 > The installer checks this **before it touches an existing install** and stops with the detected
 > version if the host is below Python 3.9. The specific blocker is Werkzeug: its patched releases
 > require Python 3.9 or later, and no patched Werkzeug exists for 3.8, so a 3.8 host cannot run
@@ -248,6 +255,10 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
   backing up or removing anything, so an unsupported host is refused with its existing install
   intact rather than left with a dead service. If you must install on Python 3.8 and accept an
   unpatched Werkzeug, see `JAWA_ALLOW_UNPATCHED_WERKZEUG` under Server Requirements.
+  **If you get to a supported platform by running `do-release-upgrade` on an existing JAWA server,
+  re-run the JAWA installer afterwards** — a distribution upgrade can leave nginx no longer serving
+  JAWA, so the console goes unreachable while the `jawa` service itself is fine. Re-running the
+  installer rewrites and re-enables the nginx site and restores the console.
 - **Content JAWA ships inside `data/` is not upgraded in place.** The installer preserves your
   `data/` directory across an upgrade, which protects your automations and settings, but it also
   means the bundled template scripts and the webhook event catalog stay at the version you first

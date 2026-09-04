@@ -229,6 +229,21 @@ if __name__ == "__main__":
 - **Don't assume JAWA provides a Jamf Pro token** — your script authenticates itself.
 - **On the timed path there is no `sys.argv[1]`** — guard for it if a script serves both.
 
+## Planned for future releases
+
+Intended direction, not commitments to a date. Listed here so you can plan around the ones that
+change existing behaviour.
+
+- **Authenticated-by-default template automations.** Template webhooks currently run without
+  authentication unless you add it in the automation's edit screen. A future release will require
+  an authentication choice when enabling a template, and the **"None" option is deprecated and will
+  be removed** — so if you rely on unauthenticated template webhooks today, plan to add
+  authentication to them.
+- **Brute-force protection for the console login.** The console authenticates against Jamf Pro, so
+  repeated failed logins are attempts against a Jamf Pro account. A future release will rate-limit
+  or ban repeated failures. `fail2ban` is installed by the installer today but is not yet wired to
+  JAWA's login — it does not currently protect the console.
+
 ## Releases
 
 Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
@@ -243,8 +258,8 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
   imported template webhooks silently never triggered. Template webhooks run **without
   authentication by default** — anyone who knows the hook name can trigger one. Review your
   enabled templates and add webhook authentication in the automation's edit screen if an
-  endpoint should be protected. Authenticated-by-default templates are planned for a future
-  release.
+  endpoint should be protected. Authenticated-by-default templates are planned — see
+  [Planned for future releases](#planned-for-future-releases).
 - **New webhook names are validated more strictly.** `#` and `%` are no longer accepted in a new
   webhook name, because Jamf Pro cannot call a URL containing them. Existing automations are
   unaffected.

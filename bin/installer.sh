@@ -102,22 +102,57 @@ installPackagesRedHat() {
 /usr/bin/clear
   echo -ne '[######                  ](34%) Installing epel-release from dnf... '
   echo '[######                  ](34%) Installing epel-release from dnf...' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/dnf install -y epel-release >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  # This is the one place RHEL and Rocky genuinely diverge. Rocky carries
+  # epel-release in its own repos; RHEL does not, so `dnf install epel-release`
+  # exits "No match for argument" and every EPEL-only package after it --
+  # fail2ban, nload -- then fails silently too. Verified on RHEL 9.8. Install
+  # from the Fedora URL there, keyed to the running major version rather than a
+  # hardcoded 9.
+  if [ "$(detect_os)" == "redhat" ]; then
+    rhelMajor=$(/usr/bin/rpm -E %rhel 2>/dev/null)
+    if [ -z "$rhelMajor" ] || [ "$rhelMajor" == "%rhel" ]; then
+      rhelMajor=9
+      /bin/echo "Could not determine the RHEL major version; assuming $rhelMajor for EPEL." >>/var/log/jawaInstall.log 2>&1
+    fi
+    /usr/bin/dnf install -y "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${rhelMajor}.noarch.rpm" >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  else
+    /usr/bin/dnf install -y epel-release >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  fi
+  # EPEL is optional -- JAWA runs without it -- but say so rather than letting
+  # fail2ban and nload vanish without a word.
+  if ! /usr/bin/rpm -q epel-release >/dev/null 2>&1; then
+    /bin/echo "NOTE: EPEL is not available on this host; fail2ban and nload will be skipped." >>/var/log/jawaInstall.log 2>&1
+    epelMissing="yes"
+  fi
 
   /usr/bin/clear
   /bin/echo -ne '[#######                ](35%) Installing nginx from yum... '
   /bin/echo '[#######                ](35%) Installing nginx... ' >>/var/log/jawaInstall.log 2>&1
   /usr/bin/yum install -y nginx >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   /usr/bin/clear
-  echo -ne '[########                ](40%) Installing python from yum... '
-  echo '[########                ](40%) Installing python from yum...' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/yum install -y python3 >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  echo -ne '[########                ](40%) Installing python3, pip and headers from yum... '
+  echo '[########                ](40%) Installing python3, python3-pip, python3-devel...' >>/var/log/jawaInstall.log 2>&1
+  # python3 alone does NOT bring pip on RHEL 9 -- verified on RHEL 9.8, where a
+  # stock run aborted at the pip safety check with exit 2. Ubuntu's step has
+  # always installed python3-pip and python3-dev explicitly; this mirrors it.
+  # python3-devel is the RHEL name for python3-dev, and is needed to build any
+  # dependency without a wheel. venv needs no separate package here, unlike
+  # Debian, where it is split into python3-venv.
+  /usr/bin/yum install -y python3 python3-pip python3-devel >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
 
  # Stop the hackers
   /usr/bin/clear
   /bin/echo -ne '[#########               ](45%) Installing fail2ban from yum... '
-  /bin/echo '[#########               ](45%)) Installing fail2ban from yum... ' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/dnf install fail2ban -y >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /bin/echo '[#########               ](45%) Installing fail2ban from yum... ' >>/var/log/jawaInstall.log 2>&1
+  # Both live in EPEL, so skip them with a word rather than emitting a
+  # confusing "No match for argument" when EPEL could not be added. nload is
+  # here to match Ubuntu's package set, which has always installed it.
+  if [ "${epelMissing:-no}" == "yes" ]; then
+    /bin/echo "Skipping fail2ban and nload: EPEL unavailable." >>/var/log/jawaInstall.log 2>&1
+    sleep 1 & spinner $! ""
+  else
+    /usr/bin/dnf install fail2ban nload -y >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  fi
 # For the bash inclined
   /usr/bin/clear
   /bin/echo -ne '[##########              ](50%) Installing jq from yum... '
@@ -182,9 +217,35 @@ configure_firewall() {
 
     case $os in
         "rocky" | "redhat")
-            # RedHat | Rocky Firewall
-            /usr/bin/firewall-cmd --zone=public --add-port=443/tcp --permanent
-            /usr/bin/firewall-cmd --zone=public --add-port=22/tcp --permanent
+            # RedHat | Rocky Firewall.
+            #
+            # firewall-cmd was called by absolute path with no existence check,
+            # so on an image without firewalld -- Red Hat's own EC2 AMI, for one
+            # -- the install printed two "No such file or directory" errors and
+            # carried on with no OS firewall and no mention of it. Verified on
+            # RHEL 9.8.
+            #
+            # It also never reloaded. --permanent writes the persistent config
+            # but does not touch the running firewall, so on a host that DOES
+            # run firewalld, 443 stayed closed until something reloaded it and
+            # JAWA was unreachable for reasons nothing reported.
+            firewallTool=$(command -v firewall-cmd 2>/dev/null)
+            if [ -z "$firewallTool" ]; then
+              /bin/echo ""
+              /bin/echo "${cYellow}NOTE${cReset}     firewalld is not installed on this host, so no OS firewall was configured."
+              /bin/echo "         JAWA needs inbound 443 (and 22 for SSH). If a firewall is added later,"
+              /bin/echo "         or if your cloud security group restricts inbound traffic, open them there."
+              /bin/echo ""
+              /bin/echo "NOTE: firewall-cmd absent; no OS firewall configured" >>/var/log/jawaInstall.log 2>&1
+            else
+              "$firewallTool" --zone=public --add-port=443/tcp --permanent >>/var/log/jawaInstall.log 2>&1
+              "$firewallTool" --zone=public --add-port=22/tcp --permanent >>/var/log/jawaInstall.log 2>&1
+              # Apply it now; --permanent alone leaves the running firewall untouched.
+              "$firewallTool" --reload >>/var/log/jawaInstall.log 2>&1
+              if [ $? -ne 0 ]; then
+                /bin/echo "NOTE: firewall-cmd --reload failed; ports 22/443 may not be open until reboot" >>/var/log/jawaInstall.log 2>&1
+              fi
+            fi
             ;;
         "ubuntu")
             # Ubuntu Firewall
@@ -1174,6 +1235,41 @@ server {
    }
 }
 EOF
+
+  # SELinux denies nginx (httpd_t) name_connect to JAWA's port 8000 by default,
+  # so a stock RHEL/Rocky install reports success and then serves 502 for every
+  # request. Verified on RHEL 9.8: the audit log shows nginx in httpd_t denied
+  # name_connect to port 8000, and the console only came up after this boolean
+  # was set by hand. Nothing about it is visible from the install output, which
+  # is why it has to be set here rather than documented.
+  #
+  # -P persists it across reboots and is slow (it rebuilds policy), hence the
+  # progress line. Skipped entirely when SELinux is disabled or the tools are
+  # absent, so a host without SELinux is unaffected.
+  if command -v getenforce >/dev/null 2>&1 && [ "$(getenforce 2>/dev/null)" != "Disabled" ]; then
+    selinuxTool=$(command -v setsebool 2>/dev/null)
+    if [ -n "$selinuxTool" ]; then
+      /bin/echo "Allowing nginx to reach JAWA through SELinux (httpd_can_network_connect)..." >>/var/log/jawaInstall.log 2>&1
+      "$selinuxTool" -P httpd_can_network_connect 1 >>/var/log/jawaInstall.log 2>&1
+      if [ $? -eq 0 ]; then
+        /bin/echo "SELinux httpd_can_network_connect enabled." >>/var/log/jawaInstall.log 2>&1
+      else
+        /bin/echo ""
+        /bin/echo "${cYellow}NOTE${cReset}     could not set the SELinux boolean httpd_can_network_connect."
+        /bin/echo "         nginx will return 502 until it is allowed to reach port 8000. Run:"
+        /bin/echo "             sudo setsebool -P httpd_can_network_connect 1"
+        /bin/echo ""
+        /bin/echo "WARNING: setsebool httpd_can_network_connect failed" >>/var/log/jawaInstall.log 2>&1
+      fi
+    else
+      /bin/echo ""
+      /bin/echo "${cYellow}NOTE${cReset}     SELinux is enabled but setsebool is missing (install policycoreutils)."
+      /bin/echo "         nginx will return 502 until you run:"
+      /bin/echo "             sudo setsebool -P httpd_can_network_connect 1"
+      /bin/echo ""
+      /bin/echo "WARNING: SELinux enabled but setsebool absent" >>/var/log/jawaInstall.log 2>&1
+    fi
+  fi
 }
 
 

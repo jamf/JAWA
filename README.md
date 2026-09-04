@@ -38,6 +38,8 @@ JAWA and [Jamf Routines](https://learn.jamf.com/r/en-US/jamf-routines-documentat
 
 - Ubuntu 22.04+ or RHEL / Rocky 9.x+
 - Minimum: 8GB RAM (16GB recommended)
+  - On RHEL 9, do not go below 2GB even for a trial: `dnf` is memory-hungry enough that package
+    installs get OOM-killed on a 1GB instance. Ubuntu completes on 1GB.
 - Minimum: 128GB Storage (512GB recommended)
 - Minimum: 2 CPU Core (4 Cores recommended)
 - Python 3.9+ (with pip)

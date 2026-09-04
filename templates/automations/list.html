@@ -1,0 +1,38 @@
+{% extends "shared/_layout.html" %}
+{% from "shared/_macros.html" import hero_section, automation_card, empty_state %}
+
+{% block title %}{{ handler.display_name }} | JAWA{% endblock %}
+
+{% block content %}
+{{ hero_section(
+    title=handler.display_name,
+    subtitle=(items|length|string) ~ " " ~ ("automation" if items|length == 1 else "automations"),
+    create_url="/automations/" ~ auto_type ~ "/new",
+    create_label="Create " ~ handler.display_name,
+    secondary_url="/automations",
+    secondary_label="All Automations"
+) }}
+
+<div class="container">
+    <div class="text-left mb-4">
+        <a href="/automations" class="filter-btn">All</a>
+        <a href="/automations/jamfpro" class="filter-btn {% if auto_type == 'jamfpro' %}active{% endif %}">Jamf Pro</a>
+        <a href="/automations/okta" class="filter-btn {% if auto_type == 'okta' %}active{% endif %}">Okta</a>
+        <a href="/automations/custom" class="filter-btn {% if auto_type == 'custom' %}active{% endif %}">Custom</a>
+        <a href="/automations/cron" class="filter-btn {% if auto_type == 'cron' %}active{% endif %}">Cron</a>
+    </div>
+
+    {% if not items %}
+        {{ empty_state(
+            "No " ~ handler.display_name ~ " automations to display.",
+            create_url="/automations/" ~ auto_type ~ "/new"
+        ) }}
+    {% else %}
+    <div class="row dash-list justify-content-center" style="margin-right: 0; margin-left: 0">
+        {% for item in items %}
+            {{ automation_card(item, handler, loop.index, auto_type) }}
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

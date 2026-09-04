@@ -1,0 +1,40 @@
+{% extends "shared/_layout.html" %}
+{% block title %}Import Template - JAWA{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 700px; padding-top: 2rem;">
+    <div class="mb-3">
+        <a href="/templates" style="color: var(--color-primary); font-size: 0.88rem;">&larr; Back to Catalog</a>
+    </div>
+
+    <h2 style="font-size: 1.8rem; letter-spacing: -1px;">Import Template</h2>
+    <p style="color: var(--color-text-secondary);">
+        Upload a <code>.jawa.json</code> package to install a new template.
+    </p>
+
+    <div class="form-section mt-4">
+        <form method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="package" class="form-label" style="font-weight: 500;">Template Package</label>
+                <input type="file" name="package" id="package" accept=".json" class="form-control">
+                <div class="form-text" style="color: var(--color-text-muted); font-size: 0.82rem;">
+                    Select a <code>.jawa.json</code> file exported from the template documentation site.
+                </div>
+            </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" name="create_in_jamf"
+                       id="create-in-jamf" value="yes" checked>
+                <label class="form-check-label" for="create-in-jamf">Create webhook in Jamf Pro?</label>
+                <div class="form-text enable-field-hint">
+                    JAWA creates the webhook in Jamf Pro for you, pointed at this
+                    server. Clear this to install the script locally only &mdash;
+                    you will have to create the Jamf Pro webhook by hand.
+                    The package name becomes part of the URL Jamf Pro calls, so it
+                    must contain only letters, numbers, dots, underscores and hyphens.
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-jawa mt-2">Import</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

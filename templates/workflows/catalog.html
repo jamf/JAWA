@@ -1,0 +1,57 @@
+{% extends "shared/_layout.html" %}
+{% block title %}Templates - JAWA{% endblock %}
+{% block content %}
+<div class="hero-section">
+    <div class="container">
+        <h2>Template Catalog</h2>
+        <p>Pre-built automation templates for Jamf Pro webhooks.</p>
+        <div class="hero-cta">
+            <a href="/templates/import" class="btn btn-hero-primary">Import Template</a>
+            <a href="/webhooks" class="btn btn-hero-secondary">View Webhooks</a>
+        </div>
+    </div>
+</div>
+<div class="container" style="max-width: 1400px;">
+    <div class="text-left mb-4">
+        <button class="filter-btn active" onclick="filterWorkflows('all', this)">All</button>
+        <button class="filter-btn" onclick="filterWorkflows('provisioning', this)">Provisioning</button>
+        <button class="filter-btn" onclick="filterWorkflows('observability', this)">Observability</button>
+        <button class="filter-btn" onclick="filterWorkflows('extensions', this)">Extensions</button>
+    </div>
+
+    <div class="row g-3">
+        {% for wf in workflows %}
+        <div class="col-md-6 col-lg-4 workflow-item" data-category="{{ wf.category }}">
+            <a href="/templates/{{ wf.slug }}" style="text-decoration: none;">
+                <div class="workflow-card">
+                    <span class="badge badge-{{ wf.category }} mb-2">{{ wf.category }}</span>
+                    <h5 class="card-title">{{ wf.title }}</h5>
+                    <p class="card-text">{{ wf.description }}</p>
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted);">
+                        {{ wf.trigger_event or "Any Event" }}
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+<script>
+function filterWorkflows(category, btn) {
+    var items = document.querySelectorAll('.workflow-item');
+    items.forEach(function(item) {
+        if (category === 'all' || item.dataset.category === category) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    var btns = document.querySelectorAll('.filter-btn');
+    btns.forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+}
+</script>
+{% endblock %}

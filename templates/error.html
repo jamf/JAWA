@@ -1,6 +1,6 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {###}
-{## Copyright (c) 2022 Jamf.  All rights reserved.#}
+{## Copyright (c) 2026 Jamf.  All rights reserved.#}
 {###}
 {##       Redistribution and use in source and binary forms, with or without#}
 {##       modification, are permitted provided that the following conditions are met:#}
@@ -28,24 +28,153 @@
 
 {% extends "shared/_layout.html" %}
 {% block title %}{{ error }}{% endblock %}
+
+{% block additional_css %}
+<style>
+    .error-container {
+        min-height: calc(100vh - 200px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+    }
+    .error-card {
+        background: var(--color-surface-raised);
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        padding: 2.5rem;
+        max-width: 650px;
+        width: 100%;
+        box-shadow: 0 4px 20px rgba(249, 117, 131, 0.12);
+    }
+    .error-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 1.5rem;
+        background: rgba(249, 117, 131, 0.1);
+        border: 2px solid rgba(249, 117, 131, 0.3);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #d63447;
+        font-size: 2rem;
+        font-weight: bold;
+        animation: errorShake 0.5s ease-out;
+    }
+    @keyframes errorShake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-8px); }
+        75% { transform: translateX(8px); }
+    }
+    .error-title {
+        color: #d63447;
+        font-size: 1.75rem;
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 1.25rem;
+    }
+    .error-message {
+        color: var(--color-text);
+        font-size: 1rem;
+        line-height: 1.6;
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+    .error-link {
+        background: var(--color-primary-light);
+        border: 1px solid rgba(60, 106, 167, 0.2);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin: 1.5rem 0;
+        text-align: center;
+        word-break: break-all;
+    }
+    .error-link a {
+        color: var(--color-primary);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    .error-link a:hover {
+        color: var(--color-primary-hover);
+        text-decoration: underline;
+    }
+    .error-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+    .btn-error-secondary {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        color: var(--color-text);
+        padding: 0.6rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .btn-error-secondary:hover {
+        background: var(--color-surface-hover);
+        border-color: var(--color-text-secondary);
+        color: var(--color-text);
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+    .btn-error-primary {
+        background: var(--color-primary);
+        border: 1px solid var(--color-primary);
+        color: white;
+        padding: 0.6rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .btn-error-primary:hover {
+        background: var(--color-primary-hover);
+        border-color: var(--color-primary-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(60, 106, 167, 0.3);
+        text-decoration: none;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-    <div>
-        <div class="test-links sub_links sticky-top" style="min-width: 100vw">
-        <div class="stat"><a href="/dashboard">JAWA Dashboard</a></div>
-    </div>
-    <div class="form-container">
-        <div class="error">
-            <div class="success-form">
-                <div class="alert-jawa">{{ error }}</div>
-                <div class="success-wrap alert success-form">{{ error_message }}
-                    {% if link %}<a href="{{ link }}" target="_blank">{{ link }}</a> {% endif %}</div>
-                <div class="text-center">
-                    <a type=submit onclick="history.back(-1)" value=Back
-                       class="btn btn-secondary button-align">&laquo;Back</a>
-                    <a href="/dashboard" type=submit value=Logout
-                       class="btn btn-jawa button-align">Dashboard</a>
-                </div>
-            </div>
+<div class="error-container">
+    <div class="error-card">
+        <div class="error-icon">✕</div>
+        <h1 class="error-title">{{ error }}</h1>
+
+        <div class="error-message">
+            {{ error_message }}
+        </div>
+
+        <div class="error-actions">
+            <button type="button" onclick="history.back()" class="btn-error-secondary">
+                ← Back
+            </button>
+            {% if link %}
+            {# A supplied link is the recommended next step: make it the
+               primary action (in-page) and demote Dashboard to secondary. #}
+            <a href="{{ link }}" class="btn-error-primary">
+                {{ link_text if link_text else link }} →
+            </a>
+            <a href="/dashboard" class="btn-error-secondary">
+                Dashboard →
+            </a>
+            {% else %}
+            <a href="/dashboard" class="btn-error-primary">
+                Dashboard →
+            </a>
+            {% endif %}
         </div>
     </div>
+</div>
 {% endblock %}

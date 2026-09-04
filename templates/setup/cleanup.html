@@ -1,6 +1,6 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {###}
-{## Copyright (c) 2023 Jamf.  All rights reserved.#}
+{## Copyright (c) 2026 Jamf.  All rights reserved.#}
 {###}
 {##       Redistribution and use in source and binary forms, with or without#}
 {##       modification, are permitted provided that the following conditions are met:#}
@@ -29,16 +29,21 @@
 {% extends "shared/_layout.html" %}
 {% block title %}Cleanup Scripts{% endblock %}
 {% block content %}
-    <div>
-        <div class="test-links sub_links sticky-top" style="min-width: 100vw">
-        <div class="stat"><a href="/setup">Setup</a></div>
-        <div class="stat"><a href="/cleanup">Cleanup</a></div>
-        <div class="stat"><a href="/branding">Branding</a></div>
+<div class="hero-section">
+    <div class="container">
+        <h2>Cleanup</h2>
+        <p>Remove orphaned scripts and unused files.</p>
+        <div class="hero-cta">
+            <a href="/setup" class="btn btn-hero-secondary">Setup</a>
+            <a href="/branding" class="btn btn-hero-secondary">Branding</a>
+            <a href="/setup/credentials" class="btn btn-hero-secondary">Credentials</a>
+        </div>
     </div>
+</div>
+<div class="container">
     <div class="form-container">
 
-    <form method="post" action="/cleanup" class="table-view overflow-auto" enctype="multipart/form-data"
-          style="max-height: 66vh; max-width: 66vh">
+    <form method="post" action="/cleanup" class="form-section overflow-auto" enctype="multipart/form-data">
         <h1 class="text-center">Cleanup</h1>
 {#        <p class="text-center">- Click "Clean Up!" to remove all old scripts.#}
 {#        - Old scripts are scripts kept as an archive file with the extension ".old".</br>#}
@@ -59,30 +64,11 @@
 
             </p>
         {% endfor %}
-        <div class="col-xs-12 button-holder">
-                        <div class="ajax-button">
-                            <input class="btn btn-jawa" type="submit" value="Clean Up!"/>
-                        </div>
-                    </div>
+        <div class="d-flex justify-content-center mt-3">
+            <input class="btn btn-jawa btn-action" type="submit" value="Clean Up!"/>
+        </div>
 
     </form>
-{% endblock %}
-{% block additional_js %}
-    <script>
-        $(document).ready(function () {
-            $(".submit").click(function () {
-                $(".submit").addClass("loading");
-                setTimeout(function () {
-                    $(".submit").addClass("hide-loading");
-                    $(".done").addClass("finish");
-                }, 1000000);
-                setTimeout(function () {
-                    $(".submit").removeClass("loading");
-                    $(".submit").removeClass("hide-loading");
-                    $(".done").removeClass("finish");
-                    $(".failed").removeClass("finish");
-                }, 1000000);
-            })
-        });
-    </script>
+</div>
+</div>
 {% endblock %}

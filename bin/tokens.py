@@ -37,16 +37,33 @@ logthis = logger.setup_child_logger("jawa", __name__)
 
 
 def get_token() -> Optional[Response]:
+    # Clear any prior token up front so a failed fetch can never leave a
+    # stale token from an earlier (real) login behind — that stale token
+    # was the crux of the bogus-credential bypass: _validate_credentials
+    # only checks that session["token"] is truthy.
+    session.pop("token", None)
+    session.pop("expires", None)
     try:
         resp = requests.post(
             f"{session['url']}/api/v1/auth/token",
             headers={"Authorization": f"Basic {session['b64_auth'].decode()}"},
         )
+        # Without this, a non-2xx passes: Jamf Pro answers a JSON body on
+        # 401/503 too, so resp.json() succeeds and data.get("token")
+        # returns None -- which was then stored and returned exactly like
+        # a success, leaving _validate_credentials' truthiness check as
+        # the only thing standing between a failed fetch and a session.
+        resp.raise_for_status()
         data = resp.json()
-        session["token"] = data.get("token")
-        session["expires"] = data.get("expires")
+        token = data.get("token")
+        expires = data.get("expires")
+        if not token or not expires:
+            # A 2xx carrying no token is not a token.
+            raise ValueError("token response contained no token/expires")
+        session["token"] = token
+        session["expires"] = expires
     except Exception as err:
-        logthis.info(
+        logthis.error(
             f"[{session.get('url')}] Could not get a token using session credentials: {err}.  Logging out."
         )
         return redirect(
@@ -67,7 +84,7 @@ def validate_token(expires: str) -> bool:
     if time_to_expire > timedelta(0):
         return True
     else:
-        logthis.info(
+        logthis.warning(
             f"[{session.get('url')}] API token expired ({time_to_expire}). Attempting to fetch new token..."
         )
         return False
@@ -82,7 +99,7 @@ def invalidate_token() -> None:
             headers={"Authorization": f"Bearer {session.get('token')}"},
         )
     except Exception as err:
-        logthis.info(
+        logthis.error(
             f"[{session.get('url')}] Error accessing Jamf Pro API endpoint for token invalidation. {err}"
         )
         return

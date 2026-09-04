@@ -1,6 +1,6 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {###}
-{## Copyright (c) 2022 Jamf.  All rights reserved.#}
+{## Copyright (c) 2026 Jamf.  All rights reserved.#}
 {###}
 {##       Redistribution and use in source and binary forms, with or without#}
 {##       modification, are permitted provided that the following conditions are met:#}
@@ -27,35 +27,282 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {% extends "shared/_layout.html" %}
 {% block title %}JAWA Log{% endblock %}
+
+{% block additional_css %}
+<style>
+    .btn-hero-debug {
+        padding: 0.55rem 1.1rem;
+        border: 1.5px solid rgba(138,149,163,0.3);
+        background: rgba(138,149,163,0.08);
+        color: #8a95a3;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        border-radius: var(--radius-pill);
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .btn-hero-debug:hover {
+        border-color: #8a95a3;
+        background: rgba(138,149,163,0.15);
+        transform: translateY(-1px);
+    }
+    .btn-hero-debug.btn-debug-active {
+        border-color: #89d185;
+        background: rgba(137,209,133,0.12);
+        color: #89d185;
+        box-shadow: 0 0 12px rgba(137,209,133,0.3);
+    }
+    .btn-hero-debug.btn-debug-active:hover {
+        background: rgba(137,209,133,0.2);
+        box-shadow: 0 0 16px rgba(137,209,133,0.4);
+    }
+    .debug-indicator {
+        display: inline-block;
+        animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .log-toolbar {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+    .log-toolbar .log-search {
+        flex: 1;
+        min-width: 180px;
+        padding: 0.35rem 0.75rem;
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: var(--radius-pill);
+        background: rgba(255,255,255,0.06);
+        color: var(--color-code-text);
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+    }
+    .log-toolbar .log-search::placeholder {
+        color: rgba(255,255,255,0.3);
+    }
+    .log-toolbar .log-search:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px rgba(60,106,167,0.25);
+    }
+    .level-filter {
+        padding: 0.25rem 0.6rem;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: var(--radius-pill);
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        background: transparent;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .level-filter.active { border-color: currentColor; }
+    .level-filter[data-level="all"]      { color: var(--color-code-text); }
+    .level-filter[data-level="all"].active { background: rgba(255,255,255,0.1); }
+    .level-filter[data-level="debug"]    { color: #8a95a3; }
+    .level-filter[data-level="debug"].active { background: rgba(138,149,163,0.15); }
+    .level-filter[data-level="info"]     { color: #89d185; }
+    .level-filter[data-level="info"].active  { background: rgba(137,209,133,0.15); }
+    .level-filter[data-level="warning"]  { color: #e5c07b; }
+    .level-filter[data-level="warning"].active { background: rgba(229,192,123,0.15); }
+    .level-filter[data-level="error"]    { color: #f97583; }
+    .level-filter[data-level="error"].active { background: rgba(249,117,131,0.15); }
+    .level-filter[data-level="critical"] { color: #ff5370; }
+    .level-filter[data-level="critical"].active { background: rgba(255,83,112,0.15); }
+
+    .log-lines {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        counter-reset: logline;
+    }
+    .log-line {
+        display: flex;
+        padding: 1px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+        transition: background-color 0.1s ease;
+    }
+    .log-line:hover {
+        background: rgba(255,255,255,0.04);
+    }
+    .log-line.highlight {
+        background: rgba(60,106,167,0.2);
+    }
+    .log-gutter {
+        flex-shrink: 0;
+        width: 3.5rem;
+        text-align: right;
+        padding-right: 0.75rem;
+        color: rgba(255,255,255,0.18);
+        user-select: none;
+        border-right: 1px solid rgba(255,255,255,0.06);
+        margin-right: 0.75rem;
+    }
+    .log-content {
+        flex: 1;
+        min-width: 0;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+    /* Rainbow token colors */
+    .log-ts     { color: #78c8e6; }
+    .log-name   { color: #c792ea; }
+    .log-sep    { color: #5a6978; }
+    .log-msg    { color: var(--color-code-text); }
+    .log-level-debug    { color: #8a95a3; }
+    .log-level-info     { color: #89d185; font-weight: 600; }
+    .log-level-warning  { color: #e5c07b; font-weight: 600; }
+    .log-level-error    { color: #f97583; font-weight: 600; }
+    .log-level-critical { color: #ff5370; font-weight: 700; text-shadow: 0 0 6px rgba(255,83,112,0.4); }
+
+    .log-line-error   { border-left: 2px solid #f97583; padding-left: 0.5rem; }
+    .log-line-warning { border-left: 2px solid #e5c07b; padding-left: 0.5rem; }
+    .log-line-critical { border-left: 2px solid #ff5370; padding-left: 0.5rem; background: rgba(255,83,112,0.06); }
+
+    .log-count {
+        font-size: 0.72rem;
+        color: rgba(255,255,255,0.4);
+        margin-left: auto;
+        padding-left: 1rem;
+        white-space: nowrap;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-    <div>
-        <div class="test-links sub_links sticky-top" style="min-width: 100vw">
-        <div class="stat"><a href="{{ url_for('resources_view.files') }}">Files</a></div>
-        <div class="stat"><a href="{{ url_for('log_view.log_home') }}">Log</a></div>
+<div class="hero-section">
+    <div class="container">
+        <h2>Application Log</h2>
+        <p>View, search, and filter JAWA log entries.</p>
+        <div class="hero-cta">
+            <a href="/log/download" class="btn btn-hero-primary">Download Log</a>
+            <a href="{{ url_for('resources_view.files') }}" class="btn btn-hero-secondary">Files</a>
+            <form method="POST" action="{{ url_for('log_view.toggle_debug') }}" style="display: inline;">
+                <button type="submit" class="btn btn-hero-debug {% if debug_enabled %}btn-debug-active{% endif %}">
+                    {% if debug_enabled %}
+                    <span class="debug-indicator">●</span> DEBUG ON
+                    {% else %}
+                    DEBUG OFF
+                    {% endif %}
+                </button>
+            </form>
+        </div>
     </div>
+</div>
+<div class="container-fluid" style="max-width: 1800px;">
+
 
     <div class="log-container">
-
         <div class="log-view">
-            <div class="alert-warning overflow-auto log-frame success-wrap flex-column-reverse d-flex">
+            <div class="log-toolbar">
+                <input type="text" class="log-search" id="logSearch" placeholder="Search logs...">
+                <button class="level-filter active" data-level="all" onclick="filterLevel('all', this)">ALL</button>
+                <button class="level-filter" data-level="debug" onclick="filterLevel('debug', this)">DEBUG</button>
+                <button class="level-filter" data-level="info" onclick="filterLevel('info', this)">INFO</button>
+                <button class="level-filter" data-level="warning" onclick="filterLevel('warning', this)">WARNING</button>
+                <button class="level-filter" data-level="error" onclick="filterLevel('error', this)">ERROR</button>
+                <button class="level-filter" data-level="critical" onclick="filterLevel('critical', this)">CRITICAL</button>
+                <span class="log-count" id="logCount"></span>
+            </div>
+            <div class="overflow-auto log-frame">
+                <ul class="log-lines" id="logLines">
                 {% if log %}
                     {% for line in log %}
-                        <div class="inner">{{ line }}</div><br>
+                    <li class="log-line" data-raw="{{ line }}">
+                        <span class="log-gutter">{{ loop.index }}</span>
+                        <span class="log-content">{{ line }}</span>
+                    </li>
                     {% endfor %}
                 {% endif %}
-            </div>
-            <div class="download-button">
-                <div class="btn-group-sm">
-                    <button class="btn btn-light" onClick="window.location.reload();"><span
-                            class="glyphicon glyphicon-refresh"></span> Refresh
-                    </button>
-
-
-                    <a href="/log/download" button type=submit class="btn btn-jawa button-align">Download
-                        &raquo;</a>
-                </div>
+                </ul>
             </div>
         </div>
     </div>
+</div>
+{% endblock %}
 
+{% block additional_js %}
+<script>
+(function() {
+    var LOG_RE = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d+)( - )([\w.]+)( - )(DEBUG|INFO|WARNING|ERROR|CRITICAL)( - )([\s\S]*)$/;
+    var lines = document.querySelectorAll('.log-line');
+    var activeLevel = 'all';
+    var searchTerm = '';
+
+    lines.forEach(function(li) {
+        var raw = li.getAttribute('data-raw') || li.querySelector('.log-content').textContent;
+        var m = raw.match(LOG_RE);
+        if (m) {
+            var levelLower = m[5].toLowerCase();
+            li.setAttribute('data-level', levelLower);
+            var levelClass = 'log-level-' + levelLower;
+            var lineClass = '';
+            if (levelLower === 'error' || levelLower === 'warning' || levelLower === 'critical') {
+                lineClass = ' log-line-' + levelLower;
+            }
+            if (lineClass) li.className = 'log-line' + lineClass;
+            li.querySelector('.log-content').innerHTML =
+                '<span class="log-ts">' + esc(m[1]) + '</span>' +
+                '<span class="log-sep">' + esc(m[2]) + '</span>' +
+                '<span class="log-name">' + esc(m[3]) + '</span>' +
+                '<span class="log-sep">' + esc(m[4]) + '</span>' +
+                '<span class="' + levelClass + '">' + esc(m[5]) + '</span>' +
+                '<span class="log-sep">' + esc(m[6]) + '</span>' +
+                '<span class="log-msg">' + esc(m[7]) + '</span>';
+        } else {
+            li.setAttribute('data-level', 'info');
+        }
+    });
+
+    function esc(s) {
+        var d = document.createElement('div');
+        d.appendChild(document.createTextNode(s));
+        return d.innerHTML;
+    }
+
+    function applyFilters() {
+        var visible = 0;
+        var total = lines.length;
+        lines.forEach(function(li) {
+            var levelMatch = (activeLevel === 'all' || li.getAttribute('data-level') === activeLevel);
+            var raw = (li.getAttribute('data-raw') || '').toLowerCase();
+            var searchMatch = (!searchTerm || raw.indexOf(searchTerm) !== -1);
+            if (levelMatch && searchMatch) {
+                li.style.display = '';
+                visible++;
+                if (searchTerm) {
+                    li.classList.add('highlight');
+                } else {
+                    li.classList.remove('highlight');
+                }
+            } else {
+                li.style.display = 'none';
+                li.classList.remove('highlight');
+            }
+        });
+        document.getElementById('logCount').textContent = visible + ' / ' + total + ' lines';
+    }
+
+    window.filterLevel = function(level, btn) {
+        activeLevel = level;
+        document.querySelectorAll('.level-filter').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        applyFilters();
+    };
+
+    document.getElementById('logSearch').addEventListener('input', function() {
+        searchTerm = this.value.toLowerCase();
+        applyFilters();
+    });
+
+    applyFilters();
+})();
+</script>
 {% endblock %}

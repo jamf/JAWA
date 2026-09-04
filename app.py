@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
-# Copyright (c) 2024 Jamf.  All rights reserved.
+# Copyright (c) 2026 Jamf.  All rights reserved.
 #
 #       Redistribution and use in source and binary forms, with or without
 #       modification, are permitted provided that the following conditions are met:
@@ -43,36 +43,79 @@ from flask import (
 )
 from markupsafe import escape
 from waitress import serve
-from typing import Any, Dict, Union
+from typing import Any, Dict, Tuple, Union
 
 from bin import logger
+from bin.context_processors import inject_common_vars, register_static_cache_bust
+from bin.url_safety import safe_path_segment
 from bin.view_modifiers import response
-from views.home_view import load_home
+from views.home_view import _strip_trailing_slash, load_home
 
 # Flask logging
 logthis = logger.setup_child_logger("jawa", "app")
 error_message = ""
 
+SESSION_TIMEOUT_CHOICES = (15, 60, 240, 480)
+DEFAULT_SESSION_TIMEOUT = 15
+
+
+def _resolve_session_timeout(config: dict) -> int:
+    """Resolve the configured session timeout (minutes) against the
+    allowed ladder. Any missing / malformed / off-ladder value fails
+    safe to the 15-minute default (never longer)."""
+    value = config.get("session_timeout_minutes")
+    if type(value) is int and value in SESSION_TIMEOUT_CHOICES:
+        return value
+    return DEFAULT_SESSION_TIMEOUT
+
 # Initiate Flask
 app = Flask(__name__)
+# Secure cookies require HTTPS. JAWA runs HTTPS behind nginx in
+# production, so Secure defaults on. A Secure cookie is dropped by the
+# browser over plain http, which breaks local `python3 app.py` runs
+# (login succeeds but the session cookie never returns -> login loop).
+# Set JAWA_INSECURE_COOKIES=1 for local http development only.
+_secure_cookies = os.environ.get("JAWA_INSECURE_COOKIES") != "1"
+app.config.update(
+    SESSION_COOKIE_SECURE=_secure_cookies,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    MAX_CONTENT_LENGTH=16 * 1024 * 1024,
+)
 
 
-# Session heartbeat
+# Session heartbeat: slide the window and apply the admin-configured
+# timeout (fail-safe to 15 min) on every request, so a /setup change
+# takes effect immediately with no restart.
 @app.before_request
-def func() -> None:
+def _session_heartbeat() -> None:
+    from bin import data_store
+
+    minutes = _resolve_session_timeout(data_store.get_server_config())
+    app.permanent_session_lifetime = timedelta(minutes=minutes)
     session.modified = True
+
+
+app.context_processor(inject_common_vars)
+register_static_cache_bust(app)
 
 
 def main() -> None:
     base_dir = os.path.dirname(__file__)
     logthis.info(f"JAWA initializing...\n Sandcrawler home:  {base_dir}")
-    environment_setup(base_dir)
-    register_blueprints()
-    app.secret_key = str(uuid.uuid4())
-    app.permanent_session_lifetime = timedelta(minutes=10)
-    serve(
-        app, url_scheme="https", host="0.0.0.0", port=8000, threads=15
-    )  # Serve me the sky with a big slice of lemon
+    try:
+        environment_setup(base_dir)
+        register_blueprints()
+        app.secret_key = str(uuid.uuid4())
+        app.permanent_session_lifetime = timedelta(minutes=15)
+        serve(
+            app, url_scheme="https", host="0.0.0.0", port=8000, threads=15
+        )  # Serve me the sky with a big slice of lemon
+    except Exception as err:
+        logthis.critical(
+            f"JAWA failed to start: {err}. Check port availability."
+        )
+        raise
 
 
 def environment_setup(project_dir: str) -> None:
@@ -99,18 +142,6 @@ def register_blueprints() -> None:
     from webhook import jawa_receiver
 
     app.register_blueprint(jawa_receiver.blueprint)
-    # Jamf Pro Webhooks view
-    from views import jamf_webhook
-
-    app.register_blueprint(jamf_webhook.blueprint)
-    # Okta Webhooks view
-    from views.okta_webhook import blueprint
-
-    app.register_blueprint(blueprint)
-    # Create a new Cron Job
-    from views.cron_view import blueprint
-
-    app.register_blueprint(blueprint)
     # Log view
     from views import log_view
 
@@ -119,18 +150,128 @@ def register_blueprints() -> None:
     from views import resource_view
 
     app.register_blueprint(resource_view.blueprint)
-    # Custom Webhooks view
-    from views import custom_webhook
+    # Template catalog, enable, and import view
+    from views import template_view
 
-    app.register_blueprint(custom_webhook.blueprint)
-    # Webhooks Base view
-    from views import webhook_view
+    app.register_blueprint(template_view.blueprint)
+    # Search view
+    from views import search_view
 
-    app.register_blueprint(webhook_view.blueprint)
+    app.register_blueprint(search_view.blueprint)
+    # Webhook event reference (read-only docs)
+    from views import reference_view
+
+    app.register_blueprint(reference_view.blueprint)
+    # Credential management view
+    from views import credential_view
+
+    app.register_blueprint(credential_view.blueprint)
+    # Unified Automations view
+    from views import automation_view
+
+    app.register_blueprint(automation_view.blueprint)
     # Home, Dashboard and Login view
     from views import home_view
 
     app.register_blueprint(home_view.blueprint)
+
+
+# --- Backward-compatibility 301 redirects ---
+# Old webhook routes → new /automations/ routes
+
+
+@app.route("/webhooks")
+def _redir_webhooks():
+    return redirect("/automations", code=301)
+
+
+@app.route("/webhooks/jamf")
+def _redir_jamf_list():
+    return redirect("/automations/jamfpro", code=301)
+
+
+@app.route("/webhooks/jamf/new")
+def _redir_jamf_new():
+    return redirect("/automations/jamfpro/new", code=301)
+
+
+@app.route("/webhooks/jamf/edit")
+def _redir_jamf_edit():
+    name = safe_path_segment(request.args.get("name", ""))
+    if not name:
+        return redirect("/automations/jamfpro", code=301)
+    return redirect(f"/automations/jamfpro/{name}/edit", code=301)
+
+
+@app.route("/webhooks/okta")
+def _redir_okta_list():
+    return redirect("/automations/okta", code=301)
+
+
+@app.route("/webhooks/okta/new")
+def _redir_okta_new():
+    return redirect("/automations/okta/new", code=301)
+
+
+@app.route("/webhooks/custom")
+def _redir_custom_list():
+    return redirect("/automations/custom", code=301)
+
+
+@app.route("/webhooks/custom/new")
+def _redir_custom_new():
+    return redirect("/automations/custom/new", code=301)
+
+
+@app.route("/webhooks/custom/edit")
+def _redir_custom_edit():
+    name = safe_path_segment(request.args.get("name", ""))
+    if not name:
+        return redirect("/automations/custom", code=301)
+    return redirect(f"/automations/custom/{name}/edit", code=301)
+
+
+@app.route("/cron")
+def _redir_cron_list():
+    return redirect("/automations/cron", code=301)
+
+
+@app.route("/cron/new")
+def _redir_cron_new():
+    return redirect("/automations/cron/new", code=301)
+
+
+@app.route("/cron/edit")
+def _redir_cron_edit():
+    name = safe_path_segment(request.args.get("name", ""))
+    if not name:
+        return redirect("/automations/cron", code=301)
+    return redirect(f"/automations/cron/{name}/edit", code=301)
+
+
+@app.route("/cron/delete")
+def _redir_cron_delete():
+    name = safe_path_segment(request.args.get("target_job", ""))
+    if not name:
+        return redirect("/automations/cron", code=301)
+    return redirect(f"/automations/cron/{name}/delete", code=301)
+
+
+@app.route("/webhooks/delete")
+def _redir_webhook_delete():
+    name = safe_path_segment(request.args.get("target_webhook", ""))
+    if not name:
+        return redirect("/automations", code=301)
+    # Need to look up the tag to route properly
+    from bin.data_store import get_webhook_by_name
+
+    webhook = get_webhook_by_name(name)
+    tag = (
+        safe_path_segment(webhook.get("tag", "custom"))
+        if webhook
+        else "custom"
+    )
+    return redirect(f"/automations/{tag}/{name}/delete", code=301)
 
 
 # Server setup including making .json file necessary for webhooks
@@ -148,12 +289,21 @@ def setup() -> Union[Response, str]:
         logthis.debug(
             f"[{session.get('url')}] {session.get('username')} /setup - POST"
         )
-        server_url = request.form.get("address")
+        server_url = _strip_trailing_slash(request.form.get("address") or "")
         if not server_url:
             return redirect(url_for("setup"))
-        jps_url = request.form.get("jss-lock")
+        jps_url = _strip_trailing_slash(request.form.get("jss-lock") or "")
         jps2_check = request.form.get("alternate-jamf")
-        jps_url2 = request.form.get("alternate")
+        jps_url2 = _strip_trailing_slash(request.form.get("alternate") or "")
+        timeout_raw = request.form.get("session_timeout_minutes", "")
+        try:
+            timeout_val = int(timeout_raw)
+        except (TypeError, ValueError):
+            timeout_val = DEFAULT_SESSION_TIMEOUT
+        # Clamp to the allowed ladder; never store an off-ladder value.
+        session_timeout = _resolve_session_timeout(
+            {"session_timeout_minutes": timeout_val}
+        )
         logthis.info(
             f"{session.get('username')} made JAWA Setup Changes\n"
             f"JAWA URL: {server_url}\n"
@@ -172,6 +322,7 @@ def setup() -> Union[Response, str]:
                     "jawa_address": server_url,
                     "jps_url": jps_url,
                     "alternate_jps": jps_url2,
+                    "session_timeout_minutes": session_timeout,
                 }
                 json.dump(server_json, outfile)
         elif os.path.isfile(server_json_file):
@@ -180,6 +331,7 @@ def setup() -> Union[Response, str]:
                     "jawa_address": server_url,
                     "jps_url": jps_url,
                     "alternate_jps": jps_url2,
+                    "session_timeout_minutes": session_timeout,
                 }
                 json.dump(server_json, outfile)
             with open(server_json_file, "r") as fin:
@@ -188,11 +340,8 @@ def setup() -> Union[Response, str]:
             with open(server_json_file, "w+") as outfile:
                 json.dump(data, outfile)
 
-        return render_template(
-            "success.html",
-            webhooks="success",
-            success_msg="JAWA Setup Complete!",
-            username=str(escape(session["username"])),
+        return redirect(
+            url_for("success", success_msg="JAWA Setup Complete!")
         )
     else:
         logthis.debug(
@@ -208,6 +357,7 @@ def setup() -> Union[Response, str]:
                 json.dump(server_json, outfile)
         with open(server_json_file, "r") as fin:
             server_json = json.load(fin)
+        session_timeout = _resolve_session_timeout(server_json)
         jps_url2 = server_json.get("alternate_jps")
         if jps_url2 == str(escape(session["url"])):
             primary_jps = server_json["jps_url"]
@@ -220,6 +370,7 @@ def setup() -> Union[Response, str]:
             jps_url=primary_jps,
             jps_url2=jps_url2,
             jawa_url=jawa_url,
+            session_timeout=session_timeout,
             username=session.get("username"),
         )
 
@@ -288,6 +439,14 @@ def success(success_msg="") -> Union[Response, str]:
                 error_message="Please sign in again",
             )
         )
+    flashed = session.pop("success_ctx", None)
+    if flashed:
+        return render_template(
+            "success.html",
+            login="true",
+            username=str(escape(session["username"])),
+            **flashed,
+        )
     success_msg = request.args.get("success_msg")
     if success_msg:
         success_msg = escape(success_msg)
@@ -309,19 +468,19 @@ def error() -> Union[Response, str]:
         error_message = escape(error_message)
     if "username" not in session:
         return redirect(url_for("home_view.logout"))
-    logthis.info(
+    logthis.warning(
         f"[{session.get('url')}] {session.get('username').title()} was a victim of a series of accidents, as are we all. (/error)"
     )
     return render_template(
         "error.html",
         username=session.get("username"),
-        error_message=error_title,
-        error=error_message,
+        error=error_title,
+        error_message=error_message,
     )
 
 
 @app.errorhandler(404)
-def page_not_found() -> Union[Response, str]:
+def page_not_found(e) -> Union[Response, str]:
     if "username" in session:
         logthis.info(
             f"[{session.get('url')}] {session.get('username')} wandered off course  ({request.path}) - redirecting to /dashboard."
@@ -331,6 +490,56 @@ def page_not_found() -> Union[Response, str]:
         f"An invalid path ({request.path}) was provided and no user is logged in.  Returning login page."
     )
     return load_home()
+
+
+@app.errorhandler(500)
+def internal_error(e) -> Union[Response, Tuple[str, int]]:
+    logthis.exception(
+        f"500 at {request.path} for "
+        f"{session.get('username', 'anonymous')}"
+    )
+    if "username" in session:
+        return (
+            render_template(
+                "error.html",
+                username=session.get("username"),
+                error="Something went wrong",
+                error_message="An unexpected error occurred. "
+                "The details have been logged.",
+            ),
+            500,
+        )
+    return load_home(), 500
+
+
+@app.errorhandler(403)
+def forbidden(e) -> Union[Response, Tuple[str, int]]:
+    if "username" in session:
+        return (
+            render_template(
+                "error.html",
+                username=session.get("username"),
+                error="Forbidden",
+                error_message="You do not have access to that resource.",
+            ),
+            403,
+        )
+    return load_home(), 403
+
+
+@app.errorhandler(405)
+def method_not_allowed(e) -> Union[Response, Tuple[str, int]]:
+    if "username" in session:
+        return (
+            render_template(
+                "error.html",
+                username=session.get("username"),
+                error="Method not allowed",
+                error_message="That action isn't allowed here.",
+            ),
+            405,
+        )
+    return load_home(), 405
 
 
 if __name__ == "__main__":

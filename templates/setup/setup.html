@@ -1,6 +1,6 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {###}
-{## Copyright (c) 2022 Jamf.  All rights reserved.#}
+{## Copyright (c) 2026 Jamf.  All rights reserved.#}
 {###}
 {##       Redistribution and use in source and binary forms, with or without#}
 {##       modification, are permitted provided that the following conditions are met:#}
@@ -29,94 +29,78 @@
 {% extends "shared/_layout.html" %}
 {% block title %}JAWA Setup{% endblock %}
 {% block content %}
-    <div>
-        <div class="test-links sub_links sticky-top" style="min-width: 100vw">
-        <div class="stat"><a href="/setup">Setup</a></div>
-        <div class="stat"><a href="/cleanup">Cleanup</a></div>
-        <div class="stat"><a href="/branding">Branding</a></div>
+<div class="hero-section">
+    <div class="container">
+        <h2>Server Setup</h2>
+        <p>Configure JAWA server settings and integrations.</p>
+        <div class="hero-cta">
+            <a href="/cleanup" class="btn btn-hero-secondary">Cleanup</a>
+            <a href="/branding" class="btn btn-hero-secondary">Branding</a>
+            <a href="/setup/credentials" class="btn btn-hero-secondary">Credentials</a>
+        </div>
     </div>
-    <div class="form-container overflow-auto" style="max-height: 60vh">
-        <div class="d-flex justify-content-center">
-            <div class="table-view log-frame overflow-auto" style="max-width: 100vh; max-height: 66vh">
+</div>
+<div class="container">
+    <div class="form-container overflow-auto">
+        <div class="form-section overflow-auto">
 
-                <h1 class="d-flex justify-content-center">Server Setup</h1>
-
-                <label class="text-center justify-content-center">
-                    Please read the <a href="https://github.com/jamf/JAWA/blob/main/README.md" style="color:#3c6aa7;"
+                <p class="text-center justify-content-center">
+                    Please read the <a href="https://github.com/jamf/JAWA/blob/main/README.md"
                                        target="_blank">documentation</a> prior to using JAWA.
-
-                </label>
+                </p>
+                <p class="text-center text-muted">
+                    Finding self-hosting a lot to manage?
+                    <a href="https://learn.jamf.com/r/en-US/jamf-routines-documentation/jamf_workflow_automation"
+                       target="_blank">Jamf Routines</a> is a Jamf-hosted alternative.
+                </p>
                 <form method="post" action="/setup" enctype="multipart/form-data">
 
-                    <input type="text" class="form-control text-center" name="address" pattern="https?://.+" title="Use https://"
-                           value="{{ jawa_url if jawa_url }}" placeholder="JAWA Server Address FQDN" required autofocus>
-
-                    <div class="form-group form-check text-center">
-                        <input type="checkbox" class="form-check-input text-center" name="jss-lock" id="jss-lock"
-                               value={{ jps_url }} checked>
-                        <label class="form-check-label text-center" for="exampleCheck1"> Lock your JAWA to {{ jps_url }}</label>
+                    <div class="mb-3">
+                        <label for="jawa-address" class="form-label">JAWA server address</label>
+                        <input id="jawa-address" type="text" class="form-control" name="address" pattern="https?://.+" title="Use https://"
+                               value="{{ jawa_url if jawa_url }}" placeholder="https://jawa.example.com" required autofocus>
                     </div>
 
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" name="jss-lock" id="jss-lock"
+                               value="{{ jps_url }}" checked>
+                        <label class="form-check-label" for="jss-lock">Lock your JAWA to {{ jps_url }}</label>
+                    </div>
 
-                    {% if not jps_url2 %}
-                        <div class="form-group form-check text-center">
-                            <input type="checkbox" class="form-check-input" name="alternate-jps" id="alternate-jps"
-                                   value="enabled">
-                            <label class="form-check-label" for="exampleCheck1">Add an alternate Jamf Pro Server:</label>
-                        </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" name="alternate-jps" id="alternate-jps"
+                               value="enabled" {% if jps_url2 %}checked{% endif %}>
+                        <label class="form-check-label" for="alternate-jps">Add an alternate Jamf Pro Server</label>
+                    </div>
 
-                        <input type="text" class="form-control text-center" placeholder="Alternate Jamf Pro Server URL"
+                    <div class="mb-3">
+                        <label for="alternate-jps-url" class="form-label">Alternate Jamf Pro Server URL</label>
+                        <input id="alternate-jps-url" type="text" class="form-control"
+                               placeholder="https://alternate.jamfcloud.com"
                                name="alternate"
                                pattern="https?://.+"
                                title="Use https://"
                                value="{{ jps_url2 if jps_url2 }}">
-                    {% else %}
-                        <div class="form-group form-check text-center">
-                            <input type="checkbox" class="form-check-input" name="alternate-jps" id="alternate-jps"
-                                   value="enabled"
-                                   checked>
-                            <label class="form-check-label" for="exampleCheck1">Add an alternate Jamf Pro Server:</label>
-                        </div>
+                    </div>
 
-                        <input type="text" class="form-control text-center" placeholder="Alternate Jamf Pro Server URL" name="alternate"
-                               pattern="https?://.+"
-                               title="Use https://"
-                               value="{{ jps_url2 if jps_url2 }}">
-
-
-
-                    {% endif %}
+                    <div class="mb-3">
+                        <label for="session-timeout" class="form-label">Session timeout</label>
+                        <select id="session-timeout" name="session_timeout_minutes" class="form-select">
+                            <option value="15" {% if session_timeout == 15 %}selected{% endif %}>15 minutes (default)</option>
+                            <option value="60" {% if session_timeout == 60 %}selected{% endif %}>1 hour</option>
+                            <option value="240" {% if session_timeout == 240 %}selected{% endif %}>4 hours</option>
+                            <option value="480" {% if session_timeout == 480 %}selected{% endif %}>8 hours</option>
+                        </select>
+                    </div>
 
                     <div class="d-flex justify-content-center container-fluid">
-                        <button type=submit value="Setup" class="btn btn-jawa btn-padded">
-                            Setup
+                        <button type="submit" value="{{ "Save" if jawa_url else "Setup" }}" class="btn btn-jawa btn-padded">
+                            {{ "Save" if jawa_url else "Setup" }}
                         </button>
                     </div>
 
             </form>
         </div>
     </div>
-
-
-    </form>
-    </div>
-{% endblock %}
-{% block additional_js %}
-    <script>
-        $(document).ready(function () {
-            $(".submit").click(function () {
-                $(".submit").addClass("loading");
-                setTimeout(function () {
-                    $(".submit").addClass("hide-loading");
-                    $(".done").addClass("finish");
-                }, 1000000);
-                setTimeout(function () {
-                    $(".submit").removeClass("loading");
-                    $(".submit").removeClass("hide-loading");
-                    $(".done").removeClass("finish");
-                    $(".failed").removeClass("finish");
-                }, 1000000);
-            })
-        });
-    </script>
+</div>
 {% endblock %}

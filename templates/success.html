@@ -1,6 +1,6 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {###}
-{## Copyright (c) 2022 Jamf.  All rights reserved.#}
+{## Copyright (c) 2026 Jamf.  All rights reserved.#}
 {###}
 {##       Redistribution and use in source and binary forms, with or without#}
 {##       modification, are permitted provided that the following conditions are met:#}
@@ -28,37 +28,206 @@
 
 {% extends "shared/_layout.html" %}
 {% block title %}Success!{% endblock %}
+
+{% block additional_css %}
+<style>
+    .success-container {
+        min-height: calc(100vh - 200px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+    }
+    .success-card {
+        background: var(--color-surface-raised);
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        padding: 2.5rem;
+        max-width: 650px;
+        width: 100%;
+        box-shadow: 0 4px 20px rgba(106, 47, 48, 0.08);
+    }
+    .success-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 1.5rem;
+        background: rgba(137, 209, 133, 0.12);
+        border: 2px solid rgba(137, 209, 133, 0.3);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #4a9646;
+        font-size: 2rem;
+        font-weight: bold;
+        animation: successPulse 0.6s ease-out;
+    }
+    @keyframes successPulse {
+        0% {
+            transform: scale(0.8);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.1);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+    .success-title {
+        color: #4a9646;
+        font-size: 1.75rem;
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 1.25rem;
+    }
+    .success-message {
+        color: var(--color-text);
+        font-size: 1rem;
+        line-height: 1.6;
+        text-align: center;
+        margin-bottom: 1.5rem;
+        white-space: pre-line;
+    }
+    .success-notice {
+        background: var(--color-primary-light);
+        border-left: 3px solid var(--color-primary);
+        padding: 1rem 1.25rem;
+        border-radius: 6px;
+        margin: 1.5rem 0;
+        font-size: 0.9rem;
+        color: var(--color-text);
+    }
+    .success-notice strong {
+        color: var(--color-primary);
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+    .success-link {
+        background: var(--color-primary-light);
+        border: 1px solid rgba(60, 106, 167, 0.2);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin: 1.5rem 0;
+        text-align: center;
+    }
+    .success-link a {
+        color: var(--color-primary);
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .success-link a:hover {
+        color: var(--color-primary-hover);
+        text-decoration: underline;
+    }
+    .success-header-display {
+        background: var(--color-surface-hover);
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        color: var(--color-text);
+        text-align: center;
+        overflow-x: auto;
+    }
+    .success-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+    .btn-success-secondary {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        color: var(--color-text);
+        padding: 0.6rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+    .btn-success-secondary:hover {
+        background: var(--color-surface-hover);
+        border-color: var(--color-text-secondary);
+        color: var(--color-text);
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+    .btn-success-primary {
+        background: var(--color-primary);
+        border: 1px solid var(--color-primary);
+        color: white;
+        padding: 0.6rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+    .btn-success-primary:hover {
+        background: var(--color-primary-hover);
+        border-color: var(--color-primary-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(60, 106, 167, 0.3);
+        text-decoration: none;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-    <div>
-        <div class="test-links sub_links sticky-top" style="min-width: 100vw">
-        <div class="stat"><a href="/dashboard">JAWA Dashboard</a></div>
-    </div>
-    <div class="form-container">
-    <form method="get" class="table-view success-view" action="/dashboard">
-        <h3 class="alert-jawa border text-center">Success!</h3>
-        <div class="success-view success-form success-wrap overflow-auto" style="max-width: 100vh">
-            <p class="text-center">
-                {% for each_line in success_msg.split('\n') %}
-                {{ each_line }}<br/>
-                </p>
-            {% endfor %}
-            {% if smart_group_notice %}
-                <p class="text-center"><b>{{ smart_group_notice }}</b> <br/> {{ smart_group_instructions }}</p>
-            {% endif %}
-            <p><a href="{{ new_link }}" style="color:#3c6aa7;" target="_blank">{{ new_here }}</a></p>
-            {% if extra_notice %}
-                <p class="text-center">{{ extra_notice }}</p>
-            {% endif %}
-        {%  if custom_header %}
-            <pre class="success-form font-weight-bolder" style="text-wrap: balance"><div class="d-flex justify-content-center">{{ custom_header }}</div></pre>
-        {% endif %}
+<div class="success-container">
+    <div class="success-card">
+        <div class="success-icon">✓</div>
+        <h1 class="success-title">Success!</h1>
+
+        <div class="success-message">
+            {{ success_msg }}
         </div>
-            <div class="d-flex justify-content-center">
-                <a type=submit onclick="history.back(-1)" value=Back
-                       class="btn btn-secondary button-align">&laquo;Back</a>
-                <button type="submit" class="btn btn-jawa">
-                    Dashboard<i class="fa" aria-hidden="true"></i>
-                </button>
-            </div>
-    </form>
+
+        {% if smart_group_notice %}
+        <div class="success-notice">
+            <strong>{{ smart_group_notice }}</strong>
+            {{ smart_group_instructions }}
+        </div>
+        {% endif %}
+
+        {% if new_link and new_here %}
+        <div class="success-link">
+            <a href="{{ new_link }}" target="_blank">{{ new_here }}</a>
+        </div>
+        {% endif %}
+
+        {% if extra_notice %}
+        <div class="success-notice">
+            {{ extra_notice }}
+        </div>
+        {% endif %}
+
+        {% if custom_header %}
+        <div class="success-header-display">
+            {{ custom_header }}
+        </div>
+        {% endif %}
+
+        <div class="success-actions">
+            {% if new_link and new_here %}
+            <a href="{{ new_link }}" target="_blank" class="btn-success-secondary">
+                View it →
+            </a>
+            {% endif %}
+            {% if auto_type %}
+            <a href="{{ url_for('automations.create', auto_type=auto_type) }}" class="btn-success-secondary">
+                Create another
+            </a>
+            {% endif %}
+            <a href="/dashboard" class="btn-success-primary">
+                Dashboard →
+            </a>
+        </div>
+    </div>
+</div>
 {% endblock %}

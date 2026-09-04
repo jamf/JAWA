@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Oldest supported and current — catches syntax drift both ways.
+        python-version: ["3.9", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Test (pytest)
+        run: python -m pytest -v
+
+  installer-hygiene:
+    # Guards bin/installer.sh (curled off main, run as root) against invisible-unicode
+    # paste corruption. The only legitimate non-ASCII lives in the spinner charsets
+    # (`local spin=` assignments); anything else is a stray ZWSP/NBSP/BOM and fails.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bash syntax check
+        run: bash -n bin/installer.sh
+
+      - name: Reject stray non-ASCII (paste corruption)
+        run: |
+          stray=$(grep -nP '[^\x00-\x7F]' bin/installer.sh | grep -vE 'local spin=' || true)
+          if [ -n "$stray" ]; then
+            echo "::error::Non-ASCII characters found outside the spinner charsets in bin/installer.sh:"
+            echo "$stray"
+            echo "These are almost certainly invisible paste corruption (zero-width space, NBSP, BOM)."
+            exit 1
+          fi
+          echo "OK: no stray non-ASCII in bin/installer.sh"

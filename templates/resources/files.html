@@ -1,6 +1,6 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {###}
-{## Copyright (c) 2023 Jamf.  All rights reserved.#}
+{## Copyright (c) 2026 Jamf.  All rights reserved.#}
 {###}
 {##       Redistribution and use in source and binary forms, with or without#}
 {##       modification, are permitted provided that the following conditions are met:#}
@@ -26,94 +26,83 @@
 {###}
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {% extends "shared/_layout.html" %}
+{% from "shared/_macros.html" import hero_section, empty_state %}
 {% block title %}JAWA Resource Files{% endblock %}
 {% block content %}
-    <div>
-        <div class="test-links sub_links sticky-top" style="min-width: 100vw">
-        <div class="stat"><a href="{{ url_for('resources_view.files') }}">Files</a></div>
-        <div class="stat"><a href="{{ url_for('log_view.log_home') }}">Log</a></div>
-    </div>
-    <div class="form-container">
-        <div class="table-view" style="max-width: fit-content">
-            <div class="overflow-auto pre-scrollable" style="max-width: 100vw">
-            <h4 class="d-flex justify-content-center alert-jawa" style="max-width: 100vw">Upload a file</h4>
-            <p>Files directory:
-            <pre><code>{{ files_repo }}/</code></pre>
-            </p>
-            <form action="#" method="post" enctype="multipart/form-data">
-                <div class="d-flex justify-content-center text-center custom-file">
-                    <input type="file" name="upload"  class="custom-file-input text-center"
-                           formenctype="multipart/form-data" id="upload" value="Upload"/> <br/>
-                    <div class="d-flex justify-content-center">
-                        <label class="custom-file-label text-center">Upload a file</label>
-                        <input type="submit" class=" btn btn-jawa" value="Upload" disabled
-                               style="margin: 5px; padding: 5px; width: 150px"/>
-                    </div>
-                </div>
-                <input type="submit" class=" btn btn-jawa d-flex justify-content-center mx-auto" value="Upload" disabled
-                       style="margin: 5px; padding: 5px; width: 150px"/>
-            </form>
+{{ hero_section(
+    title="Resource Files",
+    subtitle="Upload, download, and manage script resources.",
+    secondary_url=url_for('log_view.log_home'),
+    secondary_label="View Log"
+) }}
+<div class="container">
+    <div class="content-narrow">
+        <div class="section-header">
+            <h3>Upload a file</h3>
         </div>
+        <p class="files-directory-caption">
+            Files directory: <span class="files-directory-path">{{ files_repo }}/</span>
+        </p>
+        <form class="form-section" action="#" method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+                <input type="file" name="upload" class="form-control"
+                       formenctype="multipart/form-data" id="file-upload"/>
+            </div>
+            <div class="button-align">
+                <input type="submit" id="file-submit" class="btn btn-jawa btn-action" value="Upload" disabled/>
+            </div>
+        </form>
     </div>
-</div>
-        {% if not files %}
 
-            <div class="d-flex justify-content-center font-weight-bolder"> No files uploaded</div>
-        {% endif %}
-    {% if files %}
-        <form class="files-form overflow-auto">
-
-            <h4 class="d-flex justify-content-center alert-jawa">Uploaded files</h4>
-            <div class="btn-padded">
-                <table id="files_table" class="table" style="max-width: 100vw">
+    <div class="section-header">
+        <h3>Uploaded files</h3>
+    </div>
+    {% if not files %}
+        {{ empty_state("No files uploaded yet. Upload one above to make it available to your scripts.") }}
+    {% else %}
+        <form class="files-form">
+            <div class="table-scroll">
+                <table id="files_table" class="hippocrates">
                     <tr>
                         <th>Name</th>
+                        <th>Size</th>
+                        <th>Type</th>
                         <th>Date Modified</th>
                     </tr>
                     {% for file in files %}
                         <tr>
-                            <td><input type="radio" id="{{ file.name }}" name="target_file"
-                                       value="{{ file.name }}"> {{ file.name }}</td>
+                            <td>
+                                <label class="file-row-label" for="file-{{ loop.index }}">
+                                    <input type="radio" id="file-{{ loop.index }}" name="target_file"
+                                           value="{{ file.name }}">
+                                    <span>{{ file.name }}</span>
+                                </label>
+                            </td>
+                            <td>{{ file.size }}</td>
+                            <td>{{ file.type }}</td>
                             <td>{{ file.mtime }}</td>
                         </tr>
                     {% endfor %}
                 </table>
             </div>
-            <div class="d-flex justify-content-center">
-                <button type=submit name="button_choice" value="Download"
-                        class="btn btn-jawa button-align alert-jawa" style="margin: 5px; padding: 5px; width: 150px">
+            <div class="d-flex justify-content-center gap-3 btn-padded">
+                <button type="submit" name="button_choice" value="Download"
+                        class="btn btn-jawa btn-action">
                     Download
                 </button>
-                <button name="button_choice" type=submit value="Delete" class="btn btn-danger button-align alert-soft">
+                <button name="button_choice" type="submit" value="Delete"
+                        class="btn btn-danger btn-action">
                     Delete
                 </button>
             </div>
         </form>
     {% endif %}
+</div>
 {% endblock %}
 {% block additional_js %}
-    <script>
-        $(function () {
-            $("#upload_link").on('click', function (e) {
-                e.preventDefault();
-                $("#upload:hidden").trigger('click');
-            });
-        });
-        $(document).ready(
-            function () {
-                $('input:file').change(
-                    function () {
-                        if ($(this).val()) {
-                            $('input:submit').attr('disabled', false);
-                        }
-                    }
-                );
-            });
-    </script>
-    <script type="application/javascript">
-        $('input[type="file"]').change(function (e) {
-            var fileName = e.target.files[0].name;
-            $('.custom-file-label').html(fileName);
-        });
-    </script>
+<script>
+document.getElementById('file-upload').addEventListener('change', function() {
+    document.getElementById('file-submit').disabled = !this.value;
+});
+</script>
 {% endblock %}

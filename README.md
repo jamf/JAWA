@@ -243,6 +243,17 @@ change existing behaviour.
   repeated failed logins are attempts against a Jamf Pro account. A future release will rate-limit
   or ban repeated failures. `fail2ban` is installed by the installer today but is not yet wired to
   JAWA's login — it does not currently protect the console.
+- **More webhook authentication types.** Jamf Pro offers Mutual TLS and Hash Signature (HMAC) for
+  outbound webhooks; JAWA currently validates None, Basic, and a single API-key header. Support for
+  the remaining two is planned. If you select Mutual TLS or Hash Signature in Jamf Pro today, JAWA
+  has no matching validation for it.
+- **Better certificate handling.** Clearer full-chain validation at install time, an optional
+  ACME / Let's Encrypt path, and certificate expiry visibility and replacement from the console
+  instead of over SSH.
+- **Named Jamf Pro instances.** Give your primary and secondary Jamf Pro servers friendly labels,
+  shown on the login page in place of their hostnames.
+- **HTTP requests redirect to HTTPS.** Reaching the server over `http://` currently leads nowhere;
+  a future release will redirect it to the console.
 
 ## Releases
 

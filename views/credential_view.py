@@ -42,6 +42,7 @@ from flask import (
 from markupsafe import escape
 
 from bin import logger
+from bin.data_store import StoreCorruptError, atomic_write_json
 
 blueprint = Blueprint(
     "credential_view",
@@ -66,14 +67,20 @@ def _load_credentials() -> List[Dict[str, Any]]:
     try:
         with open(CREDENTIALS_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    except (json.JSONDecodeError, IOError):
+    except json.JSONDecodeError as err:
+        # Never read a damaged file as empty: the next save would
+        # overwrite the credential sets that are still on disk.
+        logthis.error(
+            f"credentials.json cannot be parsed ({err}); leaving it untouched."
+        )
+        raise StoreCorruptError("credentials.json is corrupt") from err
+    except IOError:
         return []
 
 
 def _save_credentials(credentials: List[Dict[str, Any]]) -> None:
     """Save credential sets to file."""
-    with open(CREDENTIALS_FILE, "w", encoding="utf-8") as f:
-        json.dump(credentials, f, indent=2)
+    atomic_write_json(CREDENTIALS_FILE, credentials, indent=2)
 
 
 @blueprint.route("/setup/credentials", methods=["GET"])

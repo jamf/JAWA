@@ -148,7 +148,11 @@ def main() -> None:
         app.secret_key = load_secret_key(base_dir)
         app.permanent_session_lifetime = timedelta(minutes=15)
         serve(
-            app, url_scheme="https", host="0.0.0.0", port=8000, threads=15
+            app,
+            url_scheme="https",
+            host=os.environ.get("JAWA_BIND", "127.0.0.1"),
+            port=8000,
+            threads=15,
         )  # Serve me the sky with a big slice of lemon
     except Exception as err:
         logthis.critical(

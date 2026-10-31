@@ -268,3 +268,49 @@ def test_jamf_delete_keeps_record_when_jamf_is_unreachable(
     assert b"Could not reach Jamf Pro" in resp.data
     names = [w["name"] for w in json.loads(jawa_env.webhooks_file.read_text())]
     assert "GroupHook" in names
+
+
+def test_okta_create_sends_the_minted_secret(
+    logged_in_client, jawa_env, monkeypatch
+):
+    import io
+    import json
+
+    sent = []
+
+    class _Resp:
+        status_code = 200
+
+        def __init__(self, body):
+            self._body = body
+
+        def json(self):
+            return self._body
+
+    def fake_post(url, **kwargs):
+        sent.append((url, kwargs))
+        if url.endswith("/lifecycle/verify"):
+            return _Resp({})
+        return _Resp({"id": "hook123"})
+
+    monkeypatch.setattr(requests, "post", fake_post)
+    resp = logged_in_client.post(
+        "/automations/okta/new",
+        data={
+            "webhookname": "oktahook",
+            "okta_server": "https://okta.example.com",
+            "token": "tok",
+            "event": "user.lifecycle.deactivate",
+            "script": (io.BytesIO(b"#!/bin/sh\necho hi\n"), "hook.sh"),
+        },
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 302
+    create = [kw for url, kw in sent if url.endswith("/api/v1/eventHooks")]
+    value = json.loads(create[0]["data"])["channel"]["config"]["authScheme"][
+        "value"
+    ]
+    assert value != "${api_key}"
+    assert len(value) >= 32
+    stored = json.loads(jawa_env.webhooks_file.read_text())
+    assert stored[0]["okta_secret"] == value

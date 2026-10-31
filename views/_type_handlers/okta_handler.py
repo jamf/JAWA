@@ -28,6 +28,7 @@
 
 import json
 import os
+import secrets
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
@@ -96,6 +97,7 @@ class OktaHandler(AutomationHandler):
         webhook_url = f"{server_address}/hooks/{okta_name}"
         logthis.info(webhook_url)
 
+        okta_secret = secrets.token_urlsafe(32)
         payload = {
             "name": okta_name,
             "events": {"type": "EVENT_TYPE", "items": [okta_event]},
@@ -113,7 +115,7 @@ class OktaHandler(AutomationHandler):
                     "authScheme": {
                         "type": "HEADER",
                         "key": "Authorization",
-                        "value": "${api_key}",
+                        "value": okta_secret,
                     },
                 },
             },
@@ -183,6 +185,7 @@ class OktaHandler(AutomationHandler):
             "description": description,
             "webhook_username": "null",
             "webhook_password": "null",
+            "okta_secret": okta_secret,
             "tag": "okta",
         }
 

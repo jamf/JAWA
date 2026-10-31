@@ -18,7 +18,7 @@ class RecordingPopen:
 
     calls = []
 
-    def __init__(self, args, stdout=None, stderr=None):
+    def __init__(self, args, stdout=None, stderr=None, **kwargs):
         RecordingPopen.calls.append(args)
         self.stdout = io.BytesIO(b"script ran\n")
 
@@ -226,7 +226,7 @@ class ConfigurablePopen:
         self._returncode = returncode
         self._raises = raises
 
-    def __call__(self, args, stdout=None, stderr=None):
+    def __call__(self, args, stdout=None, stderr=None, **kwargs):
         if self._raises is not None:
             raise self._raises
         self.stdout = io.BytesIO(self._stdout)
@@ -357,3 +357,119 @@ def test_absent_enabled_key_still_runs(client, jawa_env, fake_popen):
     )
     assert resp.status_code == 200
     assert len(fake_popen.calls) == 1
+
+
+# --- Okta secret ---
+
+
+def _okta_entry(jawa_env, secret="s3cret-okta-value"):
+    entry = {
+        "name": "oktahook",
+        "tag": "okta",
+        "script": str(jawa_env.scripts_dir / "hook_script.sh"),
+        "webhook_username": "null",
+        "webhook_password": "null",
+        "api_key": "null",
+        "okta_event": "user.lifecycle.deactivate",
+    }
+    if secret:
+        entry["okta_secret"] = secret
+    jawa_env.add_webhook(entry)
+
+
+def test_okta_hook_requires_its_secret(client, jawa_env, fake_popen):
+    _okta_entry(jawa_env)
+    resp = client.post("/hooks/oktahook", json=PAYLOAD)
+    assert resp.status_code == 401
+    wrong = client.post(
+        "/hooks/oktahook", json=PAYLOAD, headers={"Authorization": "nope"}
+    )
+    assert wrong.status_code == 401
+    assert fake_popen.calls == []
+
+    ok = client.post(
+        "/hooks/oktahook",
+        json=PAYLOAD,
+        headers={"Authorization": "s3cret-okta-value"},
+    )
+    assert ok.status_code == 200
+    assert len(fake_popen.calls) == 1
+
+
+def test_okta_entry_without_a_secret_fails_closed(
+    client, jawa_env, fake_popen
+):
+    _okta_entry(jawa_env, secret=None)
+    resp = client.post("/hooks/oktahook", json=PAYLOAD)
+    assert resp.status_code == 401
+    literal = client.post(
+        "/hooks/oktahook",
+        json=PAYLOAD,
+        headers={"Authorization": "${api_key}"},
+    )
+    assert literal.status_code == 401
+    assert fake_popen.calls == []
+
+
+def test_okta_detail_page_tells_admin_to_recreate_old_entry(
+    logged_in_client, jawa_env
+):
+    _okta_entry(jawa_env, secret=None)
+    body = logged_in_client.get("/automations/okta/oktahook").get_data(
+        as_text=True
+    )
+    assert "Delete it and create it again" in body
+
+
+# --- Script timeout ---
+
+
+def _pid_alive(pid):
+    import os
+
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+def test_hanging_script_is_killed_and_request_returns_504(
+    client, jawa_env, monkeypatch, tmp_path
+):
+    import time
+
+    monkeypatch.setenv("JAWA_SCRIPT_TIMEOUT", "1")
+    pidfile = tmp_path / "pids"
+    script = jawa_env.scripts_dir / "hook_script.sh"
+    # The child sleeps in the background so that only a group kill stops it.
+    script.write_text(
+        f"#!/bin/sh\nsleep 60 &\necho $! > {pidfile}\necho $$ >> {pidfile}\nwait\n"
+    )
+    script.chmod(0o755)
+    _make_webhook(jawa_env)
+
+    began = time.monotonic()
+    resp = client.post(
+        "/hooks/testhook",
+        json=PAYLOAD,
+        headers=_basic_auth("hookuser", "hookpass"),
+    )
+    elapsed = time.monotonic() - began
+
+    assert resp.status_code == 504
+    assert elapsed < 20
+    pids = [int(p) for p in pidfile.read_text().split()]
+    time.sleep(0.3)
+    assert not any(_pid_alive(p) for p in pids)
+
+
+def test_script_timeout_defaults_to_two_minutes(monkeypatch):
+    from webhook import jawa_receiver
+
+    monkeypatch.delenv("JAWA_SCRIPT_TIMEOUT", raising=False)
+    assert jawa_receiver.script_timeout() == 120
+    monkeypatch.setenv("JAWA_SCRIPT_TIMEOUT", "7")
+    assert jawa_receiver.script_timeout() == 7
+    monkeypatch.setenv("JAWA_SCRIPT_TIMEOUT", "garbage")
+    assert jawa_receiver.script_timeout() == 120

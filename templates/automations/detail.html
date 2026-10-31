@@ -24,6 +24,13 @@
             <h4 class="mb-0">{{ automation.name }}</h4>
         </div>
 
+        {% if auto_type == 'okta' and not automation.okta_secret %}
+        <div class="alert alert-warning" role="alert">
+            This automation was created before Okta secrets were added, so JAWA
+            refuses every request for it. Delete it and create it again.
+        </div>
+        {% endif %}
+
         {% for label, value in detail_fields %}
             {{ detail_field(label, value) }}
         {% endfor %}

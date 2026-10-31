@@ -104,3 +104,21 @@ def test_unknown_page_is_handled(logged_in_client):
     resp = logged_in_client.get("/definitely/not/a/page")
     assert resp.status_code in (301, 302)
     assert "/dashboard" in resp.headers["Location"]
+
+
+def test_main_binds_loopback_by_default(jawa_env, monkeypatch):
+    import app as jawa_app
+
+    monkeypatch.delenv("JAWA_BIND", raising=False)
+    calls = []
+    monkeypatch.setattr(
+        jawa_app, "serve", lambda *a, **kw: calls.append(kw)
+    )
+    monkeypatch.setattr(jawa_app, "environment_setup", lambda d: None)
+    monkeypatch.setattr(jawa_app, "register_blueprints", lambda: None)
+    jawa_app.main()
+    assert calls[0]["host"] == "127.0.0.1"
+
+    monkeypatch.setenv("JAWA_BIND", "0.0.0.0")
+    jawa_app.main()
+    assert calls[1]["host"] == "0.0.0.0"

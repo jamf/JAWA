@@ -1265,7 +1265,7 @@ configure_nginx_redhat() {
   cat << EOF > /etc/nginx/conf.d/jawa.conf
 
 upstream jawa {
-    server 0.0.0.0:8000       weight=5;
+    server 127.0.0.1:8000       weight=5;
 }
 server {
         #listen 80 default_server;
@@ -1285,6 +1285,7 @@ server {
         location / {
                 # First attempt to serve request as file, then
                 proxy_pass http://jawa;
+                proxy_read_timeout 150s;
                 proxy_redirect     off;
                 proxy_set_header   Host                 \$host;
                 proxy_set_header   X-Real-IP            \$remote_addr;
@@ -1373,7 +1374,8 @@ configure_nginx_ubuntu() {
           client_max_body_size 16m;
           location / {
                   # First attempt to serve request as file, then
-                  proxy_pass http://localhost:8000;
+                  proxy_pass http://127.0.0.1:8000;
+                  proxy_read_timeout 150s;
                   proxy_redirect     off;
                   proxy_set_header   Host                 \$host;
                   proxy_set_header   X-Real-IP            \$remote_addr;

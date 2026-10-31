@@ -111,6 +111,8 @@ Refer to the "JAWA Administrators Guide" in the [current release](https://github
 
 5. After the installation is complete, go to your FQDN (e.g., https://jawa.company.com) in your web browser to continue with the web-based setup.
 
+JAWA listens on `127.0.0.1:8000` behind the nginx proxy. Set the `JAWA_BIND` environment variable (for example `JAWA_BIND=0.0.0.0`) only for setups without nginx.
+
 ### Configuration Steps:
 
 1. Log in to JAWA with your Jamf Pro URL and Jamf Pro Administrator Credentials.

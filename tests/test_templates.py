@@ -14,7 +14,7 @@ from bin import data_store
 class RecordingPopen:
     calls = []
 
-    def __init__(self, args, stdout=None, stderr=None):
+    def __init__(self, args, stdout=None, stderr=None, **kwargs):
         RecordingPopen.calls.append(args)
         self.stdout = io.BytesIO(b"ok\n")
 

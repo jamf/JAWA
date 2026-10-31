@@ -858,3 +858,87 @@ def test_partial_credential_set_still_takes_typed_value(jawa_env):
         "u = 'https://saved.jamfcloud.com'",
         "s = 'typed'",
     ]
+
+
+@pytest.mark.parametrize("register_in_jamf", [True, False])
+def test_import_with_api_key_rejects_unauthenticated_calls(
+    logged_in_client, jawa_env, fake_popen, register_in_jamf
+):
+    fields = {"choice": "custom", "api_key": "s3cret-import-key"}
+    if register_in_jamf:
+        fields["create_in_jamf"] = "yes"
+    resp = _upload(
+        logged_in_client,
+        _package("#!/usr/bin/env python3\nprint('hi')\n"),
+        **fields,
+    )
+    assert resp.status_code == 302
+
+    event = {"webhook": {"webhookEvent": "ComputerCheckIn"}}
+    denied = logged_in_client.post("/hooks/imported-hook", json=event)
+    assert denied.status_code == 401
+    assert fake_popen.calls == []
+
+    allowed = logged_in_client.post(
+        "/hooks/imported-hook",
+        json=event,
+        headers={"x-api-key": "s3cret-import-key"},
+    )
+    assert allowed.status_code == 200
+    assert len(fake_popen.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "path", ["/templates/import", "/templates/device-naming/enable"]
+)
+def test_import_and_enable_pages_preselect_a_generated_api_key(
+    logged_in_client, path
+):
+    body = logged_in_client.get(path).get_data(as_text=True)
+    custom = re.search(r'<input[^>]*value="custom"[^>]*>', body, re.S)
+    none = re.search(r'<input[^>]*value="none"[^>]*>', body, re.S)
+    assert custom and "checked" in custom.group(0)
+    assert none and "checked" not in none.group(0)
+    key = re.search(r'name="api_key"[^>]*value="([^"]+)"', body, re.S)
+    assert key and len(key.group(1)) >= 24
+
+
+@pytest.mark.parametrize("register_in_jamf", [False, True])
+def test_local_import_refuses_a_taken_name_and_keeps_existing_scripts(
+    logged_in_client, jawa_env, register_in_jamf
+):
+    fields = {"create_in_jamf": "yes"} if register_in_jamf else {}
+    first = _upload(
+        logged_in_client,
+        _package("#!/usr/bin/env python3\nprint('FIRST')\n", name="dup"),
+        **fields,
+    )
+    assert first.status_code == 302
+    script_path = data_store.get_webhook_by_name("dup")["script"]
+
+    second = logged_in_client.get(
+        _upload(
+            logged_in_client,
+            _package("#!/usr/bin/env python3\nprint('SECOND')\n", name="dup"),
+            **fields,
+        ).headers["Location"],
+    )
+    assert "already in use" in second.get_data(as_text=True)
+
+    assert len(json.loads(jawa_env.webhooks_file.read_text())) == 1
+    with open(script_path) as handle:
+        assert "FIRST" in handle.read()
+    assert os.listdir(jawa_env.scripts_dir) == [os.path.basename(script_path)]
+
+
+def test_import_never_writes_to_the_package_file_name(
+    logged_in_client, jawa_env
+):
+    existing = jawa_env.scripts_dir / "imported.py"
+    existing.write_text("#!/usr/bin/env python3\nprint('KEEP')\n")
+    _upload(
+        logged_in_client,
+        _package("#!/usr/bin/env python3\nprint('NEW')\n", name="other"),
+    )
+    assert "KEEP" in existing.read_text()
+    assert data_store.get_webhook_by_name("other")["script"] != str(existing)

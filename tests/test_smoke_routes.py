@@ -8,8 +8,6 @@ with its real traceback.
 import pytest
 
 # (path, ) GET routes reachable with an authenticated session.
-# /log/yield is deliberately absent: it is an infinite tail -f
-# stream and would hang the test client.
 AUTHED_ROUTES = [
     "/",
     "/home.html",

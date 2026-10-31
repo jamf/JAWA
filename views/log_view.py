@@ -27,14 +27,11 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import os
-import subprocess
 from datetime import datetime
-from time import sleep
 from typing import Union
 
 from flask import (
     Blueprint,
-    current_app,
     redirect,
     render_template,
     Response,
@@ -45,7 +42,6 @@ from flask import (
 )
 
 from bin import logger
-from bin.view_modifiers import response
 
 logthis = logger.setup_child_logger("jawa", __name__)
 
@@ -110,59 +106,6 @@ def log_view() -> Union[Response, str]:
         log=_read_recent_logs(),
         debug_enabled=logger.is_debug_enabled(),
     )
-
-
-@blueprint.route("/log/live.html", methods=["GET"])
-@response(template_file="log/live.html")
-def stream() -> Response:
-    if "username" not in session:
-        return redirect(
-            url_for(
-                LOGOUT_ENDPOINT,
-                error_title=ERROR_TITLE,
-                error_message=ERROR_MSG_SIGN_IN,
-            )
-        )
-    logthis.debug(
-        f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}"
-    )
-
-    def generate():
-        with open(log_file) as f:
-            while True:
-                yield f.read()
-
-    return current_app.response_class(generate(), mimetype="text/plain")
-
-
-@blueprint.route("/log/yield")
-def yield_log() -> Response:
-    if "username" not in session:
-        return redirect(
-            url_for(
-                LOGOUT_ENDPOINT,
-                error_title=ERROR_TITLE,
-                error_message=ERROR_MSG_SIGN_IN,
-            )
-        )
-    logthis.info(
-        f"/log/yield accessed by {session.get('username') or 'nobody'}"
-    )
-
-    def inner():
-        proc = subprocess.Popen(
-            [
-                f"tail -f {log_file}"
-            ],  # call something with a lot of output so we can see it
-            shell=True,
-            stdout=subprocess.PIPE,
-        )
-
-        for line in iter(proc.stdout.readline, ""):
-            sleep(0.1)  # Don't need this just shows the text streaming
-            yield line.rstrip().decode() + "<br/>\n"
-
-    return Response(inner(), mimetype="text/html")
 
 
 @blueprint.route("/log/download")

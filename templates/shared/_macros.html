@@ -253,7 +253,7 @@
 {% endif %}
 {% endmacro %}
 
-{% macro jamf_auth_fields(webhook_info=none) %}
+{% macro jamf_auth_fields(webhook_info=none, default_api_key=none) %}
 {# These are RADIOS, so they need hide-all-then-show-one. The shared
    toggleAuthField() FLIPS one div, which is right for the checkboxes in
    auth_fields() above but wrong here: a radio's change event fires only
@@ -264,7 +264,7 @@
    authentication" radio also makes the documented default visible and
    gives the operator a way back, which two radios alone did not. #}
 {% set has_basic = webhook_info and webhook_info[0].webhook_username not in (none, '', 'null') %}
-{% set has_custom = webhook_info and webhook_info[0].api_key not in (none, '', 'null') %}
+{% set has_custom = (webhook_info and webhook_info[0].api_key not in (none, '', 'null')) or (not webhook_info and default_api_key) %}
 <div class="d-flex justify-content-center">
     <label>
         <input type="radio" name="choice" value="none"
@@ -304,7 +304,7 @@
     <div id="jamf-auth-custom-fields"{% if not has_custom %} class="is-hidden"{% endif %}>
         <input name="api_key" class="form-control-sm" title="x-api-key (optional)"
                placeholder="x-api-key value (optional)" autocomplete="off"
-               {% if webhook_info and webhook_info[0].api_key != 'null' %}value="{{ webhook_info[0].api_key }}"{% endif %}>
+               {% if webhook_info and webhook_info[0].api_key != 'null' %}value="{{ webhook_info[0].api_key }}"{% elif not webhook_info and default_api_key %}value="{{ default_api_key }}"{% endif %}>
     </div>
 </div>
 {% endmacro %}

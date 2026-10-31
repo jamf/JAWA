@@ -41,7 +41,11 @@ from bin.data_store import (
     retire_script,
 )
 from bin.tokens import fresh_token
-from views._type_handlers.base import AutomationError, AutomationHandler
+from views._type_handlers.base import (
+    AutomationError,
+    AutomationHandler,
+    validate_webhook_name,
+)
 
 USER_AGENT_STRING = "JAWA%20v3.2.0"
 
@@ -84,29 +88,6 @@ def xml_escape(value: str) -> str:
         .replace(">", "&gt;")
         .replace('"', "&quot;")
     )
-
-
-# A webhook name is interpolated into the XML body AND into the callback
-# URL Jamf calls. A positive rule, not a blocklist: xml_escape() makes
-# "Dev&Prod" well-formed XML, so Jamf then calls /hooks/Dev&Prod, and
-# Flask's /hooks/<webhook_name> route matches "Dev" with "Prod" as a
-# query param -- the webhook silently never fires. A blocklist also
-# missed "#", "?", "%" and an interior tab (`" " in name` catches none of
-# those). Same argument _raw_literal makes in template_view.
-WEBHOOK_NAME_RE = re.compile(r"[A-Za-z0-9._-]+")
-
-WEBHOOK_NAME_RULE = (
-    "Use only letters, numbers, dots, underscores and hyphens -- the "
-    "name becomes part of the URL Jamf Pro calls."
-)
-
-
-def validate_webhook_name(name: str) -> None:
-    """Raise AutomationError unless the name is URL- and XML-safe."""
-    if not name:
-        raise AutomationError("Error", "Webhook name is required.")
-    if not WEBHOOK_NAME_RE.fullmatch(name):
-        raise AutomationError("Error", WEBHOOK_NAME_RULE)
 
 
 def _build_auth_xml(form: Any) -> str:

@@ -845,6 +845,32 @@ with open(path, "w") as handle:
 PYEOF
   chown jawa "$installDir/jawa/data/server.json"
   chmod 600 "$installDir/jawa/data/server.json"
+  # Ban addresses that repeatedly fail the console login. The sign-in code
+  # writes one "LOGIN FAILED user=<name> ip=<address>" line per failure to
+  # data/jawa-auth.log, a file that holds nothing else.
+  if [ -d /etc/fail2ban ]; then
+    /usr/bin/touch "$installDir/jawa/data/jawa-auth.log"
+    chown jawa "$installDir/jawa/data/jawa-auth.log"
+    /bin/mkdir -p /etc/fail2ban/filter.d /etc/fail2ban/jail.d
+    cat > /etc/fail2ban/filter.d/jawa.conf <<'F2BEOF'
+[Definition]
+failregex = ^(?:\S+ \S+ - )?jawa\.auth - WARNING - LOGIN FAILED user=\S+ ip=<HOST>$
+ignoreregex =
+F2BEOF
+    cat > /etc/fail2ban/jail.d/jawa.conf <<F2BEOF
+[jawa]
+enabled  = true
+filter   = jawa
+logpath  = $installDir/jawa/data/jawa-auth.log
+maxretry = 5
+findtime = 10m
+bantime  = 30m
+port     = 443
+F2BEOF
+    /bin/systemctl enable fail2ban >>/var/log/jawaInstall.log 2>&1
+    /bin/systemctl restart fail2ban >>/var/log/jawaInstall.log 2>&1 || \
+      /bin/echo "Could not restart fail2ban; see the log." >>/var/log/jawaInstall.log 2>&1
+  fi
   #pip install --upgrade uwsgi
   /usr/bin/clear
   /bin/echo -ne '[##################      ](90%) Creating jawa service in systemd... '

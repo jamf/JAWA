@@ -80,7 +80,9 @@ def _load_credentials() -> List[Dict[str, Any]]:
 
 def _save_credentials(credentials: List[Dict[str, Any]]) -> None:
     """Save credential sets to file."""
-    atomic_write_json(CREDENTIALS_FILE, credentials, indent=2)
+    atomic_write_json(
+        CREDENTIALS_FILE, credentials, indent=2, private=True
+    )
 
 
 @blueprint.route("/setup/credentials", methods=["GET"])

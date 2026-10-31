@@ -3,6 +3,7 @@
 import io
 import json
 
+import pytest
 import requests
 from datetime import datetime, timedelta, timezone
 
@@ -176,6 +177,19 @@ def test_auth_xml_survives_an_ordinary_ampersand():
     assert "<password>p&lt;q&gt;r</password>" in xml
 
 
+def _add_cron(jawa_env, **overrides):
+    entry = {
+        "name": "NightlyExport",
+        "description": "export",
+        "frequency": "Every day at 2:00 AM",
+        "script": str(jawa_env.scripts_dir / "cron_NightlyExport.sh"),
+    }
+    entry.update(overrides)
+    data = json.loads(jawa_env.cron_file.read_text())
+    data.append(entry)
+    jawa_env.cron_file.write_text(json.dumps(data))
+
+
 def _jamf_automation(jawa_env, event="SmartGroupComputerMembershipChange"):
     jawa_env.add_webhook(
         {
@@ -314,3 +328,47 @@ def test_okta_create_sends_the_minted_secret(
     assert len(value) >= 32
     stored = json.loads(jawa_env.webhooks_file.read_text())
     assert stored[0]["okta_secret"] == value
+
+
+@pytest.mark.parametrize(
+    "auto_type, field, bad_name, message",
+    [
+        ("custom", "custom_name", "bravo", "already exists"),
+        ("custom", "custom_name", "x/y", "letters, numbers"),
+        ("custom", "custom_name", "x/y z<", "letters, numbers"),
+        ("custom", "custom_name", "NightlyExport", "already exists"),
+        ("jamfpro", "webhook_name", "bravo", "already exists"),
+        ("jamfpro", "webhook_name", "x/y", "letters, numbers"),
+        ("cron", "cron_name", "NightlyExport", "already exists"),
+        ("cron", "cron_name", "bravo", "already exists"),
+        ("cron", "cron_name", "x/y", "letters, numbers"),
+    ],
+)
+def test_edit_rename_rejects_taken_and_invalid_names(
+    logged_in_client, jawa_env, auto_type, field, bad_name, message
+):
+    jawa_env.add_webhook({"name": "alpha", "tag": auto_type if auto_type != "cron" else "custom",
+                          "event": "ComputerAdded", "script": "x",
+                          "description": "d", "webhook_username": "null",
+                          "webhook_password": "null", "api_key": "null"})
+    jawa_env.add_webhook({"name": "bravo", "tag": "custom", "script": "x",
+                          "description": "d", "webhook_username": "null",
+                          "webhook_password": "null", "api_key": "null"})
+    _add_cron(jawa_env)
+    current = "NightlyExport" if auto_type == "cron" else "alpha"
+    if auto_type == "cron" and bad_name == "NightlyExport":
+        _add_cron(jawa_env, name="Other")
+        current = "Other"
+    webhooks_before = jawa_env.webhooks_file.read_text()
+    cron_before = jawa_env.cron_file.read_text()
+
+    resp = logged_in_client.post(
+        f"/automations/{auto_type}/{current}/edit",
+        data={field: bad_name, "description": "d"},
+        content_type="multipart/form-data",
+    )
+
+    assert resp.status_code == 200
+    assert message in resp.get_data(as_text=True)
+    assert jawa_env.webhooks_file.read_text() == webhooks_before
+    assert jawa_env.cron_file.read_text() == cron_before

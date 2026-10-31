@@ -26,6 +26,7 @@
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+import re
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -47,6 +48,29 @@ class AutomationError(Exception):
         # falls back to the raw link if omitted.
         self.link_text = link_text
         super().__init__(message)
+
+
+# A webhook name is interpolated into the XML body AND into the callback
+# URL Jamf calls. A positive rule, not a blocklist: xml_escape() makes
+# "Dev&Prod" well-formed XML, so Jamf then calls /hooks/Dev&Prod, and
+# Flask's /hooks/<webhook_name> route matches "Dev" with "Prod" as a
+# query param -- the webhook silently never fires. A blocklist also
+# missed "#", "?", "%" and an interior tab (`" " in name` catches none of
+# those). Same argument _raw_literal makes in template_view.
+WEBHOOK_NAME_RE = re.compile(r"[A-Za-z0-9._-]+")
+
+WEBHOOK_NAME_RULE = (
+    "Use only letters, numbers, dots, underscores and hyphens -- the "
+    "name becomes part of the URL Jamf Pro calls."
+)
+
+
+def validate_webhook_name(name: str) -> None:
+    """Raise AutomationError unless the name is URL- and XML-safe."""
+    if not name:
+        raise AutomationError("Error", "Webhook name is required.")
+    if not WEBHOOK_NAME_RE.fullmatch(name):
+        raise AutomationError("Error", WEBHOOK_NAME_RULE)
 
 
 class AutomationHandler(ABC):

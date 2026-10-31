@@ -93,6 +93,22 @@
                         </select>
                     </div>
 
+                    <div class="mb-3">
+                        <label for="allowed-admins" class="form-label">Allowed admin accounts</label>
+                        <textarea id="allowed-admins" name="allowed_admins" class="form-control" rows="3"
+                                  placeholder="One Jamf Pro username per line">{{ allowed_admins }}</textarea>
+                        <div class="form-text">
+                            Only these Jamf Pro accounts may sign in to JAWA (case-insensitive).
+                            Your own account is always kept on the list.
+                        </div>
+                        {% if not allowed_admins %}
+                        <div class="alert alert-warning mt-2" role="alert">
+                            The list is empty, so any Jamf Pro account that can sign in has full
+                            access to JAWA, including uploading and running scripts.
+                        </div>
+                        {% endif %}
+                    </div>
+
                     <div class="d-flex justify-content-center container-fluid">
                         <button type="submit" value="{{ "Save" if jawa_url else "Setup" }}" class="btn btn-jawa btn-padded">
                             {{ "Save" if jawa_url else "Setup" }}

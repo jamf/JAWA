@@ -144,6 +144,9 @@ def main() -> None:
     logthis.info(f"JAWA initializing...\n Sandcrawler home:  {base_dir}")
     try:
         environment_setup(base_dir)
+        from bin import data_store
+
+        data_store.secure_private_files()
         register_blueprints()
         app.secret_key = load_secret_key(base_dir)
         app.permanent_session_lifetime = timedelta(minutes=15)
@@ -355,6 +358,15 @@ def setup() -> Union[Response, str]:
             f"Alternate enabled?: {jps2_check}"
         )
         new_json = {}
+        if "allowed_admins" in request.form:
+            from views.home_view import _parse_admin_names
+
+            admins = _parse_admin_names(request.form["allowed_admins"])
+            # Never let a save lock out the account making it.
+            me = str(session.get("username") or "")
+            if admins and me.lower() not in {a.lower() for a in admins}:
+                admins.append(me)
+            new_json["allowed_admins"] = admins
         if server_url != "":
             new_json["jawa_address"] = server_url
         if jps_url != "":
@@ -414,6 +426,7 @@ def setup() -> Union[Response, str]:
             jps_url2=jps_url2,
             jawa_url=jawa_url,
             session_timeout=session_timeout,
+            allowed_admins="\n".join(server_json.get("allowed_admins") or []),
             username=session.get("username"),
         )
 

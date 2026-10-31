@@ -1,4 +1,5 @@
 {% extends "shared/_layout.html" %}
+{% from "shared/_macros.html" import jamf_auth_fields %}
 {% block title %}Import Template - JAWA{% endblock %}
 {% block content %}
 <div class="container" style="max-width: 700px; padding-top: 2rem;">
@@ -33,8 +34,22 @@
                 </div>
             </div>
 
+            <h6 class="enable-section-heading">Webhook Authentication</h6>
+            {{ jamf_auth_fields(default_api_key=generated_api_key) }}
+
             <button type="submit" class="btn btn-jawa mt-2">Import</button>
         </form>
     </div>
 </div>
+{% endblock %}
+{% block additional_js %}
+<script>
+function selectJamfAuthMode(mode) {
+    // Radios: show exactly one mode's fields and hide the rest.
+    ['basic', 'custom'].forEach(function (m) {
+        var el = document.getElementById('jamf-auth-' + m + '-fields');
+        if (el) { el.classList.toggle('is-hidden', m !== mode); }
+    });
+}
+</script>
 {% endblock %}

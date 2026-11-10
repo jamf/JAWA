@@ -321,6 +321,22 @@ def _redir_webhook_delete():
 
 
 # Server setup including making .json file necessary for webhooks
+def _read_server_json(path: str) -> Dict[str, Any]:
+    """Return the saved server settings, or {} if missing or unreadable."""
+    if not os.path.isfile(path):
+        return {}
+    with open(path, "r") as fin:
+        try:
+            data = json.load(fin)
+        except json.JSONDecodeError:
+            logthis.error(
+                f"{os.path.basename(path)} cannot be parsed; Setup will "
+                "replace it with the values just saved."
+            )
+            return {}
+    return data if isinstance(data, dict) else {}
+
+
 @app.route("/setup", methods=["GET", "POST"])
 def setup() -> Union[Response, str]:
     if "username" not in session:
@@ -371,29 +387,21 @@ def setup() -> Union[Response, str]:
             new_json["jawa_address"] = server_url
         if jps_url != "":
             new_json["jps_url"] = jps_url
-        if not os.path.isfile(server_json_file):
-            with open(server_json_file, "w") as outfile:
-                server_json = {
-                    "jawa_address": server_url,
-                    "jps_url": jps_url,
-                    "alternate_jps": jps_url2,
-                    "session_timeout_minutes": session_timeout,
-                }
-                json.dump(server_json, outfile)
-        elif os.path.isfile(server_json_file):
-            with open(server_json_file, "w") as outfile:
-                server_json = {
-                    "jawa_address": server_url,
-                    "jps_url": jps_url,
-                    "alternate_jps": jps_url2,
-                    "session_timeout_minutes": session_timeout,
-                }
-                json.dump(server_json, outfile)
-            with open(server_json_file, "r") as fin:
-                data = json.load(fin)
-            data.update(new_json)
-            with open(server_json_file, "w+") as outfile:
-                json.dump(data, outfile)
+        # Start from what is already saved, so keys this form does not
+        # post (brand, and anything else other code keeps here) survive.
+        server_json = _read_server_json(server_json_file)
+        server_json.update(
+            {
+                "jawa_address": server_url,
+                "jps_url": jps_url,
+                "alternate_jps": jps_url2,
+                "session_timeout_minutes": session_timeout,
+            }
+        )
+        server_json.update(new_json)
+        from bin.data_store import atomic_write_json
+
+        atomic_write_json(server_json_file, server_json)
 
         return redirect(
             url_for("success", success_msg="JAWA Setup Complete!")

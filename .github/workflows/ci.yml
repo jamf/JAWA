@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         # Oldest supported and current — catches syntax drift both ways.
-        python-version: ["3.9", "3.14"]
+        python-version: ["3.12", "3.14"]
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +30,26 @@ jobs:
 
       - name: Test (pytest)
         run: python -m pytest -v
+
+  dependency-audit:
+    # Regression gate: requirements.txt must resolve to a set with no known
+    # advisories. Runs against the oldest supported interpreter (3.12), which
+    # is what customer venvs are built from.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Audit (pip-audit)
+        run: |
+          pip install pip-audit
+          python -m pip_audit --local
 
   installer-hygiene:
     # Guards bin/installer.sh (curled off main, run as root) against invisible-unicode

@@ -250,10 +250,14 @@ change existing behaviour.
 
 Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
 
-### JAWA v3.2.0 release
+### JAWA v4.0.0 release
 
 **Upgrade notes — please read before upgrading**
 
+- **This is a major version bump because the required platform moves.** JAWA 4.0 requires
+  Ubuntu 24.04+ (or RHEL/Rocky 9.4+) and Python 3.12+ — a deliberate OS-level upgrade for
+  existing hosts, not an in-place dependency refresh. See the platform note below and plan
+  the OS migration (snapshot, `do-release-upgrade`, re-run the installer) accordingly.
 - **v3.2 is the last release that can migrate a JAWA v2 install.** The v2 upgrade path works in
   this release and is unchanged. If you are still on v2, move to v3.2 before upgrading further.
 - **Template webhooks you previously enabled will begin firing.** A bug meant enabled and

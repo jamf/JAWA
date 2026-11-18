@@ -163,3 +163,6 @@ data/cron.json
 data/webhooks.json
 resources/files/
 scripts/
+
+# ignore the generated session key
+data/.secret_key

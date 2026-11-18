@@ -1,6 +1,8 @@
 """Console login flow against a fully faked Jamf Pro."""
 
 import pytest
+from datetime import datetime, timedelta, timezone
+
 
 
 def test_successful_login_reaches_dashboard(logged_in_client):
@@ -494,3 +496,201 @@ def test_unconfigured_install_still_accepts_a_typed_url(
         },
     )
     assert "/dashboard" in resp.headers.get("Location", "")
+
+
+def _decode_session_cookie(client):
+    """Decode the real signed session cookie the way a browser-side
+    reader could: the payload is only signed, not encrypted."""
+    import base64
+    import zlib
+
+    cookie = next(c for c in client._cookies.values() if c.key == "session")
+    payload = cookie.value.split(".")
+    compressed = cookie.value.startswith(".")
+    segment = payload[1] if compressed else payload[0]
+    raw = base64.urlsafe_b64decode(segment + "=" * (-len(segment) % 4))
+    return (zlib.decompress(raw) if compressed else raw).decode()
+
+
+def test_session_cookie_holds_no_password_or_basic_string(
+    logged_in_client,
+):
+    import base64
+
+    decoded = _decode_session_cookie(logged_in_client)
+    basic = base64.b64encode(b"pytest-admin:hunter2").decode()
+    assert "hunter2" not in decoded
+    assert basic not in decoded
+    assert "b64_auth" not in decoded
+    assert '"password"' not in decoded
+    with logged_in_client.session_transaction() as sess:
+        assert "password" not in sess
+        assert "b64_auth" not in sess
+        assert sess["token"]
+
+
+def test_login_refused_when_no_jamf_url_is_pinned(
+    client, jawa_env, fake_jamf, monkeypatch
+):
+    monkeypatch.delenv("JAWA_ALLOW_UNPINNED_LOGIN", raising=False)
+    jawa_env.server_file.write_text("{}")
+    resp = client.post(
+        "/login",
+        data={
+            "url": "https://attacker.example",
+            "username": "u",
+            "password": "p",
+        },
+    )
+    assert "/dashboard" not in resp.headers.get("Location", "")
+    with client.session_transaction() as sess:
+        assert "username" not in sess
+    page = client.get(resp.headers["Location"], follow_redirects=True)
+    assert b"Finish install: set the Jamf Pro URL" in page.data
+
+
+def test_login_reports_a_jamf_timeout(client, jawa_env, monkeypatch):
+    import requests
+
+    def _stall(*_a, **_k):
+        raise requests.exceptions.ReadTimeout("stalled")
+
+    monkeypatch.setattr(requests, "post", _stall)
+    resp = client.post(
+        "/login",
+        data={"url": "https://jamf.example.test", "username": "u",
+              "password": "p"},
+    )
+    assert "/dashboard" not in resp.headers["Location"]
+    page = client.get(resp.headers["Location"], follow_redirects=True)
+    assert b"Connection Timeout" in page.data
+
+
+def test_login_requests_all_carry_a_timeout(
+    client, jawa_env, fake_jamf, monkeypatch
+):
+    import requests
+
+    seen = []
+
+    def _post(url, **kwargs):
+        seen.append(kwargs.get("timeout"))
+        return _orig_post(url, **kwargs)
+
+    def _get(url, **kwargs):
+        seen.append(kwargs.get("timeout"))
+        return _orig_get(url, **kwargs)
+
+    _orig_post, _orig_get = requests.post, requests.get
+    monkeypatch.setattr(requests, "post", _post)
+    monkeypatch.setattr(requests, "get", _get)
+    client.post(
+        "/login",
+        data={"url": "https://jamf.example.test", "username": "u",
+              "password": "p"},
+    )
+    assert seen and all(t == 30 for t in seen)
+
+
+def _expire_token(client, expires):
+    with client.session_transaction() as sess:
+        sess["token"] = "OLD"
+        sess["expires"] = expires
+
+
+def test_near_expiry_token_is_renewed_with_keep_alive(
+    logged_in_client, jamf_fake_http, monkeypatch
+):
+    import requests
+
+    Resp, default_post = jamf_fake_http
+    calls = []
+
+    def _post(url, **kwargs):
+        if url.endswith("/api/v1/auth/keep-alive"):
+            calls.append(kwargs)
+            return Resp({"token": "RENEWED",
+                         "expires": "2099-01-01T00:00:00.000+0000"})
+        return default_post(url, **kwargs)
+
+    monkeypatch.setattr(requests, "post", _post)
+    soon = (datetime.now(timezone.utc) + timedelta(seconds=30)).strftime(
+        "%Y-%m-%dT%H:%M:%S.000%z"
+    )
+    _expire_token(logged_in_client, soon)
+    from bin.tokens import fresh_token
+
+    with logged_in_client:
+        logged_in_client.get("/dashboard")
+        from flask import session
+
+        assert fresh_token() == "RENEWED"
+        assert session["token"] == "RENEWED"
+    assert calls[0]["headers"]["Authorization"] == "Bearer OLD"
+    assert calls[0]["timeout"] == 30
+
+
+def test_any_console_page_renews_a_token_with_ten_minutes_left(
+    logged_in_client, jamf_fake_http, monkeypatch
+):
+    import requests
+
+    Resp, default_post = jamf_fake_http
+
+    def _post(url, **kwargs):
+        if url.endswith("/api/v1/auth/keep-alive"):
+            return Resp({"token": "RENEWED",
+                         "expires": "2099-01-01T00:00:00.000+0000"})
+        return default_post(url, **kwargs)
+
+    monkeypatch.setattr(requests, "post", _post)
+    later = (datetime.now(timezone.utc) + timedelta(minutes=10)).strftime(
+        "%Y-%m-%dT%H:%M:%S.000%z"
+    )
+    _expire_token(logged_in_client, later)
+    logged_in_client.get("/dashboard")
+    with logged_in_client.session_transaction() as sess:
+        assert sess["token"] == "RENEWED"
+
+
+def test_expired_token_sends_admin_back_to_sign_in(
+    logged_in_client, monkeypatch
+):
+    long_ago = "2000-01-01T00:00:00.000+0000"
+    _expire_token(logged_in_client, long_ago)
+    resp = logged_in_client.post(
+        "/automations/jamfpro/new",
+        data={"webhook_name": "x", "event": "ComputerAdded"},
+    )
+    assert resp.status_code == 302
+    assert "/logout" in resp.headers["Location"]
+    page = logged_in_client.get(resp.headers["Location"])
+    assert b"Your Jamf Pro session ended. Sign in again." in page.data
+    with logged_in_client.session_transaction() as sess:
+        assert "token" not in sess
+
+
+def test_failed_keep_alive_ends_the_session(
+    logged_in_client, jamf_fake_http, monkeypatch
+):
+    import requests
+
+    Resp, default_post = jamf_fake_http
+
+    def _post(url, **kwargs):
+        if url.endswith("/api/v1/auth/keep-alive"):
+            return Resp({}, status_code=401)
+        return default_post(url, **kwargs)
+
+    monkeypatch.setattr(requests, "post", _post)
+    soon = (datetime.now(timezone.utc) + timedelta(seconds=30)).strftime(
+        "%Y-%m-%dT%H:%M:%S.000%z"
+    )
+    _expire_token(logged_in_client, soon)
+    resp = logged_in_client.post(
+        "/automations/jamfpro/new",
+        data={"webhook_name": "x", "event": "ComputerAdded"},
+    )
+    assert "/logout" in resp.headers["Location"]
+    with logged_in_client.session_transaction() as sess:
+        assert "token" not in sess

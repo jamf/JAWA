@@ -40,7 +40,7 @@ from bin.data_store import (
     save_all_webhooks,
     retire_script,
 )
-from bin.tokens import validate_token, get_token
+from bin.tokens import fresh_token
 from views._type_handlers.base import AutomationError, AutomationHandler
 
 USER_AGENT_STRING = "JAWA%20v3.2.0"
@@ -254,8 +254,7 @@ class JamfHandler(AutomationHandler):
             )
 
         # Ensure token is valid
-        if not validate_token(session_data.get("expires")):
-            get_token()
+        fresh_token(session_data)
 
         # Save script
         new_file = files.get("new_file")
@@ -386,8 +385,7 @@ class JamfHandler(AutomationHandler):
         existing: Dict,
         all_items: Any,
     ) -> Dict[str, Any]:
-        if not validate_token(session_data.get("expires")):
-            get_token()
+        fresh_token(session_data)
 
         name = existing["name"]
         new_name = form.get("webhook_name") or name
@@ -530,8 +528,7 @@ class JamfHandler(AutomationHandler):
     def process_delete(
         self, automation: Dict, session_data: Dict
     ) -> Optional[str]:
-        if not validate_token(session_data.get("expires")):
-            get_token()
+        fresh_token(session_data)
         # Disable and rename in Jamf Pro
         data = (
             f"<webhook><name>{automation['name']}.old.{time.time()}</name>"
@@ -557,9 +554,18 @@ class JamfHandler(AutomationHandler):
                     f"Error disabling Jamf webhook {automation['name']}: "
                     f"HTTP {resp.status_code}"
                 )
+                return (
+                    f"Jamf Pro refused to disable the webhook "
+                    f"(HTTP {resp.status_code}). The automation was kept "
+                    f"so the webhook is not left running unmanaged."
+                )
         except Exception as err:
             logthis.error(
                 f"Failed to disable Jamf webhook {automation['name']}: {err}"
+            )
+            return (
+                f"Could not reach Jamf Pro to disable the webhook: {err}. "
+                f"The automation was kept."
             )
         retire_script(automation.get("script", ""))
         return None

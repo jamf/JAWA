@@ -29,7 +29,7 @@
 import glob
 import json
 import os
-import uuid
+import secrets
 
 from datetime import timedelta
 from flask import (
@@ -47,6 +47,7 @@ from typing import Any, Dict, Tuple, Union
 
 from bin import logger
 from bin.context_processors import inject_common_vars, register_static_cache_bust
+from bin.tokens import SessionEnded, fresh_token, session_ended_response
 from bin.url_safety import safe_path_segment
 from bin.view_modifiers import response
 from views.home_view import _strip_trailing_slash, load_home
@@ -94,6 +95,44 @@ def _session_heartbeat() -> None:
     minutes = _resolve_session_timeout(data_store.get_server_config())
     app.permanent_session_lifetime = timedelta(minutes=minutes)
     session.modified = True
+    # The session keeps no password, so the Jamf Pro token can only be
+    # renewed while it is still valid: do it on every console request.
+    if session.get("token") and request.endpoint not in (
+        "static",
+        "home_view.logout",
+    ):
+        fresh_token()
+
+
+@app.errorhandler(SessionEnded)
+def _session_ended(_err: SessionEnded) -> Response:
+    return session_ended_response()
+
+
+def load_secret_key(project_dir: str) -> str:
+    """Return the key that signs session cookies.
+
+    JAWA_SECRET_KEY wins when set. Otherwise the key lives in
+    data/.secret_key (mode 0600), created once and reused, so a restart
+    does not sign every admin out.
+    """
+    from_env = os.environ.get("JAWA_SECRET_KEY")
+    if from_env:
+        return from_env
+    key_file = os.path.join(project_dir, "data", ".secret_key")
+    try:
+        with open(key_file) as handle:
+            existing = handle.read().strip()
+        if existing:
+            return existing
+    except FileNotFoundError:
+        pass
+    key = secrets.token_hex(32)
+    fd = os.open(key_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as handle:
+        handle.write(key)
+    os.chmod(key_file, 0o600)
+    return key
 
 
 app.context_processor(inject_common_vars)
@@ -106,7 +145,7 @@ def main() -> None:
     try:
         environment_setup(base_dir)
         register_blueprints()
-        app.secret_key = str(uuid.uuid4())
+        app.secret_key = load_secret_key(base_dir)
         app.permanent_session_lifetime = timedelta(minutes=15)
         serve(
             app, url_scheme="https", host="0.0.0.0", port=8000, threads=15

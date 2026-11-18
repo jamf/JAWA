@@ -26,7 +26,6 @@
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import base64
 import json
 import os
 from typing import Optional, Union
@@ -73,6 +72,8 @@ verify_ssl = True  # Enables Jamf Pro SSL certificate verification
 
 blueprint = Blueprint("home_view", __name__, template_folder="templates")
 
+# Development only: allow a login before a Jamf Pro URL is pinned.
+ALLOW_UNPINNED_ENV = "JAWA_ALLOW_UNPINNED_LOGIN"
 LOGOUT_ENDPOINT = "home_view.logout"
 DASHBOARD_ENDPOINT = "home_view.dashboard"
 HOME_TEMPLATE = "home.html"
@@ -164,6 +165,7 @@ def _verify_jamf_access() -> Union[Response, None]:
                 "User-Agent": "JAWA%20v3.2.0",
             },
             verify=verify_ssl,
+            timeout=30,
         )
         resp.raise_for_status()
         # A reachable non-Jamf site also answers 200 here; confirm the
@@ -194,7 +196,7 @@ def _verify_jamf_access() -> Union[Response, None]:
         return _login_error(
             "Login error", "check account credentials and privileges"
         )
-    except requests.exceptions.ConnectTimeout as err:
+    except requests.exceptions.Timeout as err:
         logthis.error(f"Error occurred: {err}")
         return _login_error("Connection Timeout", err)
     except requests.exceptions.ConnectionError as err:
@@ -206,9 +208,23 @@ def _verify_jamf_access() -> Union[Response, None]:
 @blueprint.route("/login", methods=["GET", "POST"])
 def login() -> Response:
     if request.method == "POST":
+        server_json = {}
         if os.path.isfile(server_file):
             with open(server_file) as json_file:
                 server_json = json.load(json_file)
+        if (
+            not server_json.get("jps_url")
+            and os.environ.get(ALLOW_UNPINNED_ENV) != "1"
+        ):
+            # Until a Jamf Pro URL is pinned, the sign-in would be checked
+            # by whatever server the form names, so anyone could use a
+            # server of their own to get in.
+            logthis.warning("Refusing a login: no Jamf Pro URL is pinned.")
+            return _login_error(
+                "Setup required",
+                "Finish install: set the Jamf Pro URL with the installer",
+            )
+        if os.path.isfile(server_file):
             resolved = _resolve_url_from_server(request.form, server_json)
             if resolved is None:
                 logthis.warning(
@@ -225,14 +241,12 @@ def login() -> Response:
             session["url"] = _strip_trailing_slash(request.form.get("url", ""))
 
         session["username"] = request.form["username"]
-        session["password"] = request.form["password"]
-        session["b64_auth"] = base64.b64encode(
-            str.encode(f"{session.get('username')}:{session.get('password')}")
-        )
         # Honor a token-fetch failure: get_token() returns a redirect
         # when the token endpoint is unreachable or answers with a
         # non-Jamf body. Ignoring it let login proceed on a failed fetch.
-        token_error = get_token()
+        token_error = get_token(
+            session["username"], request.form["password"]
+        )
         if token_error:
             return token_error
         logthis.info(

@@ -63,6 +63,17 @@ JAWA and [Jamf Routines](https://learn.jamf.com/r/en-US/jamf-routines-documentat
 > The installer checks the Python version **before it touches an existing install** and stops
 > with the detected version if the host is below Python 3.12.
 
+### Sign-in and the Jamf Pro URL
+
+The installer asks for your Jamf Pro URL and saves it in `data/server.json`. Until a URL is saved
+there, the console refuses every sign-in with "Finish install: set the Jamf Pro URL with the
+installer". For local development only, set `JAWA_ALLOW_UNPINNED_LOGIN=1` to allow a sign-in
+before a URL is saved.
+
+JAWA signs session cookies with the key in `JAWA_SECRET_KEY` when that variable is set. Otherwise
+it creates `data/.secret_key` (mode 0600) on first start and reuses it, so a restart does not sign
+admins out. The session keeps only the Jamf Pro bearer token, never the password.
+
 ### Network Requirements:
 
 - Inbound port 443 from JPS for

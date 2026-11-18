@@ -26,17 +26,52 @@
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+import base64
 from datetime import datetime, timezone, timedelta
 from flask import Response, session, redirect, url_for
 import requests
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from bin import logger
 
 logthis = logger.setup_child_logger("jawa", __name__)
 
 
-def get_token() -> Optional[Response]:
+SESSION_ENDED_TITLE = "Session ended"
+SESSION_ENDED_MESSAGE = "Your Jamf Pro session ended. Sign in again."
+
+# Renew a token once less than this is left. Every signed-in console
+# request checks it (app.py), so an admin who keeps working keeps a live
+# token; Jamf Pro tokens last 30 minutes by default.
+RENEW_MARGIN = timedelta(minutes=15)
+
+_EXPIRES_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
+
+
+class SessionEnded(Exception):
+    """The admin's Jamf Pro token can no longer be renewed.
+
+    The session has already been cleared when this is raised; the app
+    turns it into a redirect to the sign-in page.
+    """
+
+
+def session_ended_response() -> Response:
+    return redirect(
+        url_for(
+            "home_view.logout",
+            error_title=SESSION_ENDED_TITLE,
+            error_message=SESSION_ENDED_MESSAGE,
+        )
+    )
+
+
+def get_token(username: str, password: str) -> Optional[Response]:
+    """Sign in to Jamf Pro with the login form's credentials.
+
+    The password is used for this one request and is never stored. Only
+    the bearer token and its expiry go into the session.
+    """
     # Clear any prior token up front so a failed fetch can never leave a
     # stale token from an earlier (real) login behind — that stale token
     # was the crux of the bogus-credential bypass: _validate_credentials
@@ -44,9 +79,11 @@ def get_token() -> Optional[Response]:
     session.pop("token", None)
     session.pop("expires", None)
     try:
+        basic = base64.b64encode(f"{username}:{password}".encode()).decode()
         resp = requests.post(
             f"{session['url']}/api/v1/auth/token",
-            headers={"Authorization": f"Basic {session['b64_auth'].decode()}"},
+            headers={"Authorization": f"Basic {basic}"},
+            timeout=30,
         )
         # Without this, a non-2xx passes: Jamf Pro answers a JSON body on
         # 401/503 too, so resp.json() succeeds and data.get("token")
@@ -62,9 +99,18 @@ def get_token() -> Optional[Response]:
             raise ValueError("token response contained no token/expires")
         session["token"] = token
         session["expires"] = expires
+    except requests.exceptions.Timeout as err:
+        logthis.error(f"[{session.get('url')}] Token request timed out: {err}")
+        return redirect(
+            url_for(
+                "home_view.logout",
+                error_title="Connection Timeout",
+                error_message="Jamf Pro did not answer in time. Try again.",
+            )
+        )
     except Exception as err:
         logthis.error(
-            f"[{session.get('url')}] Could not get a token using session credentials: {err}.  Logging out."
+            f"[{session.get('url')}] Could not get a token for the login: {err}."
         )
         return redirect(
             url_for(
@@ -73,6 +119,69 @@ def get_token() -> Optional[Response]:
                 error_message="Please sign in again",
             )
         )
+
+
+def _remaining(expires: Optional[str]) -> timedelta:
+    """Time left on a token, or zero when the expiry is unusable."""
+    try:
+        return datetime.strptime(expires, _EXPIRES_FORMAT) - datetime.now(
+            timezone.utc
+        )
+    except (TypeError, ValueError):
+        return timedelta(0)
+
+
+def _end_session() -> None:
+    session.clear()
+    raise SessionEnded()
+
+
+def fresh_token(session_data: Optional[Dict[str, Any]] = None) -> str:
+    """Return a live Jamf Pro bearer token, renewing it when it is near
+    expiry with Jamf Pro's keep-alive endpoint.
+
+    `session_data` is the snapshot some views take before calling a
+    handler; it is updated in place so the request that follows carries
+    the new token, not the old one. When the token has expired, or the
+    renewal fails, the session is cleared and SessionEnded is raised.
+    """
+    source = session_data if session_data is not None else session
+    token = source.get("token") or session.get("token")
+    expires = source.get("expires") or session.get("expires")
+    if not token:
+        _end_session()
+
+    remaining = _remaining(expires)
+    if remaining <= timedelta(0):
+        logthis.warning(
+            f"[{session.get('url')}] API token expired; the admin must sign in again."
+        )
+        _end_session()
+
+    if remaining <= RENEW_MARGIN:
+        try:
+            resp = requests.post(
+                f"{session['url']}/api/v1/auth/keep-alive",
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            token, expires = data.get("token"), data.get("expires")
+            if not token or not expires:
+                raise ValueError("keep-alive response contained no token")
+        except Exception as err:
+            logthis.error(
+                f"[{session.get('url')}] Could not renew the API token: {err}"
+            )
+            _end_session()
+        session["token"] = token
+        session["expires"] = expires
+
+    if session_data is not None:
+        session_data["token"] = token
+        session_data["expires"] = expires
+    return token
 
 
 def validate_token(expires: str) -> bool:
@@ -97,6 +206,7 @@ def invalidate_token() -> None:
         resp = requests.post(
             f"{session['url']}/api/v1/auth/invalidate-token",
             headers={"Authorization": f"Bearer {session.get('token')}"},
+            timeout=30,
         )
     except Exception as err:
         logthis.error(

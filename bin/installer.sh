@@ -811,6 +811,40 @@ if [ -d "$currentDir/jawabackup-$timenow" ]; then
     /bin/echo "Python dependency install FAILED (status $requirementsStatus); flask not importable. Aborting." >>/var/log/jawaInstall.log 2>&1
     exit 2
   fi #
+  # Pin the Jamf Pro URL before the service starts. Until one is pinned,
+  # the console refuses every sign-in.
+  /usr/bin/clear
+  # An upgrade keeps the values already pinned in server.json.
+  pinnedValue() {
+    "$installDir/jawa/venv/bin/python" -c 'import json, sys; print(json.load(open(sys.argv[1])).get(sys.argv[2], ""))' \
+      "$installDir/jawa/data/server.json" "$1" 2>/dev/null
+  }
+  jamfUrl="${JAWA_JPS_URL:-$(pinnedValue jps_url)}"
+  jawaAddress="${JAWA_ADDRESS:-$(pinnedValue jawa_address)}"
+  while [ -z "$jamfUrl" ]; do
+    read -r -p "Jamf Pro URL (for example https://jamf.example.com):  " jamfUrl
+  done
+  if [ -z "$jawaAddress" ]; then
+    read -r -p "JAWA address that Jamf Pro will call (for example https://jawa.example.com):  " jawaAddress
+  fi
+  /bin/mkdir -p "$installDir/jawa/data"
+  JAWA_SERVER_JSON="$installDir/jawa/data/server.json" JAWA_PIN_URL="$jamfUrl" JAWA_PIN_ADDRESS="$jawaAddress" \
+    "$installDir/jawa/venv/bin/python" - <<'PYEOF' >>/var/log/jawaInstall.log 2>&1
+import json, os
+path = os.environ["JAWA_SERVER_JSON"]
+try:
+    with open(path) as handle:
+        config = json.load(handle)
+except (OSError, ValueError):
+    config = {}
+config["jps_url"] = os.environ["JAWA_PIN_URL"].rstrip("/")
+if os.environ["JAWA_PIN_ADDRESS"]:
+    config["jawa_address"] = os.environ["JAWA_PIN_ADDRESS"].rstrip("/")
+with open(path, "w") as handle:
+    json.dump(config, handle)
+PYEOF
+  chown jawa "$installDir/jawa/data/server.json"
+  chmod 600 "$installDir/jawa/data/server.json"
   #pip install --upgrade uwsgi
   /usr/bin/clear
   /bin/echo -ne '[##################      ](90%) Creating jawa service in systemd... '

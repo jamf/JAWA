@@ -154,6 +154,9 @@ class JawaEnv:
 def jawa_env(tmp_path, monkeypatch):
     """Point every module-level path constant at a temp directory."""
     env = JawaEnv(tmp_path)
+    # Many tests sign in against an unpinned server.json; the one that
+    # checks the refusal removes this.
+    monkeypatch.setenv("JAWA_ALLOW_UNPINNED_LOGIN", "1")
     env.data_dir.mkdir()
     env.scripts_dir.mkdir()
     env.files_dir.mkdir(parents=True)

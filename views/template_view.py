@@ -49,7 +49,7 @@ from werkzeug.utils import secure_filename
 
 from bin import data_store, logger
 from bin.data_store import get_jawa_address, get_webhook_schemas
-from bin.tokens import get_token, validate_token
+from bin.tokens import fresh_token
 from bin.view_modifiers import response
 from views._type_handlers.base import AutomationError
 from views._type_handlers.jamf_handler import (
@@ -778,8 +778,7 @@ def enable_template(slug: str) -> Union[Response, str]:
             request.form.get("credential_set", ""),
         )
 
-        if not validate_token(session.get("expires")):
-            get_token()
+        fresh_token()
 
         notice, instructions, enablement, extra_xml = _smart_group_info(
             event
@@ -951,8 +950,7 @@ def import_template() -> Union[Response, Dict[str, Any]]:
                 link_text="Go to Setup",
             )
 
-        if not validate_token(session.get("expires")):
-            get_token()
+        fresh_token()
 
         notice, instructions, enablement, extra_xml = _smart_group_info(
             event

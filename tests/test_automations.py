@@ -1,8 +1,10 @@
 """Automation create/edit/delete success flow: PRG + one-shot flash."""
 
 import io
+import json
 
 import requests
+from datetime import datetime, timedelta, timezone
 
 
 def _custom_create_data():
@@ -172,3 +174,97 @@ def test_auth_xml_survives_an_ordinary_ampersand():
     )
     assert "<username>a&amp;b</username>" in xml
     assert "<password>p&lt;q&gt;r</password>" in xml
+
+
+def _jamf_automation(jawa_env, event="SmartGroupComputerMembershipChange"):
+    jawa_env.add_webhook(
+        {
+            "name": "GroupHook",
+            "tag": "jamfpro",
+            "url": "https://jamf.example.test",
+            "event": event,
+            "jamf_id": "77",
+            "script": str(jawa_env.scripts_dir / "g.sh"),
+            "api_key": "null",
+        }
+    )
+
+
+def _jamf_create_form(name="refresh-hook"):
+    return {
+        "webhook_name": name,
+        "event": "ComputerAdded",
+        "description": "refresh test",
+        "choice": "none",
+        "new_file": (
+            io.BytesIO(b"#!/usr/bin/env python3\nprint('hi')\n"),
+            "hook.py",
+        ),
+    }
+
+
+def test_jamf_create_refreshes_an_expired_token(
+    logged_in_client, jawa_env, jamf_fake_http, monkeypatch
+):
+    Resp, default_post = jamf_fake_http
+    sent = []
+
+    def _post(url, **kwargs):
+        if url.endswith("/api/v1/auth/keep-alive"):
+            return Resp({"token": "FRESH",
+                         "expires": "2099-01-01T00:00:00.000+0000"})
+        if "/JSSResource/webhooks/id/0" in url:
+            sent.append(kwargs["headers"]["Authorization"])
+            return Resp({}, status_code=201,
+                        text="<webhook><id>5</id></webhook>")
+        return default_post(url, **kwargs)
+
+    monkeypatch.setattr(requests, "post", _post)
+    soon = (datetime.now(timezone.utc) + timedelta(seconds=10)).strftime(
+        "%Y-%m-%dT%H:%M:%S.000%z"
+    )
+    with logged_in_client.session_transaction() as sess:
+        sess["token"] = "EXPIRING"
+        sess["expires"] = soon
+    resp = logged_in_client.post(
+        "/automations/jamfpro/new",
+        data=_jamf_create_form(),
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 302
+    assert sent == ["Bearer FRESH"]
+
+
+def test_jamf_delete_keeps_record_when_jamf_refuses(
+    logged_in_client, jawa_env, monkeypatch
+):
+    _jamf_automation(jawa_env)
+    script = jawa_env.scripts_dir / "g.sh"
+    script.write_text("#!/bin/sh\n")
+
+    class _Refused:
+        status_code = 401
+        text = "unauthorized"
+
+    monkeypatch.setattr(requests, "put", lambda *a, **k: _Refused())
+    resp = logged_in_client.post("/automations/jamfpro/GroupHook/delete")
+    assert resp.status_code == 200
+    assert b"Jamf Pro refused to disable the webhook" in resp.data
+    names = [w["name"] for w in json.loads(jawa_env.webhooks_file.read_text())]
+    assert "GroupHook" in names
+    assert script.exists()
+
+
+def test_jamf_delete_keeps_record_when_jamf_is_unreachable(
+    logged_in_client, jawa_env, monkeypatch
+):
+    _jamf_automation(jawa_env)
+
+    def _boom(*_a, **_k):
+        raise requests.exceptions.ConnectionError("down")
+
+    monkeypatch.setattr(requests, "put", _boom)
+    resp = logged_in_client.post("/automations/jamfpro/GroupHook/delete")
+    assert b"Could not reach Jamf Pro" in resp.data
+    names = [w["name"] for w in json.loads(jawa_env.webhooks_file.read_text())]
+    assert "GroupHook" in names

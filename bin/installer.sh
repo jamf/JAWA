@@ -342,7 +342,7 @@ ensurePythonInterpreter() {
       jawaPythonBin="python3.12"
       ;;
     *)
-      # Ubuntu: python3 was already verified >= floor by checkPythonFloor.
+      # checkPythonFloor refuses this host if python3 is below the floor.
       jawaPythonBin="python3"
       ;;
   esac
@@ -399,18 +399,18 @@ checkPythonFloor() {
   # the 85% mark -- after cleaninstall had already removed the operator's
   # working install -- so a 3.8 host was left with a dead service behind a
   # "[########################](100%) Installation complete!" message.
-  if [ ! -x /usr/bin/python3 ]; then
-    /bin/echo "Python 3 is not present at /usr/bin/python3."
+  if ! command -v "$jawaPythonBin" >/dev/null 2>&1; then
+    /bin/echo "$jawaPythonBin is not present."
     /bin/echo "JAWA requires Python 3.${jawaMinPyMinor} or later. Install it and run this installer again."
     /bin/echo "Your existing JAWA install, if any, has NOT been modified. Exiting..."
     exit 2
   fi
   local pyMajor pyMinor pyVer
-  pyVer=$(/usr/bin/python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)
+  pyVer=$("$jawaPythonBin" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)
   pyMajor=${pyVer%%.*}
   pyMinor=${pyVer##*.}
   if [ -z "$pyMajor" ] || [ -z "$pyMinor" ]; then
-    /bin/echo "Could not determine the Python version reported by /usr/bin/python3."
+    /bin/echo "Could not determine the Python version reported by $jawaPythonBin."
     /bin/echo "Your existing JAWA install, if any, has NOT been modified. Exiting..."
     exit 2
   fi
@@ -486,6 +486,9 @@ warnIfCertStale() {
 }
 
 install() {
+  # Resolve the interpreter first so the floor check sees python3.12 on
+  # RHEL-family hosts. Installing it does not touch an existing JAWA install.
+  ensurePythonInterpreter
   checkPythonFloor
   /usr/bin/clear
   # Variables
@@ -681,10 +684,6 @@ install() {
   fi
   # Install Packages
   installPackages # 26-50%
-
-  # RHEL-family hosts may need python3.12 installed and preferred before the
-  # venv step; on Ubuntu jawaPythonBin resolves to plain python3.
-  ensurePythonInterpreter
 
   # Firewall
   /usr/bin/clear

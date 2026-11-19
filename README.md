@@ -439,8 +439,8 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
   Ubuntu 24.04+ (or RHEL/Rocky 9.4+) and Python 3.12+ — a deliberate OS-level upgrade for
   existing hosts, not an in-place dependency refresh. See the platform note below and plan
   the OS migration (snapshot, `do-release-upgrade`, re-run the installer) accordingly.
-- **v3.2 is the last release that can migrate a JAWA v2 install.** The v2 upgrade path works in
-  this release and is unchanged. If you are still on v2, move to v3.2 before upgrading further.
+- **JAWA 4.0 cannot upgrade a JAWA v2 install.** The installer stops on a v2 host. Upgrade it to
+  JAWA 3.1.1 first, then run the 4.0 installer.
 - **Template webhooks you previously enabled will begin firing.** A bug meant enabled and
   imported template webhooks silently never triggered. Template webhooks run **without
   authentication by default** — anyone who knows the hook name can trigger one. Review your
@@ -469,7 +469,7 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
   `data/` directory across an upgrade, which protects your automations and settings, but it also
   means the bundled template scripts and the webhook event catalog stay at the version you first
   installed. A fresh install gets the current copies.
-- JAWA now installs Pillow and qrcode (for the Brander template). Re-run the installer, or
+- JAWA now installs Pillow 13 and qrcode (for the Brander template). Re-run the installer, or
   `venv/bin/python -m pip install -r requirements.txt`, when upgrading in place.
 - **Okta automations stop running until you re-create them.** Okta event hooks were registered
   without a working secret, so anyone could trigger them and real Okta deliveries were rejected.
@@ -521,6 +521,7 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
       chrome, clear in-progress, done and error states, a back-to-start button, and a per-device
       cooldown that admins can reset. Admins can preview the page, rotate a leaked token, give
       each web clip its own label and icon, and re-create a web clip profile Jamf Pro rejected.
+    - **Brander guide** for setup, a first test and template changes: [docs/BRANDER.md](docs/BRANDER.md)
     - **Brander template store**: upload wallrender templates, see them as cards with a preview,
       pick one per kind of device, check fit, and preview on a real device before sending.
       Delivery checks the device first, rate-limits, and only shows personal fields when both
@@ -576,6 +577,9 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
     - The "Setup Required" error page links directly to Setup.
     - Saving Setup no longer drops settings the form does not post, such as the Tap Action
       brand, and a first save keeps the admin list and failure alert URL.
+    - Automations with API-key authentication now set Header Authentication on their Jamf Pro
+      webhook. Before, the webhook had no authentication and every delivery got a 401. Re-save
+      an affected automation, or set Header Authentication on its webhook in Jamf Pro.
     - Imported templates get authentication choices, preselecting an API key, instead of always
       running without authentication.
     - Renaming an automation applies the name rules and the duplicate check, and an import can

@@ -18,7 +18,7 @@ here.
 ## Templates (optional)
 
 Instead of the layout above, Brander can render a **wallpaper template**: a
-JSON file designed in EWOK and rendered by the same code (`wallrender`,
+JSON file rendered by the same code (`wallrender`,
 vendored and hash-pinned in `data/workflows/lib`), so the preview is what the
 device receives.
 
@@ -30,8 +30,8 @@ device receives.
     the centre 75%, which stays visible in both portrait and landscape.
     iOS scales a wallpaper to fill the screen and crops the rest, so a
     portrait iPhone template loses its top and bottom on an iPad.
-- Templates uploaded to JAWA's **template store** (a `.brander.json` package
-  exported from EWOK) are used by setting "Wallpaper template" to
+- Templates uploaded to JAWA's **template store** (a `.brander.json` package,
+  see `docs/BRANDER.md`) are used by setting "Wallpaper template" to
   `store:<name>`. Brander renders that template's **active** version with its
   own assets, so activating a new version takes effect on the next tap.
 - A **store set** sends each kind of device its own stored template:
@@ -48,7 +48,7 @@ device receives.
   `{{device_name}}`, `{{serial_number}}`, `{{asset_tag}}`, `{{jss_id}}` and
   `{{location.building}}`. Anything else renders empty. Nothing from the
   request that triggered Brander is ever printed.
-- A template with **role variants** (designed in EWOK) names an extension
+- A template with **role variants** names an extension
   attribute, such as "Jamf Setup Role". Brander reads that one attribute from
   the verified record and passes it as the role, so each role can have its own
   background and wording. No other extension attribute is read.

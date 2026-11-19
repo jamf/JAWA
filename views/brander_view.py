@@ -2,7 +2,7 @@
 
 Scoped to the Jamf Pro tenant of the logged-in session, and audited with
 the logged-in admin's name. Packages are .brander.json files exported
-from EWOK; see bin/brander_store.py for the format and the checks.
+as .brander.json packages; see bin/brander_store.py for the format and the checks.
 """
 
 import base64
@@ -500,7 +500,7 @@ def preview() -> Union[Response, str, tuple]:
 @login_required
 def ea_names() -> Union[Response, tuple]:
     """The tenant's mobile device extension attribute names (names only,
-    never values) for EWOK's role attribute picker."""
+    never values) for choosing a template's role attribute."""
     try:
         resp = _jamf_get("mobiledeviceextensionattributes")
         if resp.status_code >= 400:

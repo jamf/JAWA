@@ -26,9 +26,9 @@
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-"""Self-serve automations: triggered by a person tapping a web clip on
-the managed device. See README.md, "Self-serve automations", and the
-device-facing receiver in webhook/selfserve_receiver.py.
+"""Tap action automations: triggered by a person tapping a web clip on
+the managed device. See README.md, "Tap action automations", and the
+device-facing receiver in webhook/tap_receiver.py.
 """
 
 import base64
@@ -62,7 +62,7 @@ from views._type_handlers.jamf_handler import (
     xml_escape,
 )
 
-logthis = logger.setup_child_logger("jawa", "selfserve_handler")
+logthis = logger.setup_child_logger("jawa", "tap_handler")
 
 PAGE_FIELDS = (
     "page_title",
@@ -103,14 +103,14 @@ def service_url(jawa_address: str, name: str, token: str) -> str:
     """
     display = ";".join(f"{v}=${v}" for v in DISPLAY_VARIABLES)
     return (
-        f"{jawa_address.rstrip('/')}/selfserve/{name}"
+        f"{jawa_address.rstrip('/')}/tap/{name}"
         f"?token={token};id=$JSSID;udid=$UDID;{display}"
     )
 
 
 _PLACEHOLDER_RE = re.compile(r"\s*\{[A-Za-z0-9_]+\}\s*")
 _PRE_PUNCT_RE = re.compile(r"\s+([?!.,:;])")
-PROFILE_PREFIX = "JAWA Self-Serve: "
+PROFILE_PREFIX = "JAWA Tap Action: "
 PROFILE_ENDPOINT = "/JSSResource/mobiledeviceconfigurationprofiles"
 
 
@@ -126,7 +126,7 @@ def _label(entry: Dict[str, Any]) -> str:
     text = _PLACEHOLDER_RE.sub(" ", entry.get("page_title", ""))
     text = _PRE_PUNCT_RE.sub(r"\1", text)
     text = " ".join(text.split())
-    return text or entry.get("name", "Self-Serve")
+    return text or entry.get("name", "Tap Action")
 
 
 def _display_name(entry: Dict[str, Any]) -> str:
@@ -161,7 +161,7 @@ _REPO_ROOT = os.path.dirname(
 WEBCLIP_ICON = os.path.join(_REPO_ROOT, "static", "img", "webclip-icon.png")
 
 
-ICON_DIR = os.path.join(_REPO_ROOT, "data", "selfserve_icons")
+ICON_DIR = os.path.join(_REPO_ROOT, "data", "tap_icons")
 
 
 @functools.lru_cache(maxsize=1)
@@ -251,7 +251,7 @@ def _require_webclip_label(form: Mapping[str, Any]) -> str:
 def build_webclip_plist(entry: Dict[str, Any], url: str) -> str:
     name = entry["name"]
     profile_uuid, clip_uuid = _payload_uuids(entry)
-    base_id = f"com.jamf.jawa.selfserve.{name}"
+    base_id = f"com.jamf.jawa.tap.{name}"
     payload = {
         "PayloadContent": [
             {
@@ -260,7 +260,7 @@ def build_webclip_plist(entry: Dict[str, Any], url: str) -> str:
                 "IsRemovable": False,
                 "Label": _label(entry),
                 "PayloadDescription": (
-                    "Configures a JAWA self-serve web clip"
+                    "Configures a JAWA Tap Action web clip"
                 ),
                 "PayloadDisplayName": "Web Clip",
                 "PayloadIdentifier": f"{base_id}.webclip",
@@ -288,7 +288,7 @@ def build_profile_xml(entry: Dict[str, Any], url: str) -> str:
     text, which is how Jamf Pro's Classic API takes custom profiles."""
     name = xml_escape(_display_name(entry))
     description = xml_escape(
-        f"Created by JAWA for the self-serve automation "
+        f"Created by JAWA for the Tap Action automation "
         f'"{entry["name"]}". Scope it to the devices that should show '
         "the web clip."
     )
@@ -487,7 +487,7 @@ def build_service_entry(
     session_data: Dict[str, Any],
     description: str = "",
 ) -> Dict[str, Any]:
-    """The full self-serve record, validated, with a fresh token and no
+    """The full Tap Action record, validated, with a fresh token and no
     Jamf Pro profile yet (Task 4 fills jamf_id/profile_status)."""
     validate_webhook_name(name)
     family = _require_device_family(form)
@@ -496,7 +496,7 @@ def build_service_entry(
     label = _require_webclip_label(form)
     entry = {
         "name": name,
-        "tag": "selfserve",
+        "tag": "tap",
         "url": str(session_data.get("url", "")),
         "jawa_admin": str(session_data.get("username", "")),
         "script": script_path,
@@ -524,7 +524,7 @@ def _cooldown_label(automation: Dict[str, Any]) -> str:
 
 
 BRANDER_SOURCE = os.path.join(
-    _REPO_ROOT, "data", "workflows", "scripts", "self_serve_brander.py"
+    _REPO_ROOT, "data", "workflows", "scripts", "tap_brander.py"
 )
 
 
@@ -556,9 +556,9 @@ def _apply_brander_settings(script: str, form: Mapping[str, Any]) -> str:
     return note
 
 
-class SelfServeHandler(AutomationHandler):
-    tag = "selfserve"
-    display_name = "Self-Serve"
+class TapActionHandler(AutomationHandler):
+    tag = "tap"
+    display_name = "Tap Action"
     summary = (
         "Puts a button on managed iPads and iPhones that runs a script for "
         "that device."
@@ -585,7 +585,7 @@ class SelfServeHandler(AutomationHandler):
             raise AutomationError(
                 "Setup Required",
                 "Configure your JAWA address before creating a "
-                "self-serve automation.",
+                "Tap Action automation.",
                 link="/setup",
                 link_text="Go to Setup",
             )
@@ -607,7 +607,7 @@ class SelfServeHandler(AutomationHandler):
         register_profile(entry, session_data, wanted_profile)
         url = service_url(jawa_address, name, entry["token"])
         logthis.info(
-            f"{session_data.get('username')} created self-serve "
+            f"{session_data.get('username')} created Tap Action "
             f"automation {name}."
         )
         extra_notice = "Web clip URL for the configuration profile:"
@@ -624,9 +624,9 @@ class SelfServeHandler(AutomationHandler):
             )
         return {
             "entry": entry,
-            "success_msg": "New self-serve automation created:",
+            "success_msg": "New Tap Action automation created:",
             "new_here": name,
-            "new_link": f"/automations/selfserve/{name}",
+            "new_link": f"/automations/tap/{name}",
             "extra_notice": extra_notice,
             "custom_header": {"URL": url},
         }
@@ -669,7 +669,7 @@ class SelfServeHandler(AutomationHandler):
             existing["token"] = mint_token()
             logthis.info(
                 f"{session_data.get('username')} replaced the link token "
-                f"of self-serve automation {existing['name']}."
+                f"of Tap Action automation {existing['name']}."
             )
         if form.get("description"):
             existing["description"] = form.get("description")
@@ -720,12 +720,12 @@ class SelfServeHandler(AutomationHandler):
 
         save_all_webhooks(all_items)
         logthis.info(
-            f"{session_data.get('username')} edited self-serve "
+            f"{session_data.get('username')} edited Tap Action "
             f"automation {existing['name']}."
         )
         result = {
             "success_msg": (
-                f"Edited self-serve automation {existing['name']}.{brander_note}"
+                f"Edited Tap Action automation {existing['name']}.{brander_note}"
             )
         }
         if extra_notice:

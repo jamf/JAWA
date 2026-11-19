@@ -196,9 +196,9 @@ event_data = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
 
 Timed automations run under the system's cron. Cron calls `bin/run_cron.py <name>`, which runs your script, writes each line of its output to the JAWA log as `<name> - <line>`, and logs a non-zero exit as an error. A non-zero exit also sends the chat failure alert if one is set on Setup, the same message a failing webhook run sends, at most once per automation every 15 minutes (the last alert time per automation is kept in `data/cron_alerts.json`, because each timed run is a new process). The runner exits with your script's exit code; the alert never changes it. When JAWA starts, it updates timed automations made by older versions to use the runner.
 
-### Self-serve automations (web clip)
+### Tap action automations (web clip)
 
-A self-serve automation is a fifth trigger type. A person taps a web clip on their own managed
+A Tap Action automation is a fifth trigger type. A person taps a web clip on their own managed
 iOS or iPadOS device; JAWA shows a confirmation page describing what will happen, and only when
 they tap the confirm button does JAWA run the script — synchronously, against that device — and
 show a success or failure page.
@@ -208,12 +208,12 @@ show a success or failure page.
 The web clip's URL points at JAWA:
 
 ```
-https://<jawa>/selfserve/<service-name>?token=<service token>;id=$JSSID;udid=$UDID;DEVICENAME=$DEVICENAME;SERIALNUMBER=$SERIALNUMBER
+https://<jawa>/tap/<service-name>?token=<service token>;id=$JSSID;udid=$UDID;DEVICENAME=$DEVICENAME;SERIALNUMBER=$SERIALNUMBER
 ```
 
 Parameters are separated with `;` rather than `&` on purpose: Jamf Pro refuses to save a web clip
 profile whose URL contains an ampersand in any encoding (it answers `409 Unable to update the
-database`). JAWA accepts either separator on `/selfserve/`, so a hand-built profile may use `;` too.
+database`). JAWA accepts either separator on `/tap/`, so a hand-built profile may use `;` too.
 
 `token`, `id`, and `udid` are reserved and required. `token` is the automation's per-service
 token; `id` and `udid` are Jamf Pro payload variables (`$JSSID`, `$UDID`), substituted per device
@@ -228,8 +228,8 @@ The token is the same for every device carrying the profile, so treat it as a ga
 per-device credential. The script itself must fetch the device by `id` from Jamf Pro and refuse
 if the UDID does not match — the two bundled templates do this. Nothing runs on the GET request
 that loads the confirmation page, only the confirmation form's POST runs the script, and
-`/hooks/<name>` refuses self-serve automations, which can only be triggered through
-`/selfserve/<name>`.
+`/hooks/<name>` refuses Tap Action automations, which can only be triggered through
+`/tap/<name>`.
 
 **The payload contract**
 
@@ -239,7 +239,7 @@ the query string:
 ```json
 {
   "webhook": {
-    "webhookEvent": "SelfServe",
+    "webhookEvent": "TapAction",
     "name": "<service-name>",
     "eventTimestamp": <int ms>
   },
@@ -257,20 +257,20 @@ the query string:
 
 **Jamf Pro side**
 
-Creating a self-serve automation — or enabling one of the bundled self-serve templates — can
+Creating a Tap Action automation — or enabling one of the bundled Tap Action templates — can
 create the web clip configuration profile for you, unscoped; scope it to the right devices in
 Jamf Pro afterward. If Jamf Pro refuses to create the profile, the automation's detail page shows
 the web clip URL so you can build the profile by hand.
 
 **Bundled templates**
 
-- **Return to Service (Self-Serve).** Lets the person holding a shared iPad or iPhone erase it
+- **Return to Service (Tap Action).** Lets the person holding a shared iPad or iPhone erase it
   and re-enroll it themselves, with no IT touch. The Wi-Fi the device rejoins comes from an
   existing Wi-Fi configuration profile in Jamf Pro, named when you enable the template.
-- **Brander (Self-Serve).** Lets the person holding an iPad or iPhone apply a branded wallpaper
+- **Brander (Tap Action).** Lets the person holding an iPad or iPhone apply a branded wallpaper
   showing the device's name, serial, location, and a QR code of its Jamf Pro id; it needs Pillow
   and qrcode, which the installer installs from `requirements.txt`.
-- **Brander (Asset Tag Watch).** Not self-serve: a timed template (every 15 minutes by default)
+- **Brander (Asset Tag Watch).** Not Tap Action: a timed template (every 15 minutes by default)
   that runs the Brander above for any device whose asset tag or Brander extension attribute
   changed, so a re-tagged device's wallpaper keeps up. See
   `data/workflows/assets/brander/README.md`.
@@ -508,11 +508,11 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
     - Script Preview and Download Script now show the real substitution tokens rather than
       generic placeholder text, so a downloaded script is self-documenting.
     - Resource Files listing gained Size and Type columns.
-    - **Self-serve automations.** A web clip on a managed iOS/iPadOS device can trigger a JAWA
+    - **Tap action automations.** A web clip on a managed iOS/iPadOS device can trigger a JAWA
       automation against that device, with a confirmation page, a per-service token and a UDID
-      cross-check. Two templates ship on it: Return to Service (Self-Serve) and Brander
-      (Self-Serve). See "Self-serve automations (web clip)".
-    - Self-serve pages of their own for device users: organisation name instead of the console's
+      cross-check. Two templates ship on it: Return to Service (Tap Action) and Brander
+      (Tap Action). See "Tap action automations (web clip)".
+    - Tap action pages of their own for device users: organisation name instead of the console's
       chrome, clear in-progress, done and error states, a back-to-start button, and a per-device
       cooldown that admins can reset. Admins can preview the page, rotate a leaked token, give
       each web clip its own label and icon, and re-create a web clip profile Jamf Pro rejected.
@@ -569,13 +569,13 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
     - Fixed resource file deletion, added 403/405/500 error pages, and hardened receiver edge
       cases including malformed form payloads.
     - The "Setup Required" error page links directly to Setup.
-    - Saving Setup no longer drops settings the form does not post, such as the self-serve
+    - Saving Setup no longer drops settings the form does not post, such as the Tap Action
       brand, and a first save keeps the admin list and failure alert URL.
     - Imported templates get authentication choices, preselecting an API key, instead of always
       running without authentication.
     - Renaming an automation applies the name rules and the duplicate check, and an import can
       no longer reuse an existing automation's name or overwrite its script.
-    - The self-serve rate limit uses the real client address instead of `X-Forwarded-For`.
+    - The Tap Action rate limit uses the real client address instead of `X-Forwarded-For`.
     - Creating, editing or deleting a Jamf Pro automation after the token expires no longer sends
       the expired token. A delete that Jamf Pro refuses keeps the JAWA record.
     - Sign-in to an unresponsive Jamf Pro server times out after 30 seconds.

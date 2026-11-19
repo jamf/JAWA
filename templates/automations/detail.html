@@ -78,21 +78,21 @@
         </div>
         {% endif %}
 
-        {% if automation.jamf_id and auto_type == 'selfserve' %}
+        {% if automation.jamf_id and auto_type == 'tap' %}
         <div class="overflow-auto text-break" style="max-height: 10vh">
             <b>View in Jamf</b>: <a href="{{ session_url }}/mobileDeviceConfigurationProfiles.html?id={{ automation.jamf_id }}" target="_blank">Open the web clip profile in Jamf Pro</a>
         </div>
         {% endif %}
 
-        {% if auto_type == 'selfserve' %}
+        {% if auto_type == 'tap' %}
         <div class="text-center mt-3">
-            <a href="/automations/selfserve/{{ automation.name }}/preview"
+            <a href="/automations/tap/{{ automation.name }}/preview"
                class="btn btn-outline-secondary btn-sm">Preview device pages</a>
         </div>
         {% endif %}
 
-        {% if auto_type == 'selfserve' and automation.cooldown_minutes %}
-        <form method="POST" action="/automations/selfserve/{{ automation.name }}/reset-cooldowns"
+        {% if auto_type == 'tap' and automation.cooldown_minutes %}
+        <form method="POST" action="/automations/tap/{{ automation.name }}/reset-cooldowns"
               class="text-center mt-3">
             <button type="submit" class="btn btn-outline-secondary btn-sm"
                     title="Let every device run this service again now">

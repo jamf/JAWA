@@ -178,7 +178,7 @@ def test_any_event_template_never_renders_the_word_none(
         wf["slug"]
         for wf in CATALOG
         if wf.get("trigger_event") is None
-        and wf.get("trigger_type") not in ("selfserve", "cron")
+        and wf.get("trigger_type") not in ("tap", "cron")
     )
     for path in (
         "/templates",
@@ -212,7 +212,7 @@ def test_enabling_an_any_event_template_stores_no_none_event(
         wf["slug"]
         for wf in CATALOG
         if wf.get("trigger_event") is None
-        and wf.get("trigger_type") not in ("selfserve", "cron")
+        and wf.get("trigger_type") not in ("tap", "cron")
     )
     form = enable_form(slug, webhook_name="any-hook")
     logged_in_client.post(f"/templates/{slug}/enable", data=form)
@@ -487,7 +487,7 @@ def test_whitespace_value_is_kept_when_there_is_no_default():
 
 
 def test_enable_form_prefills_param_defaults(logged_in_client, jawa_env):
-    response = logged_in_client.get("/templates/self-serve-brander/enable")
+    response = logged_in_client.get("/templates/tap-brander/enable")
     html = response.get_data(as_text=True)
     assert 'id="param-template_path"' in html
     assert 'value="legacy"' in html

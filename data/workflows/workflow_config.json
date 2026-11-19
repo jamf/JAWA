@@ -275,15 +275,15 @@
         "order": 7
     },
     {
-        "slug": "self-serve-return-to-service",
-        "title": "Return to Service (Self-Serve)",
+        "slug": "tap-return-to-service",
+        "title": "Return to Service (Tap Action)",
         "description": "Let the person holding a shared iPad or iPhone reset it themselves: a web clip erases the device and re-enrolls it onto your Wi-Fi with no IT touch.",
         "category": "provisioning",
-        "trigger_type": "selfserve",
+        "trigger_type": "tap",
         "trigger_event": null,
-        "script_file": "self_serve_return_to_service.py",
+        "script_file": "tap_return_to_service.py",
         "hook_name": "return-to-service",
-        "selfserve": {
+        "tap": {
             "device_family": "mobile",
             "page_title": "Reset {DEVICENAME}?",
             "page_description": "This device will erase everything on it and set itself up again automatically. Make sure nothing on it still needs saving.",
@@ -336,19 +336,19 @@
             {"code": 24, "meaning": "Wi-Fi configuration profile not found in Jamf Pro"},
             {"code": 25, "meaning": "Named profile carries no Wi-Fi payload"}
         ],
-        "tags": ["self-serve", "web-clip", "mobile", "erase", "return-to-service"],
+        "tags": ["tap-action", "web-clip", "mobile", "erase", "return-to-service"],
         "order": 9
     },
     {
-        "slug": "self-serve-brander",
-        "title": "Brander (Self-Serve)",
+        "slug": "tap-brander",
+        "title": "Brander (Tap Action)",
         "description": "Let the person holding an iPad or iPhone apply a branded wallpaper showing the device's name, serial, location and a QR code of its Jamf Pro id.",
         "category": "provisioning",
-        "trigger_type": "selfserve",
+        "trigger_type": "tap",
         "trigger_event": null,
-        "script_file": "self_serve_brander.py",
+        "script_file": "tap_brander.py",
         "hook_name": "brand-device",
-        "selfserve": {
+        "tap": {
             "device_family": "mobile",
             "page_title": "Brand {DEVICENAME}",
             "page_description": "Apply the standard wallpaper with this device's identifying details.",
@@ -453,7 +453,7 @@
             {"code": 34, "meaning": "Wallpaper is over the size budget even as JPEG"},
             {"code": 42, "meaning": "The device's Brander extension attribute is Off"}
         ],
-        "tags": ["self-serve", "web-clip", "mobile", "wallpaper", "branding"],
+        "tags": ["tap-action", "web-clip", "mobile", "wallpaper", "branding"],
         "order": 10
     },
     {
@@ -493,7 +493,7 @@
             },
             {
                 "key": "brander_script",
-                "label": "Brander script path (the installed Brander (Self-Serve) automation's script)",
+                "label": "Brander script path (the installed Brander (Tap Action) automation's script)",
                 "placeholder": "/usr/local/jawa/scripts/brand-device.py",
                 "default": "/usr/local/jawa/scripts/brand-device.py",
                 "token": "\"__JAWA_BRANDER_SCRIPT__\"",

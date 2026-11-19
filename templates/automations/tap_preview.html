@@ -11,9 +11,9 @@
 
 <div class="container">
     <div class="text-center mb-3">
-        <a href="/automations/selfserve/{{ automation.name }}" class="filter-btn">Back to detail</a>
+        <a href="/automations/tap/{{ automation.name }}" class="filter-btn">Back to detail</a>
         {% for key, label in states %}
-        <a href="/automations/selfserve/{{ automation.name }}/preview?state={{ key }}"
+        <a href="/automations/tap/{{ automation.name }}/preview?state={{ key }}"
            class="filter-btn {% if key == state %}active{% endif %}"
            {% if key == state %}aria-current="page"{% endif %}>{{ label }}</a>
         {% endfor %}

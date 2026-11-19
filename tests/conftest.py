@@ -189,14 +189,14 @@ def jawa_env(tmp_path, monkeypatch):
     scripts = str(env.scripts_dir)
     log_file = str(env.log_file)
 
-    from webhook import selfserve_receiver
+    from webhook import tap_receiver
 
-    selfserve_receiver.reset_rate_limits()  # per-process state, per test
+    tap_receiver.reset_rate_limits()  # per-process state, per test
     monkeypatch.setattr(data_store, "WEBHOOKS_FILE", webhooks)
     monkeypatch.setattr(
         data_store,
         "COOLDOWNS_FILE",
-        str(env.data_dir / "selfserve_cooldowns.json"),
+        str(env.data_dir / "tap_cooldowns.json"),
     )
     monkeypatch.setattr(data_store, "CRON_FILE", cron)
     monkeypatch.setattr(
@@ -299,8 +299,8 @@ def _build_enable_form(slug, **overrides):
     workflow = next(wf for wf in catalog if wf["slug"] == slug)
 
     form = {"webhook_name": slug}
-    # Self-serve and timed templates have no Jamf event to pick.
-    no_event = workflow.get("trigger_type") in ("selfserve", "cron")
+    # Tap action and timed templates have no Jamf event to pick.
+    no_event = workflow.get("trigger_type") in ("tap", "cron")
     if not workflow.get("trigger_event") and not no_event:
         with open(
             os.path.join(REPO_ROOT, "data", "webhook_schemas.json"),

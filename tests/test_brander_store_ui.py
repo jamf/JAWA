@@ -106,9 +106,9 @@ def test_enable_form_suggests_stored_and_shipped_templates(
     logged_in_client, jawa_env
 ):
     upload(logged_in_client, package())
-    body = logged_in_client.get(
-        "/templates/self-serve-brander/enable"
-    ).get_data(as_text=True)
+    body = logged_in_client.get("/templates/tap-brander/enable").get_data(
+        as_text=True
+    )
     assert 'list="templatePathOptions"' in body
     for option in (
         "legacy",

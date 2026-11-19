@@ -49,7 +49,7 @@ from bin.auth import login_required
 from bin.data_store import (
     add_cron,
     add_webhook,
-    clear_selfserve_cooldowns,
+    clear_tap_cooldowns,
     clear_runs,
     rename_runs,
     get_all_crons,
@@ -263,8 +263,8 @@ def detail(auto_type: str, name: str) -> Union[Response, str]:
         _remember_jamf_enabled(automation, jamf_state)
 
     webclip = None
-    if auto_type == "selfserve":
-        from views._type_handlers.selfserve_handler import webclip_preview
+    if auto_type == "tap":
+        from views._type_handlers.tap_handler import webclip_preview
 
         webclip = webclip_preview(automation)
 
@@ -573,23 +573,19 @@ def send_sample(auto_type: str, name: str) -> Union[Response, str]:
     )
 
 
-@blueprint.route(
-    "/automations/selfserve/<name>/reset-cooldowns", methods=["POST"]
-)
+@blueprint.route("/automations/tap/<name>/reset-cooldowns", methods=["POST"])
 @login_required
 def reset_cooldowns(name: str) -> Response:
     """Admin override: let every device run this service again now."""
     automation = get_webhook_by_name(name)
-    if not automation or automation.get("tag") != "selfserve":
+    if not automation or automation.get("tag") != "tap":
         abort(404)
-    clear_selfserve_cooldowns(automation["name"])
+    clear_tap_cooldowns(automation["name"])
     logthis.info(
-        f"{session.get('username')} reset the cooldowns for self-serve "
+        f"{session.get('username')} reset the cooldowns for Tap Action "
         f"automation {automation['name']}."
     )
-    return redirect(
-        url_for("automations.detail", auto_type="selfserve", name=name)
-    )
+    return redirect(url_for("automations.detail", auto_type="tap", name=name))
 
 
 PREVIEW_STATES = (
@@ -600,16 +596,16 @@ PREVIEW_STATES = (
 )
 
 
-@blueprint.route("/automations/selfserve/<name>/preview")
+@blueprint.route("/automations/tap/<name>/preview")
 @login_required
-def preview_selfserve(name: str) -> str:
+def preview_tap(name: str) -> str:
     """Show the device pages with sample values. Nothing here can run
     the script: the preview pages carry no token, no form action and a
     disabled button."""
-    from webhook import selfserve_receiver as receiver
+    from webhook import tap_receiver as receiver
 
     automation = get_webhook_by_name(name)
-    if not automation or automation.get("tag") != "selfserve":
+    if not automation or automation.get("tag") != "tap":
         abort(404)
     state = request.args.get("state", "confirm")
     if state not in dict(PREVIEW_STATES):
@@ -621,16 +617,16 @@ def preview_selfserve(name: str) -> str:
         "service_name": automation["name"],
     }
     if state in ("confirm", "cooldown"):
-        template = "selfserve/confirm.html"
+        template = "tap/confirm.html"
         context["cooldown"] = (
             receiver.cooldown_message(300) if state == "cooldown" else ""
         )
     else:
-        template = "selfserve/result.html"
+        template = "tap/result.html"
         context["succeeded"] = state == "success"
     device_page = receiver.render_device_page(template, **context)
     return render_template(
-        "automations/selfserve_preview.html",
+        "automations/tap_preview.html",
         automation=automation,
         states=PREVIEW_STATES,
         state=state,
@@ -799,7 +795,7 @@ def _extract_name(auto_type: str, form) -> str:
         "okta": "webhookname",
         "custom": "custom_name",
         "cron": "cron_name",
-        "selfserve": "service_name",
+        "tap": "service_name",
     }
     field = name_fields.get(auto_type, "name")
     return form.get(field, "")

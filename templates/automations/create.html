@@ -66,7 +66,7 @@
     <div class="container">
         <h2>New {{ handler.display_name }}
             {% if auto_type == 'cron' %}Job
-            {%- elif auto_type == 'selfserve' %}Service
+            {%- elif auto_type == 'tap' %}Service
             {%- else %}Webhook{% endif %}</h2>
         <p>Configure and create a new automation.</p>
         <div class="hero-cta">
@@ -82,7 +82,7 @@
           class="form-card" enctype="multipart/form-data">
         <h1>New {{ handler.display_name }}
             {% if auto_type == 'cron' %}Job
-            {%- elif auto_type == 'selfserve' %}Service
+            {%- elif auto_type == 'tap' %}Service
             {%- else %}Webhook{% endif %}</h1>
 
         {% if auto_type == 'jamfpro' %}
@@ -91,8 +91,8 @@
             {% include "automations/_partials/_okta_fields.html" %}
         {% elif auto_type == 'custom' %}
             {% include "automations/_partials/_custom_fields.html" %}
-        {% elif auto_type == 'selfserve' %}
-            {% include "automations/_partials/_selfserve_fields.html" %}
+        {% elif auto_type == 'tap' %}
+            {% include "automations/_partials/_tap_fields.html" %}
         {% elif auto_type == 'cron' %}
             {% include "automations/_partials/_cron_fields.html" %}
         {% endif %}

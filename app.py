@@ -197,10 +197,10 @@ def register_blueprints() -> None:
     from webhook import jawa_receiver
 
     app.register_blueprint(jawa_receiver.blueprint)
-    # Self-serve receiver (device-facing /selfserve/<service-name>)
-    from webhook import selfserve_receiver
+    # Tap action receiver (device-facing /tap/<service-name>)
+    from webhook import tap_receiver
 
-    app.register_blueprint(selfserve_receiver.blueprint)
+    app.register_blueprint(tap_receiver.blueprint)
     # Log view
     from views import log_view
 

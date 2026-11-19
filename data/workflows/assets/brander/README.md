@@ -1,6 +1,6 @@
 # Brander assets
 
-Wallpaper backgrounds for the **Brander (Self-Serve)** template.
+Wallpaper backgrounds for the **Brander (Tap Action)** template.
 
 - `lockscreen-template.png` — default background when no role matches.
 - `null.png` — background when the device has no role set.
@@ -70,14 +70,14 @@ Templates print `{{asset_tag}}`, so a device that is re-tagged keeps showing
 its old tag until it is branded again. The **Brander (Asset Tag Watch)**
 template does that for you. It is a timed automation (every 15 minutes by
 default; change the schedule on its edit page) that reads every mobile device
-from Jamf Pro and runs your installed **Brander (Self-Serve)** script for each
+from Jamf Pro and runs your installed **Brander (Tap Action)** script for each
 device whose asset tag or "Brander" extension attribute changed.
 
-- Enable Brander (Self-Serve) first. Asset Tag Watch runs that script, so the
+- Enable Brander (Tap Action) first. Asset Tag Watch runs that script, so the
   wallpaper settings, templates and checks are the ones it already has. Its
   "Brander script path" setting defaults to
   `/usr/local/jawa/scripts/brand-device.py`, where enabling Brander
-  (Self-Serve) under its default name puts the script. If you named it
+  (Tap Action) under its default name puts the script. If you named it
   something else, the path is on that automation's detail page.
 - The asset tag is the first non-empty of asset tag, barcode 1 and barcode 2.
   `null`, `none`, `n/a` and blank all count as empty.

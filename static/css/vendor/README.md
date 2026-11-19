@@ -6,7 +6,7 @@ are generated files from roster-bridge, which turns the
 The first line of each file names the roster version and a content hash. Do not edit them by hand:
 replace them with newer generated copies.
 
-Only the fork's own pages load them: the self-serve device pages (`templates/selfserve/`) and the
+Only the fork's own pages load them: the Tap Action device pages (`templates/tap/`) and the
 Brander pages (`templates/brander/`). The Jamf console pages keep `main.css` and Bootstrap.
 
 ## Licences

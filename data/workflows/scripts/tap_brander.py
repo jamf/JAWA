@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Brander, started from the device itself.
 
-Trigger: JAWA self-serve (a web clip on the device). Generates a
+Trigger: JAWA Tap Action (a web clip on the device). Generates a
 wallpaper carrying the device's identifying details and a QR code of
 its Jamf Pro id, then sets it on that device with the Wallpaper MDM
 command. The payload names ONE device by id and UDID; the UDID must

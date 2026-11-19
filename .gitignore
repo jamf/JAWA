@@ -162,12 +162,12 @@ data/server.json
 data/credentials.json
 data/cron.json
 data/webhooks.json
-data/selfserve_cooldowns.json
+data/tap_cooldowns.json
 data/cron_alerts.json
 resources/files/
 /scripts/
 data/brander_templates/
-data/selfserve_icons/
+data/tap_icons/
 
 # ignore the generated session key
 data/.secret_key

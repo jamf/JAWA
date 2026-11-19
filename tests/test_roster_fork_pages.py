@@ -1,4 +1,4 @@
-"""The fork's own pages (self-serve and Brander) use the vendored roster
+"""The fork's own pages (Tap Action and Brander) use the vendored roster
 CSS; the Jamf console pages do not load it."""
 
 import os
@@ -6,7 +6,7 @@ import re
 
 import pytest
 
-from tests.test_selfserve_templates import _SERVICE
+from tests.test_tap_templates import _SERVICE
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VENDOR = os.path.join(REPO_ROOT, "static", "css", "vendor")
@@ -49,10 +49,10 @@ def test_brander_pages_load_roster_and_have_no_inline_style(
     assert "rb-btn" in body
 
 
-def test_selfserve_pages_load_roster(client, jawa_env):
+def test_tap_pages_load_roster(client, jawa_env):
     jawa_env.add_webhook(dict(_SERVICE))
     body = client.get(
-        "/selfserve/reset-ipad",
+        "/tap/reset-ipad",
         query_string={"token": _SERVICE["token"], "id": "7", "udid": "UDID-1"},
     ).get_data(as_text=True)
     for href in ROSTER_CSS:
@@ -69,12 +69,12 @@ def test_selfserve_pages_load_roster(client, jawa_env):
         ("cooldown", "rb-alert--warn"),
     ],
 )
-def test_selfserve_results_are_alerts_with_an_icon(
+def test_tap_results_are_alerts_with_an_icon(
     logged_in_client, jawa_env, state, kind
 ):
     jawa_env.add_webhook(dict(_SERVICE))
     body = logged_in_client.get(
-        f"/automations/selfserve/reset-ipad/preview?state={state}"
+        f"/automations/tap/reset-ipad/preview?state={state}"
     ).get_data(as_text=True)
     assert kind in body
     # The icon symbols are inline: the sandboxed preview frame cannot load
@@ -100,9 +100,9 @@ def _css(name):
         return handle.read()
 
 
-def test_selfserve_pages_keep_jawas_own_palette():
-    # Roster supplies the parts; the colours stay JAWA's self-serve palette.
-    css = _css("selfserve.css")
+def test_tap_pages_keep_jawas_own_palette():
+    # Roster supplies the parts; the colours stay JAWA's Tap Action palette.
+    css = _css("tap.css")
     assert "--ss-accent: #1d4ed8;" in css
     assert "--roster-primary-600: var(--ss-accent);" in css
     assert "--rb-surface: var(--ss-bg);" in css

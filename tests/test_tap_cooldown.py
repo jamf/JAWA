@@ -1,4 +1,4 @@
-"""Self-serve cooldown: one run per device per service per N minutes.
+"""Tap action cooldown: one run per device per service per N minutes.
 
 A person can reopen the web clip and tap again at any time, so without a
 limit Brander could be made to send the same wallpaper over and over.
@@ -13,10 +13,10 @@ import json
 import pytest
 
 from bin import data_store
-from webhook import selfserve_receiver
+from webhook import tap_receiver
 import subprocess
 
-from tests.test_selfserve_receiver import (
+from tests.test_tap_receiver import (
     GOOD_QUERY,
     RecordingPopen,
     _make_service,
@@ -34,14 +34,12 @@ def fake_popen(monkeypatch):
 @pytest.fixture()
 def clock(monkeypatch):
     now = {"t": 1_000_000.0}
-    monkeypatch.setattr(selfserve_receiver, "_now", lambda: now["t"])
+    monkeypatch.setattr(tap_receiver, "_now", lambda: now["t"])
     return now
 
 
 def _post(client, **overrides):
-    return client.post(
-        "/selfserve/reset-ipad", data={**GOOD_QUERY, **overrides}
-    )
+    return client.post("/tap/reset-ipad", data={**GOOD_QUERY, **overrides})
 
 
 def test_second_run_inside_the_cooldown_is_refused(
@@ -103,9 +101,9 @@ def test_confirm_page_explains_the_wait_and_disables_the_button(
     _make_service(jawa_env, cooldown_minutes=5)
     _post(client)
     clock["t"] += 150
-    body = client.get(
-        "/selfserve/reset-ipad", query_string=GOOD_QUERY
-    ).get_data(as_text=True)
+    body = client.get("/tap/reset-ipad", query_string=GOOD_QUERY).get_data(
+        as_text=True
+    )
     assert "again in about 3 minutes" in body
     assert "disabled data-cooldown" in body
 
@@ -114,9 +112,9 @@ def test_confirm_page_is_normal_without_a_recent_run(
     client, jawa_env, fake_popen, clock
 ):
     _make_service(jawa_env, cooldown_minutes=5)
-    body = client.get(
-        "/selfserve/reset-ipad", query_string=GOOD_QUERY
-    ).get_data(as_text=True)
+    body = client.get("/tap/reset-ipad", query_string=GOOD_QUERY).get_data(
+        as_text=True
+    )
     assert "disabled data-cooldown" not in body
     assert "again in" not in body
 
@@ -131,15 +129,15 @@ def test_last_minute_is_worded_plainly(client, jawa_env, fake_popen, clock):
 def test_claim_is_atomic(jawa_env):
     """A second claim before the first run finishes is refused, so two
     overlapping requests cannot both run."""
-    assert data_store.claim_selfserve_run("svc", 42, 5, 100.0) == 0
-    assert data_store.claim_selfserve_run("svc", 42, 5, 100.5) > 0
+    assert data_store.claim_tap_run("svc", 42, 5, 100.0) == 0
+    assert data_store.claim_tap_run("svc", 42, 5, 100.5) > 0
 
 
 def test_cooldowns_survive_a_restart(jawa_env):
-    data_store.claim_selfserve_run("svc", 42, 5, 100.0)
+    data_store.claim_tap_run("svc", 42, 5, 100.0)
     stored = json.loads(open(data_store.COOLDOWNS_FILE).read())
     assert stored == {"svc": {"42": 100.0}}
-    assert data_store.selfserve_cooldown_remaining("svc", 42, 5, 160.0) == 240
+    assert data_store.tap_cooldown_remaining("svc", 42, 5, 160.0) == 240
 
 
 # --- admin override -------------------------------------------------------
@@ -150,9 +148,7 @@ def test_admin_can_reset_a_services_cooldowns(
 ):
     _make_service(jawa_env, cooldown_minutes=5)
     _post(client)
-    resp = logged_in_client.post(
-        "/automations/selfserve/reset-ipad/reset-cooldowns"
-    )
+    resp = logged_in_client.post("/automations/tap/reset-ipad/reset-cooldowns")
     assert resp.status_code == 302
     assert _post(client).status_code == 200
 
@@ -160,7 +156,7 @@ def test_admin_can_reset_a_services_cooldowns(
 def test_reset_needs_a_login(client, jawa_env, fake_popen, clock):
     _make_service(jawa_env, cooldown_minutes=5)
     _post(client)
-    client.post("/automations/selfserve/reset-ipad/reset-cooldowns")
+    client.post("/automations/tap/reset-ipad/reset-cooldowns")
     assert _post(client).status_code == 429
 
 
@@ -168,11 +164,11 @@ def test_detail_page_shows_the_cooldown_and_the_reset_button(
     logged_in_client, jawa_env
 ):
     _make_service(jawa_env, cooldown_minutes=5)
-    body = logged_in_client.get("/automations/selfserve/reset-ipad").get_data(
+    body = logged_in_client.get("/automations/tap/reset-ipad").get_data(
         as_text=True
     )
     assert "5 minutes" in body
-    assert 'action="/automations/selfserve/reset-ipad/reset-cooldowns"' in body
+    assert 'action="/automations/tap/reset-ipad/reset-cooldowns"' in body
 
 
 # --- configuration --------------------------------------------------------
@@ -182,7 +178,7 @@ def test_edit_saves_the_cooldown(logged_in_client, jawa_env):
     entry = _make_service(jawa_env)
     form = {k: entry[k] for k in data_store_page_fields()}
     form.update(device_family="mobile", cooldown_minutes="7")
-    logged_in_client.post("/automations/selfserve/reset-ipad/edit", data=form)
+    logged_in_client.post("/automations/tap/reset-ipad/edit", data=form)
     saved = data_store.get_webhook_by_name("reset-ipad")
     assert saved["cooldown_minutes"] == 7
 
@@ -192,7 +188,7 @@ def test_edit_rejects_a_bad_cooldown(logged_in_client, jawa_env, value):
     entry = _make_service(jawa_env, cooldown_minutes=5)
     form = {k: entry[k] for k in data_store_page_fields()}
     form.update(device_family="mobile", cooldown_minutes=value)
-    logged_in_client.post("/automations/selfserve/reset-ipad/edit", data=form)
+    logged_in_client.post("/automations/tap/reset-ipad/edit", data=form)
     assert (
         data_store.get_webhook_by_name("reset-ipad")["cooldown_minutes"] == 5
     )
@@ -200,16 +196,16 @@ def test_edit_rejects_a_bad_cooldown(logged_in_client, jawa_env, value):
 
 def test_edit_form_shows_the_cooldown(logged_in_client, jawa_env):
     _make_service(jawa_env, cooldown_minutes=5)
-    body = logged_in_client.get(
-        "/automations/selfserve/reset-ipad/edit"
-    ).get_data(as_text=True)
+    body = logged_in_client.get("/automations/tap/reset-ipad/edit").get_data(
+        as_text=True
+    )
     assert 'name="cooldown_minutes"' in body
     assert 'value="5"' in body
 
 
 @pytest.mark.parametrize(
     "slug, expected",
-    [("self-serve-brander", "5"), ("self-serve-return-to-service", "0")],
+    [("tap-brander", "5"), ("tap-return-to-service", "0")],
 )
 def test_catalog_sets_each_templates_default_cooldown(
     logged_in_client, jawa_env, slug, expected
@@ -222,6 +218,6 @@ def test_catalog_sets_each_templates_default_cooldown(
 
 
 def data_store_page_fields():
-    from views._type_handlers.selfserve_handler import PAGE_FIELDS
+    from views._type_handlers.tap_handler import PAGE_FIELDS
 
     return PAGE_FIELDS

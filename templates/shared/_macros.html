@@ -26,7 +26,7 @@
 {% macro trigger_label(item, auto_type) -%}
 {%- if auto_type == 'jamfpro' -%}{{ item.event or 'Jamf Pro event' }}
 {%- elif auto_type == 'okta' -%}{{ item.okta_event or 'Okta event' }}
-{%- elif auto_type == 'selfserve' -%}Web clip
+{%- elif auto_type == 'tap' -%}Web clip
 {%- elif auto_type == 'custom' -%}/hooks/{{ item.name }}
 {%- elif auto_type == 'cron' -%}
   {%- set presets = {'everyhour': 'Every hour', 'everyday': 'Every day', 'everyweek': 'Every week', 'everymonth': 'Every month', 'custom': 'Custom schedule'} -%}

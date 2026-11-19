@@ -4,7 +4,7 @@
 Trigger: JAWA timed automation (cron), every 15 minutes by default.
 Brander templates print the device's asset tag, so a re-tagged device
 keeps showing its old tag until someone re-brands it. This watches
-every Jamf Pro mobile device and runs the installed Brander (Self-Serve)
+every Jamf Pro mobile device and runs the installed Brander (Tap Action)
 script for each device whose asset tag or "Brander" extension
 attribute changed since the last run.
 

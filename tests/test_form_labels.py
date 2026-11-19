@@ -36,7 +36,7 @@ def unlabelled(html):
     ]
 
 
-SELFSERVE_INFO = {
+TAP_INFO = {
     "name": "reset-ipad",
     "description": "",
     "device_family": "mobile",
@@ -65,7 +65,7 @@ BRANDER_SETTINGS = {
         pytest.param(
             {
                 "edit_mode": True,
-                "webhook_info": [SELFSERVE_INFO],
+                "webhook_info": [TAP_INFO],
                 "brander_settings": BRANDER_SETTINGS,
                 "brander_template_options": ["legacy"],
             },
@@ -73,10 +73,10 @@ BRANDER_SETTINGS = {
         ),
     ],
 )
-def test_selfserve_fields_are_labelled(jawa_env, context):
+def test_tap_fields_are_labelled(jawa_env, context):
     with jawa_app.app.test_request_context("/"):
         html = render_template(
-            "automations/_partials/_selfserve_fields.html",
+            "automations/_partials/_tap_fields.html",
             device_families=["mobile", "computer"],
             **context,
         )

@@ -1,9 +1,9 @@
-/* Device-facing self-serve pages. Standalone: does not load the
+/* Device-facing Tap Action pages. Standalone: does not load the
    console stylesheet, so none of its navigation or footer appears.
    Layout and the rb-* parts come from the vendored roster files
    (vendor/roster-web.css and vendor/roster-html.css), loaded first.
    Roster is the shared component library, not the colour scheme: the
-   colours are JAWA's own self-serve palette below, and the block after
+   colours are JAWA's own Tap Action palette below, and the block after
    it points the roster tokens the parts read at that palette. */
 :root {
     --ss-bg: #f9fafb;

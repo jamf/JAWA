@@ -26,14 +26,14 @@
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-"""Device-facing receiver for self-serve automations.
+"""Device-facing receiver for Tap Action automations.
 
-A self-serve automation is triggered by a person tapping a web clip on
+A Tap Action automation is triggered by a person tapping a web clip on
 the managed device itself. The web clip URL carries a per-service
 token plus Jamf Pro payload variables (``$JSSID``, ``$UDID`` and any
 display values the admin adds). GET renders a confirmation page from
 that query string; only the page's POST spawns the script. See the
-Self-serve section of README.md for the URL and payload contract.
+Tap action section of README.md for the URL and payload contract.
 """
 
 import functools
@@ -51,17 +51,15 @@ from markupsafe import Markup
 from bin import data_store, logger
 from webhook.jawa_receiver import ScriptExecutionError, script_results
 
-logthis = logger.setup_child_logger("jawa", "selfserve_receiver")
+logthis = logger.setup_child_logger("jawa", "tap_receiver")
 
-blueprint = Blueprint(
-    "selfserve_receiver", __name__, template_folder="templates"
-)
+blueprint = Blueprint("tap_receiver", __name__, template_folder="templates")
 
 RESERVED_PARAMS = ("token", "id", "udid")
 _PLACEHOLDER_RE = re.compile(r"\{([A-Za-z0-9_]+)\}")
 
 
-class SelfServeRequestError(Exception):
+class TapActionRequestError(Exception):
     """A device request JAWA refuses before anything runs."""
 
     def __init__(self, status: int, message: str) -> None:
@@ -94,11 +92,11 @@ def parse_device_request(
     raw_id = (fields.get("id") or "").strip()
     udid = (fields.get("udid") or "").strip()
     if not raw_id or not udid:
-        raise SelfServeRequestError(
+        raise TapActionRequestError(
             400, "This link is missing the device id or UDID."
         )
     if not (raw_id.isascii() and raw_id.isdigit()):
-        raise SelfServeRequestError(400, "The device id is not a number.")
+        raise TapActionRequestError(400, "The device id is not a number.")
     params = {
         key: value
         for key, value in fields.items()
@@ -117,21 +115,21 @@ def token_matches(service: Dict[str, Any], presented: Optional[str]) -> bool:
     )
 
 
-def build_selfserve_payload(
+def build_tap_payload(
     service: Dict[str, Any],
     jss_id: int,
     udid: str,
     params: Dict[str, str],
     remote_address: str,
 ) -> Dict[str, Any]:
-    """The argv[1] JSON a self-serve script receives.
+    """The argv[1] JSON a Tap Action script receives.
 
     Shaped like a Jamf Pro event so scripts written for
     MobileDeviceEnrolled-style payloads port with a one-line change.
     """
     return {
         "webhook": {
-            "webhookEvent": "SelfServe",
+            "webhookEvent": "TapAction",
             "name": service.get("name", ""),
             "eventTimestamp": int(time.time() * 1000),
         },
@@ -147,7 +145,7 @@ def build_selfserve_payload(
 
 def load_service(name: str) -> Optional[Dict[str, Any]]:
     entry = data_store.get_webhook_by_name(name)
-    if not entry or entry.get("tag") != "selfserve":
+    if not entry or entry.get("tag") != "tap":
         return None
     return entry
 
@@ -186,10 +184,10 @@ def _authorize(service_name: str, fields: Mapping[str, str]):
     service = load_service(service_name)
     if not service or not token_matches(service, fields.get("token")):
         logthis.warning(
-            f"401 - self-serve request refused for /selfserve/"
+            f"401 - Tap Action request refused for /tap/"
             f"{service_name} (unknown service or bad token)."
         )
-        raise SelfServeRequestError(
+        raise TapActionRequestError(
             401, "Unauthorized - this link is not valid."
         )
     return service
@@ -277,16 +275,14 @@ def render_device_page(template: str, **context: Any):
     )
 
 
-def problem_response(err: "SelfServeRequestError"):
+def problem_response(err: "TapActionRequestError"):
     """The HTML page for a refused request, with the same status code."""
     problem = PROBLEMS.get(err.status, PROBLEMS[400])
     # Only the 400 reasons are safe, fixed strings worth showing; the
     # 401 and 429 pages say everything the person needs already.
     detail = err.message if err.status == 400 else ""
     return (
-        render_device_page(
-            "selfserve/problem.html", problem=problem, detail=detail
-        ),
+        render_device_page("tap/problem.html", problem=problem, detail=detail),
         err.status,
     )
 
@@ -344,20 +340,20 @@ def cooldown_message(seconds: int) -> str:
     return f"This was just done. You can run it again in {wait}."
 
 
-@blueprint.route("/selfserve/<service_name>", methods=["GET"])
+@blueprint.route("/tap/<service_name>", methods=["GET"])
 def service_page(service_name: str):
-    logthis.info(f"Incoming GET at /selfserve/{service_name} ...")
+    logthis.info(f"Incoming GET at /tap/{service_name} ...")
     try:
         fields = query_fields()
         service = _authorize(service_name, fields)
         jss_id, udid, params = parse_device_request(fields)
-    except SelfServeRequestError as err:
+    except TapActionRequestError as err:
         return problem_response(err)
-    wait = data_store.selfserve_cooldown_remaining(
+    wait = data_store.tap_cooldown_remaining(
         service["name"], jss_id, _cooldown_minutes(service), _now()
     )
     return render_device_page(
-        "selfserve/confirm.html",
+        "tap/confirm.html",
         cooldown=cooldown_message(wait) if wait else "",
         service_name=service["name"],
         strings=_page_strings(service, params),
@@ -368,26 +364,26 @@ def service_page(service_name: str):
     )
 
 
-@blueprint.route("/selfserve/<service_name>", methods=["POST"])
+@blueprint.route("/tap/<service_name>", methods=["POST"])
 def service_run(service_name: str):
-    logthis.info(f"Incoming POST at /selfserve/{service_name} ...")
+    logthis.info(f"Incoming POST at /tap/{service_name} ...")
     try:
         service = _authorize(service_name, request.form)
         jss_id, udid, params = parse_device_request(request.form)
-    except SelfServeRequestError as err:
+    except TapActionRequestError as err:
         return problem_response(err)
 
     if _over_rate_limit(service["name"], _remote_address()):
         logthis.warning(
-            f"429 - self-serve {service['name']}: too many confirms from "
+            f"429 - Tap Action {service['name']}: too many confirms from "
             f"{_remote_address()}."
         )
         return problem_response(
-            SelfServeRequestError(
+            TapActionRequestError(
                 429, "Too many requests. Wait a minute and try again."
             )
         )
-    payload = build_selfserve_payload(
+    payload = build_tap_payload(
         service, jss_id, udid, params, _remote_address()
     )
     strings = _page_strings(service, params)
@@ -398,17 +394,17 @@ def service_run(service_name: str):
         "udid": udid,
         "params": params,
     }
-    wait = data_store.claim_selfserve_run(
+    wait = data_store.claim_tap_run(
         service["name"], jss_id, _cooldown_minutes(service), _now()
     )
     if wait:
         logthis.info(
-            f"Self-serve {service['name']} refused for device {jss_id}: "
+            f"Tap action {service['name']} refused for device {jss_id}: "
             f"cooldown, {wait}s left."
         )
         return (
             render_device_page(
-                "selfserve/result.html",
+                "tap/result.html",
                 strings=strings,
                 succeeded=False,
                 cooldown=cooldown_message(wait),
@@ -417,19 +413,19 @@ def service_run(service_name: str):
             429,
         )
     logthis.info(
-        f"Self-serve {service['name']} confirmed for device {jss_id} "
+        f"Tap action {service['name']} confirmed for device {jss_id} "
         f"from {payload['event']['remoteAddress']}; running script..."
     )
     try:
         script_results(payload, service)
     except ScriptExecutionError as err:
-        data_store.release_selfserve_run(service["name"], jss_id)
+        data_store.release_tap_run(service["name"], jss_id)
         logthis.error(
-            f"Self-serve {service['name']} failed for device {jss_id}: {err}"
+            f"Tap action {service['name']} failed for device {jss_id}: {err}"
         )
         return (
             render_device_page(
-                "selfserve/result.html",
+                "tap/result.html",
                 strings=strings,
                 succeeded=False,
                 **back,
@@ -437,5 +433,5 @@ def service_run(service_name: str):
             err.status,
         )
     return render_device_page(
-        "selfserve/result.html", strings=strings, succeeded=True, **back
+        "tap/result.html", strings=strings, succeeded=True, **back
     )

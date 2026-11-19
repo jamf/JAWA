@@ -10,7 +10,7 @@ from bin import brander_settings as bs
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOURCE = os.path.join(
-    REPO_ROOT, "data", "workflows", "scripts", "self_serve_brander.py"
+    REPO_ROOT, "data", "workflows", "scripts", "tap_brander.py"
 )
 
 
@@ -151,7 +151,7 @@ def test_refresh_refuses_a_script_that_is_not_brander(tmp_path):
 def _service(jawa_env, script_path):
     entry = {
         "name": "brand-device",
-        "tag": "selfserve",
+        "tag": "tap",
         "url": "https://jamf.example.test",
         "jawa_admin": "pytest-admin",
         "script": script_path,
@@ -195,9 +195,9 @@ def test_edit_page_shows_brander_settings_but_no_secrets(
     logged_in_client, jawa_env, tmp_path
 ):
     _service(jawa_env, deployed(tmp_path))
-    body = logged_in_client.get(
-        "/automations/selfserve/brand-device/edit"
-    ).get_data(as_text=True)
+    body = logged_in_client.get("/automations/tap/brand-device/edit").get_data(
+        as_text=True
+    )
     assert 'name="brander_template_path"' in body and 'value="legacy"' in body
     assert 'name="brander_refresh"' in body
     assert "s3cret" not in body and "client-id" not in body
@@ -209,9 +209,9 @@ def test_edit_page_has_no_brander_section_for_other_scripts(
     other = tmp_path / "rts.py"
     other.write_text("print('rts')\n")
     _service(jawa_env, str(other))
-    body = logged_in_client.get(
-        "/automations/selfserve/brand-device/edit"
-    ).get_data(as_text=True)
+    body = logged_in_client.get("/automations/tap/brand-device/edit").get_data(
+        as_text=True
+    )
     assert "brander_template_path" not in body
 
 
@@ -221,7 +221,7 @@ def test_saving_the_edit_form_changes_the_settings(
     path = deployed(tmp_path)
     entry = _service(jawa_env, path)
     resp = logged_in_client.post(
-        "/automations/selfserve/brand-device/edit",
+        "/automations/tap/brand-device/edit",
         data=_form(
             entry,
             template_path="store:ward-ipads",
@@ -246,7 +246,7 @@ def test_a_bad_setting_shows_an_error_and_changes_nothing(
     entry = _service(jawa_env, path)
     before = open(path).read()
     resp = logged_in_client.post(
-        "/automations/selfserve/brand-device/edit",
+        "/automations/tap/brand-device/edit",
         data=_form(
             entry,
             template_path="ok.json",
@@ -268,7 +268,7 @@ def test_refresh_from_the_edit_form(logged_in_client, jawa_env, tmp_path):
     open(path, "w").write(text)
     entry = _service(jawa_env, path)
     logged_in_client.post(
-        "/automations/selfserve/brand-device/edit",
+        "/automations/tap/brand-device/edit",
         data=dict(
             _form(
                 entry,

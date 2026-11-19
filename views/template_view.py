@@ -68,7 +68,7 @@ from views._type_handlers.jamf_handler import (
     _smart_group_info,
     validate_webhook_name,
 )
-from views._type_handlers.selfserve_handler import (
+from views._type_handlers.tap_handler import (
     PAGE_FIELDS,
     build_service_entry,
     register_profile,
@@ -731,11 +731,11 @@ def _template_path_options() -> List[str]:
     return ["legacy"] + stored + shipped
 
 
-def _enable_selfserve(workflow: Dict[str, Any], credentials: list):
-    """Enable a self-serve template: substitute config, write the
-    script, build the service record through the self-serve handler
+def _enable_tap(workflow: Dict[str, Any], credentials: list):
+    """Enable a Tap Action template: substitute config, write the
+    script, build the service record through the Tap Action handler
     helpers, optionally create the web clip profile."""
-    defaults = workflow.get("selfserve", {})
+    defaults = workflow.get("tap", {})
     name = request.form.get("webhook_name", workflow["hook_name"]).strip()
     try:
         validate_webhook_name(name)
@@ -800,7 +800,7 @@ def _enable_selfserve(workflow: Dict[str, Any], credentials: list):
     url = service_url(jawa_address, name, entry["token"])
     logthis.info(
         f"[{session.get('url')}] {session.get('username')} enabled "
-        f"self-serve template: {name} (profile: {entry['profile_status']})"
+        f"Tap Action template: {name} (profile: {entry['profile_status']})"
     )
     notice = "Web clip URL for the configuration profile:"
     if entry["profile_status"] == "failed":
@@ -809,8 +809,8 @@ def _enable_selfserve(workflow: Dict[str, Any], credentials: list):
             "hand with this URL:"
         )
     return _flash_success(
-        success_msg=f"Enabled self-serve template: {name}",
-        new_link=f"/automations/selfserve/{name}",
+        success_msg=f"Enabled Tap Action template: {name}",
+        new_link=f"/automations/tap/{name}",
         new_here=name,
         extra_notice=notice,
         custom_header={"URL": url},
@@ -913,11 +913,8 @@ def enable_template(slug: str) -> Union[Response, str]:
 
     credentials = _load_credentials()
 
-    if (
-        request.method == "POST"
-        and workflow.get("trigger_type") == "selfserve"
-    ):
-        return _enable_selfserve(workflow, credentials)
+    if request.method == "POST" and workflow.get("trigger_type") == "tap":
+        return _enable_tap(workflow, credentials)
     if request.method == "POST" and workflow.get("trigger_type") == "cron":
         return _enable_cron(workflow, credentials)
 
@@ -927,7 +924,7 @@ def enable_template(slug: str) -> Union[Response, str]:
             username=session.get("username"),
             workflow=workflow,
             credentials=credentials,
-            selfserve_defaults=workflow.get("selfserve", {}),
+            tap_defaults=workflow.get("tap", {}),
             event_categories=get_webhook_schemas()["categories"],
             # Passed, not hardcoded in Jinja: the template marks a param
             # required only when a credential set cannot supply it, and

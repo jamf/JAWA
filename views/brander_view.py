@@ -42,10 +42,10 @@ def timestamp_to_text(seconds: int) -> str:
 
 
 def _brander_templates() -> List[Tuple[str, str]]:
-    """(name, template setting) for this tenant's self-serve Branders."""
+    """(name, template setting) for this tenant's Tap Action Branders."""
     found = []
     tenant = brander_store.tenant_key(session.get("url", ""))
-    for entry in get_webhooks_by_tag("selfserve"):
+    for entry in get_webhooks_by_tag("tap"):
         if brander_store.tenant_key(entry.get("url", "")) != tenant:
             continue  # another tenant's automation: never shown here
         script = entry.get("script", "")
@@ -59,7 +59,7 @@ def _brander_templates() -> List[Tuple[str, str]]:
 
 
 def used_by() -> dict:
-    """slug -> names of the self-serve Branders whose template setting names
+    """slug -> names of the Tap Action Branders whose template setting names
     it, alone (store:<slug>) or in a store set."""
     found: dict = {}
     for name, path in _brander_templates():

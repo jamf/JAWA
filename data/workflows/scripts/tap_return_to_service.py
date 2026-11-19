@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Return to Service, started from the device itself.
 
-Trigger: JAWA self-serve (a web clip on the device). The payload
+Trigger: JAWA Tap Action (a web clip on the device). The payload
 names ONE device by Jamf Pro id and UDID. This script:
 1. Fetches the device record by id and refuses unless the UDID
    matches (the caller must be holding that device -- ADR-0012).

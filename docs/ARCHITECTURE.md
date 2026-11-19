@@ -18,7 +18,7 @@ JAWA is one Flask application served by Waitress on `127.0.0.1:8000`. nginx term
           +-------------------+-----------+-----------+--------------------+
           | webhook/          | views/    | bin/      | templates/ static/ |
           | jawa_receiver     | *_view    | data_store| (Jinja, CSS, JS)   |
-          | selfserve_receiver| _type_    | auth      |                    |
+          | tap_receiver| _type_    | auth      |                    |
           |                   |  handlers | logger ...|                    |
           +---------+---------+-----+-----+-----+-----+--------------------+
                     |               |           |
@@ -36,9 +36,9 @@ JAWA is one Flask application served by Waitress on `127.0.0.1:8000`. nginx term
 |---|---|
 | `app.py` | Creates the Flask app, loads the secret key, registers blueprints, defines the setup, cleanup, health-check and legacy-redirect routes, and starts Waitress in `main()`. |
 | `webhook/jawa_receiver.py` | `POST /hooks/<name>`: authenticates the request, runs the script, returns a JSON result. Also holds the shared script runner. |
-| `webhook/selfserve_receiver.py` | Device-facing `/selfserve/<service>` endpoint for self-serve automations (a confirmation page on GET, script run on POST). |
+| `webhook/tap_receiver.py` | Device-facing `/tap/<service>` endpoint for Tap Action automations (a confirmation page on GET, script run on POST). |
 | `views/*_view.py` | Console pages, one Flask blueprint per area: automations, credentials, log, resources, templates, search, webhook reference, home and login, and the Brander template store. |
-| `views/_type_handlers/` | One handler class per automation type (`jamf`, `okta`, `custom`, `cron`, `selfserve`), all built on `base.py`. They own create, edit, delete and test for their type. |
+| `views/_type_handlers/` | One handler class per automation type (`jamf`, `okta`, `custom`, `cron`, `tap`), all built on `base.py`. They own create, edit, delete and test for their type. |
 | `bin/data_store.py` | The only module that reads and writes the JSON data files. Writes are atomic (temp file then rename) and guarded by a lock. |
 | `bin/auth.py`, `bin/tokens.py` | Console sign-in against Jamf Pro, session handling, Jamf token renewal. |
 | `bin/failure_alert.py` | The chat failure alert shared by webhook and timed runs: reads the URL from `server.json`, builds the text, POSTs it, and keeps the timed-run rate limit in `data/cron_alerts.json` (a tolerant read; writes go through `data_store.atomic_write_json`). Never raises. |
@@ -58,7 +58,7 @@ An automation is a named entry plus a script. The type decides how it is trigger
 | Okta event hook | Okta POSTs to `/hooks/<name>`. The one-time verification challenge is answered by `bin/okta_verification.py`. | `data/webhooks.json` |
 | Custom webhook | Any sender POSTs to `/hooks/<name>`. | `data/webhooks.json` |
 | Timed (cron) | A crontab line owned by the `jawa` user. | `data/cron.json` and the crontab |
-| Self-serve | A person taps a web clip on a device; the device calls `/selfserve/<service>` with a token. | `data/webhooks.json` (tag `selfserve`) |
+| Tap action | A person taps a web clip on a device; the device calls `/tap/<service>` with a token. | `data/webhooks.json` (tag `tap`) |
 
 Webhook-style entries share `webhooks.json` and are told apart by a `tag` field.
 
@@ -66,13 +66,13 @@ Webhook-style entries share `webhooks.json` and are told apart by a `tag` field.
 
 1. Jamf Pro (or another sender) POSTs JSON to `/hooks/<name>` through nginx.
 2. `webhook_handler` rejects anything but POST, answers Okta verification challenges, and parses the JSON body (falling back to a form `payload` field).
-3. `validate_webhook` finds the entry in `webhooks.json` and checks it against the credentials in the request (none, Basic, or an `x-api-key` header). Disabled entries and self-serve entries are refused on this route.
+3. `validate_webhook` finds the entry in `webhooks.json` and checks it against the credentials in the request (none, Basic, or an `x-api-key` header). Disabled entries and Tap Action entries are refused on this route.
 4. `run_script` starts the script as a child process in its own process group, writes the payload to it, and enforces a timeout (`JAWA_SCRIPT_TIMEOUT`).
 5. The outcome is recorded in `data/runs.json` and the log. The response is `200` or `202` with the script output when it ran, and a non-2xx status with an error when it did not, so Jamf Pro's delivery status reflects reality.
 
-## Request flow: self-serve
+## Request flow: Tap Action
 
-A GET renders a confirmation page from the query string and runs nothing. Only the POST from that page spawns the script. The token is compared in constant time, and a per-device cooldown (`data/selfserve_cooldowns.json`) stops repeated taps from launching duplicate runs.
+A GET renders a confirmation page from the query string and runs nothing. Only the POST from that page spawns the script. The token is compared in constant time, and a per-device cooldown (`data/tap_cooldowns.json`) stops repeated taps from launching duplicate runs.
 
 ## Request flow: timed automation
 
@@ -85,11 +85,11 @@ All paths are relative to the install directory (`/usr/local/jawa` on a standard
 | File | Contents |
 |---|---|
 | `data/server.json` | Jamf Pro URL, JAWA address, allowed admin accounts. Written by the installer and the Setup page. |
-| `data/webhooks.json` | Webhook, Okta, custom and self-serve automations. |
+| `data/webhooks.json` | Webhook, Okta, custom and Tap Action automations. |
 | `data/cron.json` | Timed automations. |
 | `data/credentials.json` | Credentials that scripts can use. Kept at mode 0600. |
 | `data/runs.json` | Recent run history per automation. |
-| `data/selfserve_cooldowns.json` | Self-serve cooldown timestamps. |
+| `data/tap_cooldowns.json` | Tap action cooldown timestamps. |
 | `data/cron_alerts.json` | Time of the last chat failure alert per timed automation (the 15-minute rate limit). Safe to delete. |
 | `data/.secret_key` | Session signing key, created on first start (mode 0600) unless `JAWA_SECRET_KEY` is set. |
 | `data/jawa.log`, `data/jawa-auth.log` | Application log (rotated at 100 MB, ten backups) and the failed-login log that fail2ban reads. |

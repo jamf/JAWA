@@ -23,7 +23,7 @@ from PIL import Image
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPT = os.path.join(
-    REPO_ROOT, "data", "workflows", "scripts", "self_serve_brander.py"
+    REPO_ROOT, "data", "workflows", "scripts", "tap_brander.py"
 )
 LIB_DIR = os.path.join(REPO_ROOT, "data", "workflows", "lib")
 ASSETS = os.path.join(REPO_ROOT, "data", "workflows", "assets", "brander")

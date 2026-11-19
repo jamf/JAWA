@@ -63,7 +63,7 @@
         </div>
     {% else %}
         {# Webhooks section #}
-        {% set webhook_tags = ['jamfpro', 'okta', 'custom', 'selfserve'] %}
+        {% set webhook_tags = ['jamfpro', 'okta', 'custom', 'tap'] %}
         {% set wns = namespace(has_webhooks=false) %}
         {% for tag in webhook_tags %}
             {% if categorized.get(tag, {}).get('items', []) %}{% set wns.has_webhooks = true %}{% endif %}

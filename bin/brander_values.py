@@ -16,7 +16,7 @@ def build_values(
     template: Optional[Dict[str, Any]],
     allow_person_fields: bool = False,
 ) -> Dict[str, Any]:
-    """Same allowlist as self_serve_brander.build_values (ADR-0013)."""
+    """Same allowlist as tap_brander.build_values (ADR-0013)."""
     general = device.get("general", {})
     location = device.get("location", {})
     values = {

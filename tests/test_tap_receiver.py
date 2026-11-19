@@ -1,4 +1,4 @@
-"""Device-facing /selfserve/<service-name> receiver.
+"""Device-facing /tap/<service-name> receiver.
 
 GET renders the confirmation page from the query string only; POST is
 the only thing that spawns a script. Popen is stubbed, so the whole
@@ -11,7 +11,7 @@ import subprocess
 
 import pytest
 
-from webhook import selfserve_receiver as ssr
+from webhook import tap_receiver as ssr
 
 
 class RecordingPopen:
@@ -42,11 +42,11 @@ TOKEN = "t0k3n-abc"
 def _make_service(jawa_env, **overrides):
     entry = {
         "name": "reset-ipad",
-        "tag": "selfserve",
+        "tag": "tap",
         "url": "https://jamf.example.test",
         "jawa_admin": "pytest-admin",
         "script": str(jawa_env.scripts_dir / "reset.py"),
-        "description": "harness self-serve",
+        "description": "harness Tap Action",
         "token": TOKEN,
         "device_family": "mobile",
         "page_title": "Reset {DEVICENAME}?",
@@ -94,13 +94,13 @@ def test_parse_device_request_lifts_reserved_and_keeps_the_rest():
 def test_parse_device_request_requires_id_and_udid(missing):
     query = dict(GOOD_QUERY)
     del query[missing]
-    with pytest.raises(ssr.SelfServeRequestError) as excinfo:
+    with pytest.raises(ssr.TapActionRequestError) as excinfo:
         ssr.parse_device_request(query)
     assert excinfo.value.status == 400
 
 
 def test_parse_device_request_rejects_non_integer_id():
-    with pytest.raises(ssr.SelfServeRequestError) as excinfo:
+    with pytest.raises(ssr.TapActionRequestError) as excinfo:
         ssr.parse_device_request(dict(GOOD_QUERY, id="42; drop"))
     assert excinfo.value.status == 400
 
@@ -116,10 +116,10 @@ def test_token_matches_is_exact_and_never_accepts_empty():
 
 def test_build_payload_has_the_documented_shape():
     service = {"name": "reset-ipad", "device_family": "mobile"}
-    payload = ssr.build_selfserve_payload(
+    payload = ssr.build_tap_payload(
         service, 42, "UDID-1", {"DEVICENAME": "iPad-042"}, "10.0.0.9"
     )
-    assert payload["webhook"]["webhookEvent"] == "SelfServe"
+    assert payload["webhook"]["webhookEvent"] == "TapAction"
     assert payload["webhook"]["name"] == "reset-ipad"
     assert isinstance(payload["webhook"]["eventTimestamp"], int)
     assert payload["event"] == {
@@ -139,7 +139,7 @@ def test_get_renders_confirmation_with_filled_placeholders(
     client, jawa_env, fake_popen
 ):
     _make_service(jawa_env)
-    resp = client.get("/selfserve/reset-ipad", query_string=GOOD_QUERY)
+    resp = client.get("/tap/reset-ipad", query_string=GOOD_QUERY)
     body = resp.get_data(as_text=True)
     assert resp.status_code == 200
     assert "Reset iPad-042?" in body
@@ -162,7 +162,7 @@ def test_get_accepts_semicolon_separated_query(client, jawa_env, fake_popen):
     on '&' -- so the receiver parses the raw query string itself."""
     _make_service(jawa_env)
     resp = client.get(
-        "/selfserve/reset-ipad?token="
+        "/tap/reset-ipad?token="
         + TOKEN
         + ";id=42;udid=00008030-000A1B2C3D4E5F67;DEVICENAME=iPad%20042"
     )
@@ -177,7 +177,7 @@ def test_get_still_accepts_ampersand_separated_query(
 ):
     _make_service(jawa_env)
     resp = client.get(
-        "/selfserve/reset-ipad?token="
+        "/tap/reset-ipad?token="
         + TOKEN
         + "&id=42&udid=00008030-000A1B2C3D4E5F67&DEVICENAME=iPad-042"
     )
@@ -191,9 +191,9 @@ def test_confirm_button_disables_itself_on_submit(
     """A double tap sent the erase command twice on the first live test
     (two POSTs 1.4 s apart); the form disables its button on submit."""
     _make_service(jawa_env)
-    body = client.get(
-        "/selfserve/reset-ipad", query_string=GOOD_QUERY
-    ).get_data(as_text=True)
+    body = client.get("/tap/reset-ipad", query_string=GOOD_QUERY).get_data(
+        as_text=True
+    )
     assert "button.disabled = true" in body
     assert "addEventListener('submit'" in body
 
@@ -201,7 +201,7 @@ def test_confirm_button_disables_itself_on_submit(
 def test_get_escapes_query_values(client, jawa_env, fake_popen):
     _make_service(jawa_env)
     resp = client.get(
-        "/selfserve/reset-ipad",
+        "/tap/reset-ipad",
         query_string=dict(GOOD_QUERY, DEVICENAME="<img src=x>"),
     )
     body = resp.get_data(as_text=True)
@@ -214,7 +214,7 @@ def test_get_with_wrong_token_is_401_and_does_not_echo_the_name(
 ):
     _make_service(jawa_env)
     resp = client.get(
-        "/selfserve/reset-ipad", query_string=dict(GOOD_QUERY, token="nope")
+        "/tap/reset-ipad", query_string=dict(GOOD_QUERY, token="nope")
     )
     assert resp.status_code == 401
     assert "reset-ipad" not in resp.get_data(as_text=True)
@@ -226,7 +226,7 @@ def test_bad_requests_render_a_readable_problem_page(
     _make_service(jawa_env)
     query = dict(GOOD_QUERY)
     del query["udid"]
-    resp = client.get("/selfserve/reset-ipad", query_string=query)
+    resp = client.get("/tap/reset-ipad", query_string=query)
     body = resp.get_data(as_text=True)
     assert resp.status_code == 400
     assert resp.mimetype == "text/html"
@@ -236,7 +236,7 @@ def test_bad_requests_render_a_readable_problem_page(
     assert "<svg" in body
 
     resp = client.get(
-        "/selfserve/reset-ipad", query_string=dict(GOOD_QUERY, token="nope")
+        "/tap/reset-ipad", query_string=dict(GOOD_QUERY, token="nope")
     )
     body = resp.get_data(as_text=True)
     assert resp.status_code == 401
@@ -253,7 +253,7 @@ def test_rate_limited_post_renders_a_problem_page(
     ssr.reset_rate_limits()
     last = None
     for _ in range(ssr.RATE_LIMIT + 1):
-        last = client.post("/selfserve/reset-ipad", data=GOOD_QUERY)
+        last = client.post("/tap/reset-ipad", data=GOOD_QUERY)
     assert last.status_code == 429
     assert "Please wait a moment" in last.get_data(as_text=True)
     ssr.reset_rate_limits()
@@ -269,9 +269,9 @@ def test_device_pages_use_the_brand_name_and_no_console_chrome(
     with open(data_store.SERVER_FILE, "w") as handle:
         json.dump({"brand": "Example School"}, handle)
     _make_service(jawa_env)
-    body = client.get(
-        "/selfserve/reset-ipad", query_string=GOOD_QUERY
-    ).get_data(as_text=True)
+    body = client.get("/tap/reset-ipad", query_string=GOOD_QUERY).get_data(
+        as_text=True
+    )
     assert "Example School" in body
     assert "viewport-fit=cover" in body
     assert "Discover what" not in body
@@ -280,7 +280,7 @@ def test_device_pages_use_the_brand_name_and_no_console_chrome(
 
 
 def test_get_unknown_service_is_401(client, jawa_env, fake_popen):
-    resp = client.get("/selfserve/ghost", query_string=GOOD_QUERY)
+    resp = client.get("/tap/ghost", query_string=GOOD_QUERY)
     assert resp.status_code == 401
 
 
@@ -288,7 +288,7 @@ def test_get_without_udid_is_400(client, jawa_env, fake_popen):
     _make_service(jawa_env)
     query = dict(GOOD_QUERY)
     del query["udid"]
-    resp = client.get("/selfserve/reset-ipad", query_string=query)
+    resp = client.get("/tap/reset-ipad", query_string=query)
     assert resp.status_code == 400
 
 
@@ -298,7 +298,7 @@ def test_get_with_non_ascii_token_is_401_not_500(client, jawa_env, fake_popen):
     an unhandled 500."""
     _make_service(jawa_env)
     resp = client.get(
-        "/selfserve/reset-ipad", query_string=dict(GOOD_QUERY, token="☃")
+        "/tap/reset-ipad", query_string=dict(GOOD_QUERY, token="☃")
     )
     assert resp.status_code == 401
     assert fake_popen.calls == []
@@ -311,24 +311,20 @@ def test_get_with_non_ascii_unicode_digit_id_is_400_not_500(
     int() rejects; parse_device_request must reject them as 400
     rather than raising ValueError."""
     _make_service(jawa_env)
-    resp = client.get(
-        "/selfserve/reset-ipad", query_string=dict(GOOD_QUERY, id="²")
-    )
+    resp = client.get("/tap/reset-ipad", query_string=dict(GOOD_QUERY, id="²"))
     assert resp.status_code == 400
     assert fake_popen.calls == []
 
 
-def test_non_selfserve_entry_is_not_a_service(client, jawa_env, fake_popen):
+def test_non_tap_entry_is_not_a_service(client, jawa_env, fake_popen):
     _make_service(jawa_env, tag="custom")
-    resp = client.get("/selfserve/reset-ipad", query_string=GOOD_QUERY)
+    resp = client.get("/tap/reset-ipad", query_string=GOOD_QUERY)
     assert resp.status_code == 401
 
 
-def test_selfserve_entry_cannot_be_fired_through_hooks(
-    client, jawa_env, fake_popen
-):
+def test_tap_entry_cannot_be_fired_through_hooks(client, jawa_env, fake_popen):
     """The three "null" auth keys would otherwise make /hooks/<name>
-    an open, token-free way to run a self-serve script."""
+    an open, token-free way to run a Tap Action script."""
     _make_service(jawa_env)
     resp = client.post("/hooks/reset-ipad", json={"webhook": {}})
     assert resp.status_code == 401
@@ -342,7 +338,7 @@ def test_post_runs_script_with_the_contract_payload(
     client, jawa_env, fake_popen
 ):
     entry = _make_service(jawa_env)
-    resp = client.post("/selfserve/reset-ipad", data=GOOD_QUERY)
+    resp = client.post("/tap/reset-ipad", data=GOOD_QUERY)
     assert resp.status_code == 200
     body = resp.get_data(as_text=True)
     assert "Done. Put iPad-042 down." in body
@@ -351,7 +347,7 @@ def test_post_runs_script_with_the_contract_payload(
     argv = fake_popen.calls[0]
     assert argv[0] == entry["script"]
     payload = json.loads(argv[1])
-    assert payload["webhook"]["webhookEvent"] == "SelfServe"
+    assert payload["webhook"]["webhookEvent"] == "TapAction"
     assert payload["webhook"]["name"] == "reset-ipad"
     assert payload["event"]["jssID"] == 42
     assert payload["event"]["udid"] == GOOD_QUERY["udid"]
@@ -365,7 +361,7 @@ def test_post_failure_renders_failure_message_with_500(
 ):
     _make_service(jawa_env)
     fake_popen.return_code = 20
-    resp = client.post("/selfserve/reset-ipad", data=GOOD_QUERY)
+    resp = client.post("/tap/reset-ipad", data=GOOD_QUERY)
     assert resp.status_code == 500
     body = resp.get_data(as_text=True)
     assert "Could not reset. Tell IT." in body
@@ -376,9 +372,7 @@ def test_post_with_bad_token_is_401_and_runs_nothing(
     client, jawa_env, fake_popen
 ):
     _make_service(jawa_env)
-    resp = client.post(
-        "/selfserve/reset-ipad", data=dict(GOOD_QUERY, token="nope")
-    )
+    resp = client.post("/tap/reset-ipad", data=dict(GOOD_QUERY, token="nope"))
     assert resp.status_code == 401
     assert fake_popen.calls == []
 
@@ -387,7 +381,7 @@ def test_post_without_id_is_400_and_runs_nothing(client, jawa_env, fake_popen):
     _make_service(jawa_env)
     data = dict(GOOD_QUERY)
     del data["id"]
-    resp = client.post("/selfserve/reset-ipad", data=data)
+    resp = client.post("/tap/reset-ipad", data=data)
     assert resp.status_code == 400
     assert fake_popen.calls == []
 
@@ -402,7 +396,7 @@ def _back_form_fields(body):
     import re
 
     form = re.search(
-        r'<form method="GET" action="/selfserve/reset-ipad"(.*?)</form>',
+        r'<form method="GET" action="/tap/reset-ipad"(.*?)</form>',
         body,
         re.S,
     )
@@ -416,14 +410,14 @@ def test_result_page_links_back_to_the_start_page(
 ):
     _make_service(jawa_env)
     fake_popen.return_code = return_code
-    resp = client.post("/selfserve/reset-ipad", data=GOOD_QUERY)
+    resp = client.post("/tap/reset-ipad", data=GOOD_QUERY)
     assert resp.status_code == status
     body = resp.get_data(as_text=True)
     assert "Back to start" in body
     fields = _back_form_fields(body)
     assert fields == GOOD_QUERY
     # Following it renders the confirm page again and runs nothing.
-    again = client.get("/selfserve/reset-ipad", query_string=fields)
+    again = client.get("/tap/reset-ipad", query_string=fields)
     assert again.status_code == 200
     assert "Erase and reset" in again.get_data(as_text=True)
     assert len(fake_popen.calls) == 1
@@ -433,9 +427,9 @@ def test_confirm_button_is_re_enabled_when_the_page_is_restored(
     client, jawa_env, fake_popen
 ):
     _make_service(jawa_env)
-    body = client.get(
-        "/selfserve/reset-ipad", query_string=GOOD_QUERY
-    ).get_data(as_text=True)
+    body = client.get("/tap/reset-ipad", query_string=GOOD_QUERY).get_data(
+        as_text=True
+    )
     assert "pageshow" in body
     assert ".disabled = false" in body
 
@@ -448,7 +442,7 @@ def test_rate_limit_ignores_spoofed_forwarded_for(
     codes = []
     for i in range(ssr.RATE_LIMIT + 1):
         resp = client.post(
-            "/selfserve/reset-ipad",
+            "/tap/reset-ipad",
             data=GOOD_QUERY,
             headers={
                 "X-Forwarded-For": f"10.0.0.{i}",
@@ -478,15 +472,13 @@ def test_remote_address_falls_back_to_the_connection(client, jawa_env):
         assert ssr._remote_address() == "203.0.113.9"
 
 
-def test_self_serve_script_timeout_shows_failure_page(
-    client, jawa_env, monkeypatch
-):
+def test_tap_script_timeout_shows_failure_page(client, jawa_env, monkeypatch):
     monkeypatch.setenv("JAWA_SCRIPT_TIMEOUT", "1")
     script = jawa_env.scripts_dir / "reset.py"
     script.write_text("#!/bin/sh\nsleep 60\n")
     script.chmod(0o755)
     _make_service(jawa_env)
     ssr.reset_rate_limits()
-    resp = client.post("/selfserve/reset-ipad", data=GOOD_QUERY)
+    resp = client.post("/tap/reset-ipad", data=GOOD_QUERY)
     assert resp.status_code == 504
     ssr.reset_rate_limits()

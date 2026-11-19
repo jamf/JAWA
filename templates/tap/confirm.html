@@ -1,4 +1,4 @@
-{% extends "selfserve/_layout.html" %}
+{% extends "tap/_layout.html" %}
 {% import "vendor/roster-macros.html" as rb %}
 
 {% block title %}{{ strings.page_title }}{% endblock %}
@@ -6,7 +6,7 @@
 {% block card %}
 <h1>{{ strings.page_title }}</h1>
 <p>{{ strings.page_description }}</p>
-<form method="POST"{% if not preview %} action="/selfserve/{{ service_name }}"{% endif %}
+<form method="POST"{% if not preview %} action="/tap/{{ service_name }}"{% endif %}
       class="ss-actions" id="confirm-form">
     {% if not preview %}
     <input type="hidden" name="token" value="{{ token }}">

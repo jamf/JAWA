@@ -1,4 +1,4 @@
-"""Console side of self-serve automations: the type handler."""
+"""Console side of Tap Action automations: the type handler."""
 
 import io
 import plistlib
@@ -9,7 +9,7 @@ import requests
 
 from bin import data_store
 from views._type_handlers import get_handler
-from views._type_handlers import selfserve_handler as ssh
+from views._type_handlers import tap_handler as ssh
 
 
 def _script_upload():
@@ -33,15 +33,15 @@ def _create_form(**overrides):
 
 
 def test_handler_is_registered():
-    handler = get_handler("selfserve")
+    handler = get_handler("tap")
     assert handler is not None
-    assert handler.tag == "selfserve"
-    assert handler.display_name == "Self-Serve"
+    assert handler.tag == "tap"
+    assert handler.display_name == "Tap Action"
 
 
 def test_service_url_carries_token_and_reserved_variables():
     url = ssh.service_url("https://jawa.example.test", "reset-ipad", "T")
-    assert url.startswith("https://jawa.example.test/selfserve/reset-ipad?")
+    assert url.startswith("https://jawa.example.test/tap/reset-ipad?")
     assert "token=T" in url
     assert "id=$JSSID" in url
     assert "udid=$UDID" in url
@@ -67,14 +67,14 @@ def test_mint_token_is_long_and_unique():
 
 def test_create_persists_the_full_record(logged_in_client, jawa_env):
     resp = logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(),
         content_type="multipart/form-data",
     )
     assert resp.status_code == 302 and "/success" in resp.headers["Location"]
     entry = data_store.get_webhook_by_name("reset-ipad")
     assert entry is not None
-    assert entry["tag"] == "selfserve"
+    assert entry["tag"] == "tap"
     assert entry["device_family"] == "mobile"
     assert entry["page_title"] == "Reset {DEVICENAME}?"
     assert entry["failure_message"] == "Failed. Tell IT."
@@ -88,7 +88,7 @@ def test_create_persists_the_full_record(logged_in_client, jawa_env):
 
 def test_create_rejects_bad_service_name(logged_in_client, jawa_env):
     resp = logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(service_name="reset ipad"),
         content_type="multipart/form-data",
     )
@@ -99,7 +99,7 @@ def test_create_rejects_bad_service_name(logged_in_client, jawa_env):
 
 def test_create_rejects_unknown_device_family(logged_in_client, jawa_env):
     resp = logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(device_family="toaster"),
         content_type="multipart/form-data",
     )
@@ -109,7 +109,7 @@ def test_create_rejects_unknown_device_family(logged_in_client, jawa_env):
 
 def test_create_requires_every_page_string(logged_in_client, jawa_env):
     resp = logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(confirm_label=""),
         content_type="multipart/form-data",
     )
@@ -119,21 +119,21 @@ def test_create_requires_every_page_string(logged_in_client, jawa_env):
 
 def test_detail_shows_the_web_clip_url(logged_in_client, jawa_env):
     logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(),
         content_type="multipart/form-data",
     )
     entry = data_store.get_webhook_by_name("reset-ipad")
-    body = logged_in_client.get("/automations/selfserve/reset-ipad").get_data(
+    body = logged_in_client.get("/automations/tap/reset-ipad").get_data(
         as_text=True
     )
-    assert "/selfserve/reset-ipad?token=" + entry["token"] in body
+    assert "/tap/reset-ipad?token=" + entry["token"] in body
     assert "Device family" in body
 
 
 def test_edit_updates_strings_and_keeps_the_token(logged_in_client, jawa_env):
     logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(),
         content_type="multipart/form-data",
     )
@@ -141,7 +141,7 @@ def test_edit_updates_strings_and_keeps_the_token(logged_in_client, jawa_env):
     form = _create_form(page_title="Wipe {DEVICENAME}")
     del form["new_file"]
     resp = logged_in_client.post(
-        "/automations/selfserve/reset-ipad/edit",
+        "/automations/tap/reset-ipad/edit",
         data=dict(form, button_choice="Save"),
         content_type="multipart/form-data",
     )
@@ -154,14 +154,12 @@ def test_edit_updates_strings_and_keeps_the_token(logged_in_client, jawa_env):
 
 def test_delete_retires_script_and_removes_record(logged_in_client, jawa_env):
     logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(),
         content_type="multipart/form-data",
     )
     entry = data_store.get_webhook_by_name("reset-ipad")
-    resp = logged_in_client.post(
-        "/automations/selfserve/reset-ipad/delete", data={}
-    )
+    resp = logged_in_client.post("/automations/tap/reset-ipad/delete", data={})
     assert resp.status_code in (200, 302)
     assert data_store.get_webhook_by_name("reset-ipad") is None
     assert (
@@ -171,7 +169,7 @@ def test_delete_retires_script_and_removes_record(logged_in_client, jawa_env):
 
 @pytest.mark.parametrize(
     "path",
-    ["/automations/selfserve", "/automations/selfserve/new"],
+    ["/automations/tap", "/automations/tap/new"],
 )
 def test_console_pages_render(logged_in_client, jawa_env, path):
     assert logged_in_client.get(path).status_code == 200
@@ -217,7 +215,7 @@ def profile_jamf(monkeypatch, fake_jamf, jamf_fake_http):
 
 def test_plist_is_a_managed_web_clip_with_the_service_url():
     entry = {"name": "reset-ipad", "page_title": "Reset {DEVICENAME}?"}
-    url = "https://jawa.example.test/selfserve/reset-ipad?token=T&id=$JSSID"
+    url = "https://jawa.example.test/tap/reset-ipad?token=T&id=$JSSID"
     plist = plistlib.loads(ssh.build_webclip_plist(entry, url).encode())
     assert plist["PayloadType"] == "Configuration"
     clip = plist["PayloadContent"][0]
@@ -226,10 +224,7 @@ def test_plist_is_a_managed_web_clip_with_the_service_url():
     assert clip["Label"] == "Reset?"  # placeholders stripped
     assert clip["IsRemovable"] is False
     assert clip["FullScreen"] is True
-    assert (
-        clip["PayloadIdentifier"]
-        == "com.jamf.jawa.selfserve.reset-ipad.webclip"
-    )
+    assert clip["PayloadIdentifier"] == "com.jamf.jawa.tap.reset-ipad.webclip"
 
 
 def test_plist_web_clip_icon_is_the_jawa_logo():
@@ -286,7 +281,7 @@ def test_create_stores_the_profile_uuids_on_the_record(
     import uuid as uuid_mod
 
     logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(create_profile="on"),
         content_type="multipart/form-data",
     )
@@ -317,7 +312,7 @@ def test_profile_xml_is_well_formed_and_unscoped():
     root = ET.fromstring(ssh.build_profile_xml(entry, "https://x/?a=1&b=2"))
     assert root.tag == "configuration_profile"
     assert (
-        root.findtext("general/name") == "JAWA Self-Serve: Reset (reset-ipad)"
+        root.findtext("general/name") == "JAWA Tap Action: Reset (reset-ipad)"
     )
     assert root.findtext("scope/all_mobile_devices") == "false"
     assert root.findtext("general/redeploy_on_update") == "All"
@@ -341,7 +336,7 @@ def test_create_with_checkbox_creates_profile_and_stores_id(
     logged_in_client, jawa_env, profile_jamf
 ):
     logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(create_profile="on"),
         content_type="multipart/form-data",
     )
@@ -367,7 +362,7 @@ def test_create_refreshes_the_token_before_posting_the_profile(
 
     monkeypatch.setattr(ssh, "fresh_token", _refresh)
     logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(create_profile="on"),
         content_type="multipart/form-data",
     )
@@ -380,7 +375,7 @@ def test_create_without_checkbox_skips_jamf(
     logged_in_client, jawa_env, profile_jamf
 ):
     logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(),
         content_type="multipart/form-data",
     )
@@ -394,7 +389,7 @@ def test_profile_failure_still_creates_the_service(
 ):
     profile_jamf.status = 409
     logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(create_profile="on"),
         content_type="multipart/form-data",
     )
@@ -408,14 +403,14 @@ def test_edit_updates_the_profile_when_one_exists(
     logged_in_client, jawa_env, profile_jamf
 ):
     logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(create_profile="on"),
         content_type="multipart/form-data",
     )
     form = _create_form(page_title="Wipe it")
     del form["new_file"]
     logged_in_client.post(
-        "/automations/selfserve/reset-ipad/edit",
+        "/automations/tap/reset-ipad/edit",
         data=dict(form, button_choice="Save"),
         content_type="multipart/form-data",
     )
@@ -427,11 +422,11 @@ def test_edit_updates_the_profile_when_one_exists(
 
 def test_delete_retires_the_profile(logged_in_client, jawa_env, profile_jamf):
     logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(create_profile="on"),
         content_type="multipart/form-data",
     )
-    logged_in_client.post("/automations/selfserve/reset-ipad/delete", data={})
+    logged_in_client.post("/automations/tap/reset-ipad/delete", data={})
     url, kwargs = profile_jamf.puts[-1]
     assert "/mobiledeviceconfigurationprofiles/id/55" in url
     assert ".old." in kwargs["data"]
@@ -444,7 +439,7 @@ def test_computer_family_never_gets_a_mobile_profile(
     computer equivalent, so a computer-family service must be skipped
     even with the checkbox on."""
     logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(device_family="computer", create_profile="on"),
         content_type="multipart/form-data",
     )
@@ -466,7 +461,7 @@ def test_token_check_failure_still_creates_the_service(
 
     monkeypatch.setattr(ssh, "fresh_token", _boom)
     resp = logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(create_profile="on"),
         content_type="multipart/form-data",
     )
@@ -482,7 +477,7 @@ def test_edit_marks_the_profile_failed_when_jamf_refuses_the_update(
     logged_in_client, jawa_env, profile_jamf
 ):
     logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(create_profile="on"),
         content_type="multipart/form-data",
     )
@@ -490,7 +485,7 @@ def test_edit_marks_the_profile_failed_when_jamf_refuses_the_update(
     form = _create_form(page_title="Wipe it")
     del form["new_file"]
     logged_in_client.post(
-        "/automations/selfserve/reset-ipad/edit",
+        "/automations/tap/reset-ipad/edit",
         data=dict(form, button_choice="Save"),
         content_type="multipart/form-data",
     )
@@ -514,7 +509,7 @@ def test_webclip_uses_custom_label_and_icon(
 
     monkeypatch.setattr(ssh, "ICON_DIR", str(tmp_path / "icons"))
     logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(
             create_profile="on",
             webclip_label="Clear cache",
@@ -556,7 +551,7 @@ def test_create_rejects_a_small_icon_and_a_long_label(
         {"webclip_label": "x" * 21},
     ):
         logged_in_client.post(
-            "/automations/selfserve/new",
+            "/automations/tap/new",
             data=_create_form(**extra),
             content_type="multipart/form-data",
         )
@@ -567,7 +562,7 @@ def test_edit_can_rotate_the_token(
     logged_in_client, client, jawa_env, profile_jamf
 ):
     logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(create_profile="on"),
         content_type="multipart/form-data",
     )
@@ -575,22 +570,16 @@ def test_edit_can_rotate_the_token(
     form = _create_form(rotate_token="on")
     del form["new_file"]
     logged_in_client.post(
-        "/automations/selfserve/reset-ipad/edit",
+        "/automations/tap/reset-ipad/edit",
         data=dict(form, button_choice="Save"),
         content_type="multipart/form-data",
     )
     new = data_store.get_webhook_by_name("reset-ipad")["token"]
     assert new != old
     query = {"token": old, "id": "7", "udid": "UDID-1"}
-    assert (
-        client.get("/selfserve/reset-ipad", query_string=query).status_code
-        == 401
-    )
+    assert client.get("/tap/reset-ipad", query_string=query).status_code == 401
     query["token"] = new
-    assert (
-        client.get("/selfserve/reset-ipad", query_string=query).status_code
-        == 200
-    )
+    assert client.get("/tap/reset-ipad", query_string=query).status_code == 200
     _, kwargs = profile_jamf.puts[-1]
     assert new in kwargs["data"]
     assert old not in kwargs["data"]
@@ -598,7 +587,7 @@ def test_edit_can_rotate_the_token(
 
 def test_edit_without_the_box_keeps_the_token(logged_in_client, jawa_env):
     logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(),
         content_type="multipart/form-data",
     )
@@ -606,7 +595,7 @@ def test_edit_without_the_box_keeps_the_token(logged_in_client, jawa_env):
     form = _create_form()
     del form["new_file"]
     logged_in_client.post(
-        "/automations/selfserve/reset-ipad/edit",
+        "/automations/tap/reset-ipad/edit",
         data=dict(form, button_choice="Save"),
         content_type="multipart/form-data",
     )
@@ -618,7 +607,7 @@ def test_edit_creates_a_missing_profile(
 ):
     profile_jamf.status = 400
     logged_in_client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(create_profile="on"),
         content_type="multipart/form-data",
     )
@@ -626,9 +615,9 @@ def test_edit_creates_a_missing_profile(
         data_store.get_webhook_by_name("reset-ipad")["profile_status"]
         == "failed"
     )
-    page = logged_in_client.get(
-        "/automations/selfserve/reset-ipad/edit"
-    ).get_data(as_text=True)
+    page = logged_in_client.get("/automations/tap/reset-ipad/edit").get_data(
+        as_text=True
+    )
     assert 'name="create_profile"' in page
 
     profile_jamf.status = 201
@@ -636,7 +625,7 @@ def test_edit_creates_a_missing_profile(
     form = _create_form(create_profile="on")
     del form["new_file"]
     logged_in_client.post(
-        "/automations/selfserve/reset-ipad/edit",
+        "/automations/tap/reset-ipad/edit",
         data=dict(form, button_choice="Save"),
         content_type="multipart/form-data",
     )
@@ -647,7 +636,7 @@ def test_edit_creates_a_missing_profile(
     entry = data_store.get_webhook_by_name("reset-ipad")
     assert entry["jamf_id"] == "55"
     assert entry["profile_status"] == "created"
-    page = logged_in_client.get(
-        "/automations/selfserve/reset-ipad/edit"
-    ).get_data(as_text=True)
+    page = logged_in_client.get("/automations/tap/reset-ipad/edit").get_data(
+        as_text=True
+    )
     assert 'name="create_profile"' not in page

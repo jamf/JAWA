@@ -1,4 +1,4 @@
-"""Self-serve templates: catalog display and the enable path."""
+"""Tap action templates: catalog display and the enable path."""
 
 import json
 import os
@@ -16,23 +16,23 @@ def _catalog():
         return json.load(handle)
 
 
-SELFSERVE = [wf for wf in _catalog() if wf.get("trigger_type") == "selfserve"]
-SLUGS = [wf["slug"] for wf in SELFSERVE]
+TAP = [wf for wf in _catalog() if wf.get("trigger_type") == "tap"]
+SLUGS = [wf["slug"] for wf in TAP]
 
 
-@pytest.fixture(params=SELFSERVE, ids=SLUGS)
-def selfserve_workflow(request):
+@pytest.fixture(params=TAP, ids=SLUGS)
+def tap_workflow(request):
     return request.param
 
 
-def test_at_least_the_rts_template_is_selfserve():
-    assert "self-serve-return-to-service" in SLUGS
+def test_at_least_the_rts_template_is_tap():
+    assert "tap-return-to-service" in SLUGS
 
 
-def test_selfserve_entry_declares_page_strings_and_family(
-    selfserve_workflow,
+def test_tap_entry_declares_page_strings_and_family(
+    tap_workflow,
 ):
-    block = selfserve_workflow["selfserve"]
+    block = tap_workflow["tap"]
     assert block["device_family"] in ("mobile", "computer")
     for key in (
         "page_title",
@@ -41,29 +41,29 @@ def test_selfserve_entry_declares_page_strings_and_family(
         "success_message",
         "failure_message",
     ):
-        assert block[key].strip(), f"{selfserve_workflow['slug']} {key}"
-    assert selfserve_workflow.get("trigger_event") is None
+        assert block[key].strip(), f"{tap_workflow['slug']} {key}"
+    assert tap_workflow.get("trigger_event") is None
 
 
-def test_catalog_and_detail_label_selfserve_trigger(
-    logged_in_client, jawa_env, selfserve_workflow
+def test_catalog_and_detail_label_tap_trigger(
+    logged_in_client, jawa_env, tap_workflow
 ):
-    slug = selfserve_workflow["slug"]
+    slug = tap_workflow["slug"]
     for path in (
         "/templates",
         f"/templates/{slug}",
         f"/templates/{slug}/enable",
     ):
         body = logged_in_client.get(path).get_data(as_text=True)
-        assert "Self-serve (web clip)" in body, path
+        assert "Tap action (web clip)" in body, path
         assert ">None<" not in body
 
 
 def test_enable_form_shows_page_fields_not_jamf_event(
-    logged_in_client, jawa_env, selfserve_workflow
+    logged_in_client, jawa_env, tap_workflow
 ):
     body = logged_in_client.get(
-        f"/templates/{selfserve_workflow['slug']}/enable"
+        f"/templates/{tap_workflow['slug']}/enable"
     ).get_data(as_text=True)
     assert 'name="page_title"' in body
     assert 'name="create_profile"' in body
@@ -71,7 +71,7 @@ def test_enable_form_shows_page_fields_not_jamf_event(
     assert "Webhook Authentication" not in body
 
 
-def test_enabling_creates_a_selfserve_record_that_fires(
+def test_enabling_creates_a_tap_record_that_fires(
     logged_in_client, jawa_env, enable_form, monkeypatch
 ):
     import io
@@ -89,16 +89,14 @@ def test_enabling_creates_a_selfserve_record_that_fires(
 
     monkeypatch.setattr(subprocess, "Popen", P)
 
-    form = enable_form(
-        "self-serve-return-to-service", webhook_name="reset-ipad"
-    )
+    form = enable_form("tap-return-to-service", webhook_name="reset-ipad")
     resp = logged_in_client.post(
-        "/templates/self-serve-return-to-service/enable", data=form
+        "/templates/tap-return-to-service/enable", data=form
     )
     assert resp.status_code == 302, resp.get_data(as_text=True)
     entry = data_store.get_webhook_by_name("reset-ipad")
     assert entry is not None
-    assert entry["tag"] == "selfserve"
+    assert entry["tag"] == "tap"
     assert entry["device_family"] == "mobile"
     assert entry["page_title"]  # defaults came from the catalog
     assert entry["profile_status"] == "skipped"  # no checkbox in form
@@ -109,7 +107,7 @@ def test_enabling_creates_a_selfserve_record_that_fires(
     assert form["wifi_profile_name"] in source
 
     resp = logged_in_client.post(
-        "/selfserve/reset-ipad",
+        "/tap/reset-ipad",
         data={
             "token": entry["token"],
             "id": "7",
@@ -127,13 +125,11 @@ def test_enable_overrides_page_strings_from_the_form(
     logged_in_client, jawa_env, enable_form
 ):
     form = enable_form(
-        "self-serve-return-to-service",
+        "tap-return-to-service",
         webhook_name="reset-2",
         page_title="Custom {DEVICENAME}",
     )
-    logged_in_client.post(
-        "/templates/self-serve-return-to-service/enable", data=form
-    )
+    logged_in_client.post("/templates/tap-return-to-service/enable", data=form)
     assert (
         data_store.get_webhook_by_name("reset-2")["page_title"]
         == "Custom {DEVICENAME}"
@@ -144,7 +140,7 @@ ASSETS = os.path.join(REPO_ROOT, "data", "workflows", "assets", "brander")
 
 
 def test_brander_template_and_assets_ship():
-    assert "self-serve-brander" in SLUGS
+    assert "tap-brander" in SLUGS
     for name in (
         "lockscreen-template.png",
         "null.png",
@@ -179,7 +175,7 @@ def test_brander_script_generates_an_image_without_a_font_file(tmp_path):
     import importlib.util
 
     path = os.path.join(
-        REPO_ROOT, "data", "workflows", "scripts", "self_serve_brander.py"
+        REPO_ROOT, "data", "workflows", "scripts", "tap_brander.py"
     )
     with open(path, encoding="utf-8") as handle:
         source = handle.read()
@@ -219,47 +215,41 @@ def test_brander_script_generates_an_image_without_a_font_file(tmp_path):
     assert img.size[0] > 100
 
 
-def _create_selfserve(client):
-    from tests.test_selfserve_handler import _create_form
+def _create_tap(client):
+    from tests.test_tap_handler import _create_form
 
     return client.post(
-        "/automations/selfserve/new",
+        "/automations/tap/new",
         data=_create_form(),
         content_type="multipart/form-data",
     )
 
 
-def test_selfserve_success_page_has_no_python_dict_repr(
-    logged_in_client, jawa_env
-):
-    _create_selfserve(logged_in_client)
+def test_tap_success_page_has_no_python_dict_repr(logged_in_client, jawa_env):
+    _create_tap(logged_in_client)
     body = logged_in_client.get("/success").data.decode()
     assert "{'" not in body
     assert "<b>URL</b>" in body
     assert 'class="copy-btn"' in body
 
 
-def test_selfserve_detail_offers_the_full_url_with_copy(
-    logged_in_client, jawa_env
-):
+def test_tap_detail_offers_the_full_url_with_copy(logged_in_client, jawa_env):
     from bin import data_store
 
-    _create_selfserve(logged_in_client)
+    _create_tap(logged_in_client)
     entry = data_store.get_webhook_by_name("reset-ipad")
-    body = logged_in_client.get(
-        "/automations/selfserve/reset-ipad"
-    ).data.decode()
+    body = logged_in_client.get("/automations/tap/reset-ipad").data.decode()
     assert f"token={entry['token']}" in body
     assert 'aria-label="Copy Web clip URL"' in body
 
 
-def test_selfserve_row_says_web_clip_and_rejects_sample_events(
+def test_tap_row_says_web_clip_and_rejects_sample_events(
     logged_in_client, jawa_env
 ):
-    _create_selfserve(logged_in_client)
+    _create_tap(logged_in_client)
     dash = logged_in_client.get("/dashboard").data.decode()
     assert "Web clip" in dash
-    resp = logged_in_client.post("/automations/selfserve/reset-ipad/test")
+    resp = logged_in_client.post("/automations/tap/reset-ipad/test")
     assert "Sample events can only be sent" in resp.data.decode()
 
 
@@ -267,7 +257,7 @@ def test_selfserve_row_says_web_clip_and_rejects_sample_events(
 
 _SERVICE = {
     "name": "reset-ipad",
-    "tag": "selfserve",
+    "tag": "tap",
     "url": "https://jamf.example.test",
     "jawa_admin": "pytest-admin",
     "script": "/nonexistent/reset.sh",
@@ -291,7 +281,7 @@ _SERVICE = {
 def test_confirm_page_has_a_progress_live_region(client, jawa_env):
     jawa_env.add_webhook(dict(_SERVICE))
     body = client.get(
-        "/selfserve/reset-ipad",
+        "/tap/reset-ipad",
         query_string={
             "token": _SERVICE["token"],
             "id": "7",
@@ -303,7 +293,7 @@ def test_confirm_page_has_a_progress_live_region(client, jawa_env):
     assert "Working..." in body
     assert "Keep this screen open" in body
     assert "prefers-reduced-motion" in client.get(
-        "/static/css/selfserve.css"
+        "/static/css/tap.css"
     ).get_data(as_text=True)
 
 
@@ -319,14 +309,14 @@ def test_preview_renders_without_running(
     monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: calls.append(a))
     jawa_env.add_webhook(dict(_SERVICE))
     resp = logged_in_client.get(
-        f"/automations/selfserve/reset-ipad/preview?state={state}"
+        f"/automations/tap/reset-ipad/preview?state={state}"
     )
     body = resp.get_data(as_text=True)
     assert resp.status_code == 200
     assert "Sample iPad" in body
     assert "{DEVICENAME}" not in body
     assert _SERVICE["token"] not in body
-    assert 'action="/selfserve/' not in body
+    assert 'action="/tap/' not in body
     assert "&lt;form" in body and "action=" not in body.split("srcdoc=")[1]
     assert "Preview only. Buttons here do not run the script." in body
     assert calls == []
@@ -334,6 +324,6 @@ def test_preview_renders_without_running(
 
 def test_preview_requires_login(client, jawa_env):
     jawa_env.add_webhook(dict(_SERVICE))
-    resp = client.get("/automations/selfserve/reset-ipad/preview")
+    resp = client.get("/automations/tap/reset-ipad/preview")
     assert resp.status_code == 302
-    assert "/selfserve" not in resp.headers["Location"]
+    assert "/tap" not in resp.headers["Location"]

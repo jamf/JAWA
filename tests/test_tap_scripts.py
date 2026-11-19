@@ -1,4 +1,4 @@
-"""Both self-serve script templates refuse to act on a UDID mismatch.
+"""Both Tap Action script templates refuse to act on a UDID mismatch.
 
 Return to Service and Brander are triggered from the device itself
 via a caller-supplied Jamf Pro id; the id alone must never be enough
@@ -20,7 +20,7 @@ SCRIPTS_DIR = os.path.join(REPO_ROOT, "data", "workflows", "scripts")
 def _load_module(basename):
     """exec() the script's source into a fresh module namespace, the
     same technique as test_brander_script_generates_an_image_without_
-    a_font_file in tests/test_selfserve_templates.py. The bare numeric
+    a_font_file in tests/test_tap_templates.py. The bare numeric
     template tokens must become literals for the module to exec at
     all; __JAWA_WALLPAPER_SETTING__, __JAWA_EA_ID__ and __JAWA_MAX_KB__
     are only present in Brander, so the replace is a no-op for RTS.
@@ -42,7 +42,7 @@ def _load_module(basename):
 
 @pytest.fixture()
 def rts_module():
-    module = _load_module("self_serve_return_to_service.py")
+    module = _load_module("tap_return_to_service.py")
     module.perform_api_call = lambda *a, **k: {
         "udid": "REAL-UDID",
         "managementId": "m",
@@ -52,7 +52,7 @@ def rts_module():
 
 @pytest.fixture()
 def brander_module():
-    module = _load_module("self_serve_brander.py")
+    module = _load_module("tap_brander.py")
     module.perform_api_call = lambda *a, **k: {
         "mobile_device": {"general": {"udid": "REAL-UDID"}}
     }

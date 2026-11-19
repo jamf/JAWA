@@ -69,7 +69,7 @@
         <p class="mb-1">Brander setting: <span class="brander-setting">store:{{ t.slug }}</span></p>
         <p class="mb-2">
             {% if used_by.get(t.slug) %}Used by: {{ used_by[t.slug] | join(", ") }}
-            {% else %}Not used by any Brander yet. To use it, edit a Brander (Automations, Self-Serve) and set its template to <span class="brander-setting">store:{{ t.slug }}</span>.{% endif %}
+            {% else %}Not used by any Brander yet. To use it, edit a Brander (Automations, Tap Action) and set its template to <span class="brander-setting">store:{{ t.slug }}</span>.{% endif %}
         </p>
         {% if fits.get(t.slug) %}
         <p class="mb-1">How the active version fits:</p>

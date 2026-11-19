@@ -371,7 +371,7 @@ def active_template_path(tenant_url: str, slug: str) -> Optional[str]:
 #
 # Keys follow template set files: an exact model identifier, a family
 # ("iphone", "ipad"), or "default", tried in that order. The rule is
-# repeated in the Brander script (data/workflows/scripts/self_serve_brander.py),
+# repeated in the Brander script (data/workflows/scripts/tap_brander.py),
 # and tests/test_brander_store_sets.py keeps the two in step.
 
 MAX_SET_ENTRIES = 20

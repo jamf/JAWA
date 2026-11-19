@@ -361,9 +361,9 @@ def _canonical(path):
     return source[start : end + len("# --- end canonical block ---")]
 
 
-def test_canonical_block_is_byte_identical_to_self_serve_brander():
+def test_canonical_block_is_byte_identical_to_tap_brander():
     assert _canonical(SCRIPT) == _canonical(
-        os.path.join(SCRIPTS, "self_serve_brander.py")
+        os.path.join(SCRIPTS, "tap_brander.py")
     )
 
 

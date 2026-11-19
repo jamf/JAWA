@@ -55,7 +55,7 @@ WEBHOOK_SCHEMAS_FILE = os.path.abspath(
 RUNS_FILE = os.path.abspath(os.path.join(_base_dir, "data", "runs.json"))
 SCRIPTS_DIR = os.path.abspath(os.path.join(_base_dir, "scripts"))
 COOLDOWNS_FILE = os.path.abspath(
-    os.path.join(_base_dir, "data", "selfserve_cooldowns.json")
+    os.path.join(_base_dir, "data", "tap_cooldowns.json")
 )
 CRON_ALERTS_FILE = os.path.abspath(
     os.path.join(_base_dir, "data", "cron_alerts.json")
@@ -428,7 +428,7 @@ def retire_script(path: str) -> None:
         os.rename(path, f"{path}.old")
 
 
-# --- Self-serve cooldowns ---
+# --- Tap action cooldowns ---
 #
 # {service: {jss_id: last run start (unix seconds)}}. Waitress serves
 # from threads in one process, so a lock makes check-and-claim atomic.
@@ -440,7 +440,7 @@ def _cooldown_left(started: float, minutes: int, now: float) -> int:
     return max(0, int(started + minutes * 60 - now))
 
 
-def selfserve_cooldown_remaining(
+def tap_cooldown_remaining(
     service: str, jss_id: int, minutes: int, now: float
 ) -> int:
     """Seconds until this device may run this service again (0 = now)."""
@@ -452,9 +452,7 @@ def selfserve_cooldown_remaining(
     return _cooldown_left(started, minutes, now) if started else 0
 
 
-def claim_selfserve_run(
-    service: str, jss_id: int, minutes: int, now: float
-) -> int:
+def claim_tap_run(service: str, jss_id: int, minutes: int, now: float) -> int:
     """Start a run: 0 if claimed, else the seconds left to wait.
 
     Claimed before the script runs, so a second request arriving while
@@ -480,7 +478,7 @@ def claim_selfserve_run(
     return 0
 
 
-def release_selfserve_run(service: str, jss_id: int) -> None:
+def release_tap_run(service: str, jss_id: int) -> None:
     """Undo a claim after a failed run, so the person can retry."""
     with _cooldown_lock:
         data = _read_json(COOLDOWNS_FILE, {})
@@ -488,7 +486,7 @@ def release_selfserve_run(service: str, jss_id: int) -> None:
             _write_json(COOLDOWNS_FILE, data)
 
 
-def clear_selfserve_cooldowns(service: str) -> None:
+def clear_tap_cooldowns(service: str) -> None:
     """Admin override: every device may run the service again now."""
     with _cooldown_lock:
         data = _read_json(COOLDOWNS_FILE, {})

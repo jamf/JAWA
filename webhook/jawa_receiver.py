@@ -122,14 +122,14 @@ def validate_webhook(
                     "not enabled."
                 )
                 return False
-            # A self-serve automation is only reachable through
-            # /selfserve/<name> with its token. Its record carries the
+            # A Tap Action automation is only reachable through
+            # /tap/<name> with its token. Its record carries the
             # "null" auth sentinels, which would otherwise make
             # /hooks/<name> an open, token-free way to run the script.
-            if each_webhook.get("tag") == "selfserve":
+            if each_webhook.get("tag") == "tap":
                 logthis.warning(
-                    f"Rejecting /hooks/{webhook_name}: self-serve "
-                    "automations only run from /selfserve/."
+                    f"Rejecting /hooks/{webhook_name}: Tap Action "
+                    "automations only run from /tap/."
                 )
                 return False
             truth_test = True

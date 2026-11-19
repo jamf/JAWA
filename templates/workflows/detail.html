@@ -41,7 +41,7 @@
             <div class="workflow-detail-sidebar">
                 <dl>
                     <dt>Trigger Event</dt>
-                    <dd>{% if workflow.trigger_type == 'selfserve' %}Self-serve (web clip){% elif workflow.trigger_type == 'cron' %}Schedule ({{ workflow.default_schedule }}){% else %}{{ workflow.trigger_event or "Any Event" }}{% endif %}</dd>
+                    <dd>{% if workflow.trigger_type == 'tap' %}Tap action (web clip){% elif workflow.trigger_type == 'cron' %}Schedule ({{ workflow.default_schedule }}){% else %}{{ workflow.trigger_event or "Any Event" }}{% endif %}</dd>
 
                     <dt>Script File</dt>
                     <dd><code>{{ workflow.script_file }}</code></dd>

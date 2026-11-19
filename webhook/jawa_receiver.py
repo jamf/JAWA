@@ -111,17 +111,6 @@ def validate_webhook(
     truth_test = False
     for each_webhook in webhooks_json:
         if each_webhook["name"] == webhook_name:
-            # A webhook Jamf Pro created in the disabled state must not
-            # have a live JAWA endpoint: the enable screen tells the
-            # operator it is not yet enabled, and until this was read
-            # that notice was false. Only an explicit False rejects --
-            # entries from the non-template handlers carry no such key.
-            if each_webhook.get("enabled") is False:
-                logthis.warning(
-                    f"Rejecting /hooks/{webhook_name}: the automation is "
-                    "not enabled."
-                )
-                return False
             # A Tap Action automation is only reachable through
             # /tap/<name> with its token. Its record carries the
             # "null" auth sentinels, which would otherwise make

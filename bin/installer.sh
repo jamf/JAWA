@@ -1237,6 +1237,10 @@ restoreBackup() {
             /bin/cp -R "$currentDir/jawabackup-$timenow/$item/." "$installDir/jawa/$item/" >>/var/log/jawaInstall.log 2>&1
           fi
         done
+        # The backup holds the OLD release's shipped content under data/
+        # (template scripts, catalog, event schemas, wallrender). Put this
+        # release's tracked copies back; untracked operator state stays.
+        git -C "$installDir/jawa" checkout -- data >>/var/log/jawaInstall.log 2>&1
         if [ -e "$currentDir/jawabackup-$timenow/jawa_icon.png" ]; then
           /bin/cp "$currentDir/jawabackup-$timenow/jawa_icon.png" "$installDir/jawa/static/img/jawa_icon.png" >>/var/log/jawaInstall.log 2>&1
         fi

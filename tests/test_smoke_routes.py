@@ -136,6 +136,14 @@ def test_healthz(client, jawa_env):
     assert "Set-Cookie" not in resp.headers
 
 
+def test_healthz_ok_on_fresh_install_without_stores(client, jawa_env):
+    jawa_env.webhooks_file.unlink()
+    jawa_env.cron_file.unlink()
+    resp = client.get("/healthz")
+    assert resp.status_code == 200
+    assert not jawa_env.webhooks_file.exists()
+
+
 def test_healthz_reports_missing_scripts_dir(client, jawa_env):
     jawa_env.scripts_dir.rmdir()
     resp = client.get("/healthz")

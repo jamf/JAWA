@@ -908,9 +908,9 @@ ProtectHome=true
 # "-" skips it where cron is not installed instead of failing the unit.
 ReadWritePaths=$installDir -/var/spool/cron
 PrivateTmp=true
-# No NoNewPrivileges: crontab is setgid (Ubuntu) or setuid (RHEL), and that
-# setting stops it reaching the spool, so timed automations cannot be saved.
-PrivateDevices=true
+# No NoNewPrivileges and no PrivateDevices: crontab is setgid (Ubuntu) or
+# setuid (RHEL), and both settings stop it working. On systemd < 254 (RHEL 9)
+# PrivateDevices turns on NoNewPrivileges for a non-root User=.
 
 
 [Install]

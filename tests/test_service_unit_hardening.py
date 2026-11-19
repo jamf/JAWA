@@ -21,8 +21,6 @@ REQUIRED_DIRECTIVES = (
     "ProtectSystem=strict",
     "ProtectHome=true",
     "PrivateTmp=true",
-    # Process fence: operator-supplied scripts must not poke raw devices.
-    "PrivateDevices=true",
 )
 
 
@@ -68,3 +66,5 @@ def test_crontab_is_not_blocked_by_the_sandbox():
     start = source.find("[Service]")
     unit = source[start : source.find("[Install]", start)]
     assert "NoNewPrivileges=true" not in unit
+    # systemd < 254 (RHEL 9) implies NoNewPrivileges from PrivateDevices.
+    assert "PrivateDevices=true" not in unit

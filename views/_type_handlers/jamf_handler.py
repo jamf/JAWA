@@ -26,6 +26,7 @@
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+import json
 import re
 import time
 from typing import Any, Dict, List, Optional, Tuple
@@ -92,6 +93,14 @@ def xml_escape(value: str) -> str:
 
 def _build_auth_xml(form: Any) -> str:
     auth_xml = "<authentication_type>NONE</authentication_type>"
+    if form.get("choice") == "custom":
+        # Same "null" fallback _extract_auth_fields stores, so the header
+        # Jamf Pro sends matches what the receiver checks.
+        header = json.dumps({"x-api-key": form.get("api_key") or "null"})
+        return (
+            "<authentication_type>HEADER</authentication_type>"
+            f"<header>{xml_escape(header)}</header>"
+        )
     if form.get("choice") == "basic":
         basic_user = form.get("basic_username", "")
         basic_pass = form.get("basic_password", "")

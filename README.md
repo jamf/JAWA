@@ -465,10 +465,10 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
   JAWA installer afterwards — a distribution upgrade can leave nginx no longer serving JAWA, so
   the console goes unreachable while the `jawa` service itself is fine. Re-running the installer
   rewrites and re-enables the nginx site and restores the console.
-- **Content JAWA ships inside `data/` is not upgraded in place.** The installer preserves your
-  `data/` directory across an upgrade, which protects your automations and settings, but it also
-  means the bundled template scripts and the webhook event catalog stay at the version you first
-  installed. A fresh install gets the current copies.
+- **An upgrade replaces the content JAWA ships inside `data/`**: the bundled template scripts and
+  catalog, the webhook event catalog, and the Brander assets. Your automations and settings are
+  kept. Changes you made to a shipped file are lost, so keep your own copies outside the shipped
+  folders (see [docs/BRANDER.md](docs/BRANDER.md) for Brander images).
 - JAWA now installs Pillow 13 and qrcode (for the Brander template). Re-run the installer, or
   `venv/bin/python -m pip install -r requirements.txt`, when upgrading in place.
 - **Okta automations stop running until you re-create them.** Okta event hooks were registered

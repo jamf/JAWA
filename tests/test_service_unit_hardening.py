@@ -21,9 +21,7 @@ REQUIRED_DIRECTIVES = (
     "ProtectSystem=strict",
     "ProtectHome=true",
     "PrivateTmp=true",
-    # Process fence: the receiver spawns operator-supplied scripts, so a
-    # compromised script must not gain privileges or poke raw devices.
-    "NoNewPrivileges=true",
+    # Process fence: operator-supplied scripts must not poke raw devices.
     "PrivateDevices=true",
 )
 
@@ -58,9 +56,15 @@ def test_install_tree_is_writable_under_protect_system():
         if line.startswith("ReadWritePaths=")
     ]
     assert read_write, "unit pins no ReadWritePaths"
-    # Every entry must name the install tree (it is interpolated from
-    # $installDir), never a broad path like / or /usr.
-    for entry in read_write:
-        assert entry.startswith("$installDir"), (
-            f"ReadWritePaths entry {entry!r} is not scoped to the install dir"
-        )
+    entries = " ".join(read_write).split()
+    # The install tree plus the cron spool, never a broad path like / or /usr.
+    assert entries == ["$installDir", "-/var/spool/cron"], entries
+
+
+def test_crontab_is_not_blocked_by_the_sandbox():
+    # crontab is setgid/setuid; NoNewPrivileges stops it opening the spool,
+    # and timed automations are scheduled through it.
+    source = _unit_source()
+    start = source.find("[Service]")
+    unit = source[start : source.find("[Install]", start)]
+    assert "NoNewPrivileges=true" not in unit

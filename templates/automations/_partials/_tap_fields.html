@@ -1,0 +1,127 @@
+{% from "shared/_macros.html" import description_field, script_upload %}
+{% set info = webhook_info[0] if webhook_info else none %}
+
+<label class="form-label" for="service_name">Service name</label>
+{% if edit_mode %}
+<input name="service_name" id="service_name" type="text" class="form-control text-center"
+       value="{{ info.name }}" readonly
+       title="The service name is part of every deployed web clip URL
+              and cannot change.">
+{% else %}
+<input name="service_name" id="service_name" type="text" pattern="[A-Za-z0-9._-]+"
+       placeholder="Becomes /tap/<name>" required
+       title="Letters, numbers, dots, underscores and hyphens only."
+       class="form-control text-center" autofocus>
+{% endif %}
+
+{{ description_field(info.description if info else '', label="Description (optional)") }}
+{{ script_upload("new_file", required=not edit_mode) }}
+
+<label class="form-label" for="device_family">Device family</label>
+<select name="device_family" id="device_family" class="form-control">
+    {% for family in device_families %}
+    <option value="{{ family }}"
+            {% if info and info.device_family == family %}
+            selected{% endif %}>
+        {{ family }}</option>
+    {% endfor %}
+</select>
+
+<label class="form-label mt-3" for="cooldown_minutes">Cooldown per device
+    (minutes, 0 for none)</label>
+<input name="cooldown_minutes" id="cooldown_minutes" type="number"
+       class="form-control" min="0" max="1440" step="1" required
+       value="{{ info.cooldown_minutes if info and info.cooldown_minutes is not none else 0 }}">
+
+<h6 class="mt-3">Page text</h6>
+<p class="form-text">Use <code>{DEVICENAME}</code>-style placeholders for
+   any variable you put in the web clip URL.</p>
+<label class="form-label" for="page_title">Page title</label>
+<input name="page_title" id="page_title" class="form-control"
+       required
+       value="{{ info.page_title if info else '{DEVICENAME}' }}">
+<label class="form-label mt-2" for="page_description">Page description</label>
+<textarea name="page_description" id="page_description" class="form-control"
+          placeholder="For example: Tap Confirm to reset this device."
+          required>{{ info.page_description if info else '' }}</textarea>
+<label class="form-label mt-2" for="confirm_label">Confirm button label</label>
+<input name="confirm_label" id="confirm_label" class="form-control"
+       placeholder="For example: Confirm" required
+       value="{{ info.confirm_label if info else '' }}">
+<label class="form-label mt-2" for="success_message">Success message</label>
+<input name="success_message" id="success_message" class="form-control"
+       placeholder="For example: Done. Your device restarts in a minute." required
+       value="{{ info.success_message if info else '' }}">
+<label class="form-label mt-2" for="failure_message">Failure message</label>
+<input name="failure_message" id="failure_message" class="form-control"
+       placeholder="For example: That did not work. Contact the help desk." required
+       value="{{ info.failure_message if info else '' }}">
+
+<fieldset class="mt-3">
+    <legend class="h6">Home screen</legend>
+    <label class="form-label" for="webclip_label">Home screen label</label>
+    <input name="webclip_label" id="webclip_label" class="form-control"
+           maxlength="20" placeholder="Same as the page title"
+           value="{{ info.webclip_label if info and info.webclip_label else '' }}">
+    <small class="form-text">Shown under the icon. Leave empty to use the page title.</small>
+    <label class="form-label mt-2" for="webclip_icon">Icon</label>
+    <input name="webclip_icon" id="webclip_icon" type="file"
+           accept="image/png" class="form-control">
+    <small class="form-text">Square PNG, at least 180x180. Leave empty to use the JAWA icon.</small>
+</fieldset>
+
+{% if edit_mode %}
+<div class="form-check mt-3">
+    <input class="form-check-input" type="checkbox" name="rotate_token"
+           id="rotate_token" value="on">
+    <label class="form-check-label" for="rotate_token">
+        Replace the link token (the old web clip link stops working)
+    </label>
+</div>
+{% endif %}
+
+{% if edit_mode and brander_settings %}
+<fieldset class="mt-4">
+    <legend class="h6">Brander settings</legend>
+    <p class="form-text">Changes apply on the next tap. The web clip and its link stay the same.</p>
+    <label class="form-label" for="brander_template_path">Wallpaper template</label>
+    <input class="form-control" id="brander_template_path" name="brander_template_path"
+           value="{{ brander_settings.template_path }}" list="brander_template_options" required>
+    <datalist id="brander_template_options">
+        {% for option in brander_template_options %}<option value="{{ option }}">{% endfor %}
+    </datalist>
+    <small class="form-text">legacy, a template or set file in the assets folder, or store:&lt;name&gt; for a template under Extras, Brander templates. For a template per kind of device: store:iphone=&lt;name&gt; ipad=&lt;name&gt;.</small>
+    <label class="form-label mt-2" for="brander_wallpaper_setting">Wallpaper target</label>
+    <select class="form-control" id="brander_wallpaper_setting" name="brander_wallpaper_setting">
+        {% for value, label in [(1, 'Lock screen'), (2, 'Home screen'), (3, 'Both')] %}
+        <option value="{{ value }}" {% if brander_settings.wallpaper_setting == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <label class="form-label mt-2" for="brander_max_kb">Largest wallpaper to send (KB)</label>
+    <input class="form-control" type="number" min="50" max="20000" id="brander_max_kb" name="brander_max_kb"
+           value="{{ brander_settings.max_kb }}" required>
+    {% if brander_settings.allow_person_fields is not none %}
+    <label class="form-label mt-2" for="brander_allow_person_fields">Allow personal fields</label>
+    <select class="form-control" id="brander_allow_person_fields" name="brander_allow_person_fields">
+        <option value="no" {% if brander_settings.allow_person_fields != 'yes' %}selected{% endif %}>No: user name, username and email stay empty</option>
+        <option value="yes" {% if brander_settings.allow_person_fields == 'yes' %}selected{% endif %}>Yes, for templates that ask for them</option>
+    </select>
+    {% endif %}
+    <div class="form-check mt-3">
+        <input class="form-check-input" type="checkbox" name="brander_refresh" id="brander_refresh" value="on">
+        <label class="form-check-label" for="brander_refresh">
+            Update to the latest Brander script (keeps these settings and the Jamf Pro credentials)
+        </label>
+    </div>
+</fieldset>
+{% endif %}
+
+{% if not edit_mode or (info and not info.jamf_id and info.device_family == 'mobile') %}
+<div class="form-check mt-3">
+    <input class="form-check-input" type="checkbox" name="create_profile"
+           id="create_profile" value="on" {% if not edit_mode %}checked{% endif %}>
+    <label class="form-check-label" for="create_profile">
+        Create the web clip configuration profile in Jamf Pro (unscoped)
+    </label>
+</div>
+{% endif %}

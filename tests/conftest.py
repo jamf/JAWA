@@ -113,9 +113,7 @@ def fake_jamf(monkeypatch):
     """Fake every outbound HTTP verb JAWA uses against Jamf Pro."""
     monkeypatch.setattr(requests, "post", _fake_jamf_post)
     monkeypatch.setattr(requests, "get", _fake_jamf_get)
-    monkeypatch.setattr(
-        requests, "put", lambda *a, **k: FakeJamfResponse({})
-    )
+    monkeypatch.setattr(requests, "put", lambda *a, **k: FakeJamfResponse({}))
     monkeypatch.setattr(
         requests, "delete", lambda *a, **k: FakeJamfResponse({})
     )
@@ -142,6 +140,7 @@ class JawaEnv:
         self.server_file = self.data_dir / "server.json"
         self.credentials_file = self.data_dir / "credentials.json"
         self.log_file = self.data_dir / "jawa.log"
+        self.runs_file = self.data_dir / "runs.json"
         self.webhook_schemas_file = self.data_dir / "webhook_schemas.json"
 
     def add_webhook(self, entry):
@@ -154,6 +153,9 @@ class JawaEnv:
 def jawa_env(tmp_path, monkeypatch):
     """Point every module-level path constant at a temp directory."""
     env = JawaEnv(tmp_path)
+    # Many tests sign in against an unpinned server.json; the one that
+    # checks the refusal removes this.
+    monkeypatch.setenv("JAWA_ALLOW_UNPINNED_LOGIN", "1")
     env.data_dir.mkdir()
     env.scripts_dir.mkdir()
     env.files_dir.mkdir(parents=True)
@@ -187,8 +189,21 @@ def jawa_env(tmp_path, monkeypatch):
     scripts = str(env.scripts_dir)
     log_file = str(env.log_file)
 
+    from webhook import tap_receiver
+
+    tap_receiver.reset_rate_limits()  # per-process state, per test
     monkeypatch.setattr(data_store, "WEBHOOKS_FILE", webhooks)
+    monkeypatch.setattr(
+        data_store,
+        "COOLDOWNS_FILE",
+        str(env.data_dir / "tap_cooldowns.json"),
+    )
     monkeypatch.setattr(data_store, "CRON_FILE", cron)
+    monkeypatch.setattr(
+        data_store,
+        "CRON_ALERTS_FILE",
+        str(env.data_dir / "cron_alerts.json"),
+    )
     monkeypatch.setattr(data_store, "SERVER_FILE", server)
     monkeypatch.setattr(
         data_store, "TIME_FILE", str(env.data_dir / "time.json")
@@ -199,6 +214,7 @@ def jawa_env(tmp_path, monkeypatch):
         str(env.webhook_schemas_file),
     )
     monkeypatch.setattr(data_store, "SCRIPTS_DIR", scripts)
+    monkeypatch.setattr(data_store, "RUNS_FILE", str(env.runs_file))
 
     monkeypatch.setattr(home_view, "log_file", log_file)
     monkeypatch.setattr(home_view, "server_file", server)
@@ -283,7 +299,9 @@ def _build_enable_form(slug, **overrides):
     workflow = next(wf for wf in catalog if wf["slug"] == slug)
 
     form = {"webhook_name": slug}
-    if not workflow.get("trigger_event"):
+    # Tap action and timed templates have no Jamf event to pick.
+    no_event = workflow.get("trigger_type") in ("tap", "cron")
+    if not workflow.get("trigger_event") and not no_event:
         with open(
             os.path.join(REPO_ROOT, "data", "webhook_schemas.json"),
             "r",

@@ -232,9 +232,7 @@ def delete_file() -> Union[Response, Tuple[str, int]]:
     target_file_dir = os.path.dirname(
         os.path.abspath(os.path.join(files_dir, target_file))
     )
-    target_file_path = os.path.abspath(
-        os.path.join(files_dir, target_file)
-    )
+    target_file_path = os.path.abspath(os.path.join(files_dir, target_file))
 
     if target_file_dir != files_dir:
         logthis.warning(
@@ -259,7 +257,9 @@ def delete_file() -> Union[Response, Tuple[str, int]]:
                 f"[{session.get('url')}] {session.get('username')} failed to delete Resource file {target_file}: {err}"
             )
             error = "Error deleting file."
-            error_message = f"Permission denied or file in use: {target_file}. {err}"
+            error_message = (
+                f"Permission denied or file in use: {target_file}. {err}"
+            )
             return render_template(
                 "error.html",
                 error=error,

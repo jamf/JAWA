@@ -34,7 +34,7 @@
     <form action="/login" class="table-view" method="post">
         <div class="d-flex justify-content-center">
             <div style="max-width: 90%">
-                <img src="{{ url_for('static', filename='img/jawa_icon.png') }}" class="img-fluid" alt="JAWA"></div>
+                <img src="{{ url_for('static', filename='img/jawa_icon.png') }}" class="img-fluid login-icon" alt="JAWA"></div>
         </div>
         <h1 class="d-flex justify-content-center">{% if app_name %}{{ app_name }}{% else %}{% endif %}</h1>
         {% if error_message %}

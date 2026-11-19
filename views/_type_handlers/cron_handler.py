@@ -27,12 +27,17 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import getpass
+import os
+import shlex
+import sys
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from crontab import CronTab
 
 from bin import logger
 from bin.data_store import (
+    get_all_crons,
     get_time_data,
     save_script,
     save_all_crons,
@@ -53,28 +58,111 @@ def _get_crontab() -> CronTab:
         raise AutomationError("Crontab Error", str(err))
 
 
+RUN_CRON = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "bin", "run_cron.py")
+)
+
+
+def cron_command(name: str) -> str:
+    """The crontab command for timed automation ``name``.
+
+    Cron runs bin/run_cron.py under JAWA's own interpreter (the venv the
+    service runs in), which runs the script and writes its output and
+    exit status to the JAWA log.
+    """
+    return " ".join(
+        shlex.quote(part) for part in (sys.executable, RUN_CRON, name)
+    )
+
+
+def migrate_cron_commands() -> int:
+    """Point existing JAWA crontab lines at bin/run_cron.py.
+
+    Lines written before the runner existed call the script directly, so
+    their output never reaches the JAWA log. A line is JAWA's when its
+    comment is the name of an entry in cron.json. Returns the number of
+    lines changed. Never raises: a host without a usable crontab must
+    still start.
+    """
+    try:
+        names = {entry.get("name") for entry in get_all_crons()}
+        cron = CronTab(user=True)
+        changed = 0
+        for job in cron:
+            if job.comment in names:
+                command = cron_command(job.comment)
+                if job.command != command:
+                    job.command = command
+                    changed += 1
+        if changed:
+            cron.write()
+            logthis.info(
+                f"Updated {changed} timed automation(s) to log through "
+                f"run_cron.py"
+            )
+        return changed
+    except Exception as err:
+        logthis.warning(f"Could not update timed automation commands: {err}")
+        return 0
+
+
+PRESET_FREQUENCIES = ("everyhour", "everyday", "everyweek", "everymonth")
+
+
+def _hour_label(hour_id: Any) -> str:
+    """'2:00 AM' for hour id '2', using the labels the form shows."""
+    for hour in get_time_data().get("hours", []):
+        if str(hour.get("id")) == str(hour_id):
+            return hour.get("value", "")
+    return f"{hour_id}:00" if str(hour_id).isdigit() else str(hour_id)
+
+
+def _day_label(day_cron: Any) -> str:
+    """'Monday' for the weekday code 'MON'."""
+    for day in get_time_data().get("days", []):
+        if day.get("cron") == day_cron or str(day.get("id")) == str(day_cron):
+            return day.get("value", "")
+    return str(day_cron)
+
+
+def _custom_label(expression: str) -> str:
+    return f"Custom [ {expression} ]"
+
+
+def _is_preset(stored: str) -> bool:
+    """True for an old entry that saved only the form's preset value."""
+    return not stored or stored in PRESET_FREQUENCIES or stored == "custom"
+
+
 def _apply_frequency(job: Any, frequency: str, form: Any) -> str:
-    """Apply the chosen frequency to a cron job. Returns display frequency."""
+    """Apply the chosen frequency to a cron job.
+
+    Returns a readable label such as "Every day at 2:00 AM".
+    """
     if frequency == "everyhour":
         job.every().hours()
         job.minute.on(0)
+        return "Every hour, on the hour"
     elif frequency == "everyday":
         time_val = form.get("daytime")
         job.day.every(1)
         job.hour.on(time_val)
         job.minute.on(0)
+        return f"Every day at {_hour_label(time_val)}"
     elif frequency == "everyweek":
         day = form.get("weekday")
         time_val = form.get("weektime")
         job.dow.on(day)
         job.hour.on(time_val)
         job.minute.on(0)
+        return f"Every {_day_label(day)} at {_hour_label(time_val)}"
     elif frequency == "everymonth":
         day = form.get("monthday")
         time_val = form.get("monthtime")
         job.day.on(day)
         job.hour.on(time_val)
         job.minute.on(0)
+        return f"On day {day} of every month at {_hour_label(time_val)}"
     elif frequency == "custom":
         custom_freq = form.get("customfreq", "")
         try:
@@ -88,13 +176,14 @@ def _apply_frequency(job: Any, frequency: str, form: Any) -> str:
                 f"Check your syntax:  ",
                 link=f"https://crontab.guru/#{safe_freq}",
             )
-        return f"Custom [ {custom_freq} ]"
+        return _custom_label(custom_freq)
     return frequency
 
 
 class CronHandler(AutomationHandler):
     tag = "cron"
     display_name = "Timed Automation"
+    summary = "Runs a script on a schedule."
     badge_class = "badge-observability"
     icon = "timed_automation.png"
     supports_edit = True
@@ -131,7 +220,7 @@ class CronHandler(AutomationHandler):
 
         # Create crontab entry
         cron = _get_crontab()
-        job = cron.new(command=script_path, comment=cron_name)
+        job = cron.new(command=cron_command(cron_name), comment=cron_name)
         display_freq = _apply_frequency(job, frequency, form)
         cron.write()
 
@@ -179,8 +268,6 @@ class CronHandler(AutomationHandler):
         if files.get("script") and files["script"].filename:
             script_path = save_script(files["script"], f"cron_{new_name}", "_")
             existing["script"] = script_path
-        else:
-            script_path = existing.get("script", "")
 
         # Update crontab
         cron = _get_crontab()
@@ -188,7 +275,7 @@ class CronHandler(AutomationHandler):
 
         for job in cron:
             if job.comment == name:
-                job.command = script_path
+                job.command = cron_command(new_name)
                 job.comment = new_name
                 if frequency_change:
                     display_freq = _apply_frequency(job, frequency, form)
@@ -197,7 +284,7 @@ class CronHandler(AutomationHandler):
 
         if frequency == "custom":
             custom_freq = form.get("customfreq", "")
-            existing["frequency"] = f"Custom [ {custom_freq} ]"
+            existing["frequency"] = _custom_label(custom_freq)
         else:
             existing["frequency"] = display_freq
 
@@ -235,9 +322,52 @@ class CronHandler(AutomationHandler):
         return None
 
     def get_detail_fields(self, automation: Dict) -> List[Tuple[str, str]]:
-        return [
-            ("Automation name", automation.get("name", "")),
-            ("Frequency", automation.get("frequency", "")),
-            ("Script path", automation.get("script", "")),
-            ("Description", automation.get("description", "")),
-        ]
+        fields = [("Automation name", automation.get("name", ""))]
+        fields.extend(self._schedule_fields(automation))
+        fields.extend(
+            [
+                ("Script path", automation.get("script", "")),
+                ("Description", automation.get("description", "")),
+            ]
+        )
+        return fields
+
+    def _schedule_fields(self, automation: Dict) -> List[Tuple[str, str]]:
+        """Schedule and next run, read from the crontab that really runs it.
+
+        The stored label is what the admin chose; the crontab line is
+        what executes, so a missing line means the job is not running.
+        """
+        stored = automation.get("frequency", "") or ""
+        try:
+            cron = _get_crontab()
+        except AutomationError:
+            return [("Schedule", stored or "Unknown (crontab unreadable)")]
+        job = next(
+            (j for j in cron if j.comment == automation.get("name")), None
+        )
+        if job is None:
+            return [
+                (
+                    "Schedule",
+                    "Not scheduled: no crontab entry for this job",
+                )
+            ]
+        label = str(job.slices) if _is_preset(stored) else stored
+        fields = [("Schedule", label)]
+        try:
+            next_run = job.schedule(date_from=datetime.now()).get_next()
+            fields.append(
+                (
+                    "Next run",
+                    f"{next_run:%a} {next_run.day} {next_run:%b}, "
+                    f"{next_run.hour % 12 or 12}:{next_run:%M %p}"
+                    " (server time)",
+                )
+            )
+        except Exception as err:  # croniter missing or odd expression
+            logthis.warning(
+                f"Could not work out the next run of "
+                f"{automation.get('name')}: {err}"
+            )
+        return fields

@@ -43,17 +43,13 @@ def _option_values(body):
 
 
 def test_create_form_groups_events_by_category(logged_in_client, jawa_env):
-    body = logged_in_client.get(
-        "/automations/jamfpro/new"
-    ).data.decode()
+    body = logged_in_client.get("/automations/jamfpro/new").data.decode()
     for category in get_webhook_schemas()["categories"]:
         assert f'<optgroup label="{category}">' in body
 
 
 def test_create_form_lists_every_catalog_event(logged_in_client, jawa_env):
-    body = logged_in_client.get(
-        "/automations/jamfpro/new"
-    ).data.decode()
+    body = logged_in_client.get("/automations/jamfpro/new").data.decode()
     events = _catalog_events()
     # An option per catalog event and no more. No stored event exists on
     # the create form, so the only other option is the value=""
@@ -67,9 +63,7 @@ def test_create_form_lists_every_catalog_event(logged_in_client, jawa_env):
 def test_create_form_keeps_the_required_empty_placeholder(
     logged_in_client, jawa_env
 ):
-    body = logged_in_client.get(
-        "/automations/jamfpro/new"
-    ).data.decode()
+    body = logged_in_client.get("/automations/jamfpro/new").data.decode()
     assert '<option value=""></option>' in body
     assert "-- Keep current --" not in body
     assert 'name="event"' in body
@@ -94,9 +88,7 @@ def _stored_webhook(event):
     }
 
 
-def test_edit_form_preselects_the_stored_event(
-    logged_in_client, jawa_env
-):
+def test_edit_form_preselects_the_stored_event(logged_in_client, jawa_env):
     jawa_env.add_webhook(_stored_webhook("ComputerCheckIn"))
     body = logged_in_client.get(
         "/automations/jamfpro/dropdown-hook/edit"
@@ -122,15 +114,11 @@ def test_edit_form_preserves_an_event_missing_from_the_catalog(
 
 
 def test_dropdown_has_no_raw_hex_inline_style(logged_in_client, jawa_env):
-    body = logged_in_client.get(
-        "/automations/jamfpro/new"
-    ).data.decode()
+    body = logged_in_client.get("/automations/jamfpro/new").data.decode()
     assert 'style="color:#3c6aa7;"' not in body
 
 
-def test_empty_catalog_leaves_the_form_renderable(
-    logged_in_client, jawa_env
-):
+def test_empty_catalog_leaves_the_form_renderable(logged_in_client, jawa_env):
     # A damaged catalog must degrade, not 500 the creation form.
     jawa_env.webhook_schemas_file.write_text("{}")
     resp = logged_in_client.get("/automations/jamfpro/new")

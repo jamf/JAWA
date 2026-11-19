@@ -8,7 +8,5 @@ def test_delete_with_no_file_selected_does_not_500(logged_in_client, jawa_env):
 
 
 def test_delete_nonexistent_file_does_not_500(logged_in_client, jawa_env):
-    resp = logged_in_client.post(
-        "/resources/delete.html?target_file=nope.txt"
-    )
+    resp = logged_in_client.post("/resources/delete.html?target_file=nope.txt")
     assert resp.status_code < 500

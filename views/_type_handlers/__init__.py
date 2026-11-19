@@ -33,12 +33,14 @@ from views._type_handlers.jamf_handler import JamfHandler
 from views._type_handlers.okta_handler import OktaHandler
 from views._type_handlers.custom_handler import CustomHandler
 from views._type_handlers.cron_handler import CronHandler
+from views._type_handlers.tap_handler import TapActionHandler
 
 HANDLERS: Dict[str, AutomationHandler] = {
     "jamfpro": JamfHandler(),
     "okta": OktaHandler(),
     "custom": CustomHandler(),
     "cron": CronHandler(),
+    "tap": TapActionHandler(),
 }
 
 

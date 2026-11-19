@@ -28,29 +28,30 @@ def _empty_states(body: str) -> str:
     return body[start:end]
 
 
-def test_empty_state_cta_uses_the_brand_button(logged_in_client, jawa_env):
-    states = _empty_states(logged_in_client.get("/dashboard").data.decode())
-    # No automations exist in a fresh temp env, so all four render.
-    assert states.count('class="empty-state"') == 4
-    assert states.count('class="btn btn-jawa btn-action"') == 4
-    assert "Create one now" in states
-
-
-def test_empty_state_has_no_inline_style(logged_in_client, jawa_env):
+def test_empty_dashboard_shows_one_start_here_card(logged_in_client, jawa_env):
     body = logged_in_client.get("/dashboard").data.decode()
-    assert 'style="text-align: center; margin: 1rem auto;"' not in body
+    assert body.count('class="start-here"') == 1
+    assert "Start here" in body
+    assert 'class="empty-state"' not in body
+    assert "Create one now" not in body
+    card = body[body.index('class="start-here"') :]
+    card = card[: card.index("</div>")]
+    assert card.count("<li>") == 4
+    for kind in ("jamfpro", "okta", "custom", "cron"):
+        assert f'href="/automations/{kind}/new"' in card
+    assert card.count('class="btn btn-jawa btn-action"') == 1
 
 
-def test_empty_state_keeps_its_message_and_link(logged_in_client, jawa_env):
-    states = _empty_states(logged_in_client.get("/dashboard").data.decode())
-    assert "No Jamf Pro webhooks to display." in states
-    assert 'href="/automations/jamfpro/new"' in states
-    assert 'href="/automations/cron/new"' in states
-
-
-def test_empty_state_renders_on_a_type_list_page(
+def test_populated_dashboard_has_no_start_here_card(
     logged_in_client, jawa_env
 ):
+    _seed_rows(jawa_env)
+    body = logged_in_client.get("/dashboard").data.decode()
+    assert "Start here" not in body
+    assert 'class="start-here"' not in body
+
+
+def test_empty_state_renders_on_a_type_list_page(logged_in_client, jawa_env):
     # The macro is shared, so styling it fixes the list pages too.
     states = _empty_states(
         logged_in_client.get("/automations/okta").data.decode()
@@ -104,3 +105,86 @@ def test_hero_subtitle_escapes_a_hostile_jamf_pro_url(
     assert HOSTILE_URL not in body
     assert '"><script>' not in body
     assert "<script>alert(1)</script>" not in body
+
+
+def _seed_rows(jawa_env):
+    jawa_env.add_webhook(
+        {
+            "name": "RenameOnEnroll",
+            "tag": "jamfpro",
+            "event": "MobileDeviceEnrolled",
+            "description": "Renames new iPads to the asset tag",
+            "script": "/x/rename.sh",
+        }
+    )
+    jawa_env.add_webhook(
+        {
+            "name": "HelpdeskTicket",
+            "tag": "custom",
+            "description": "ticket hook",
+            "script": "/x/ticket.sh",
+        }
+    )
+    jawa_env.cron_file.write_text(
+        '[{"name": "NightlyInventory", "frequency": "Every day at 2:00 AM",'
+        ' "description": "", "script": "/x/n.sh"}]'
+    )
+
+
+def test_dashboard_rows_show_each_trigger(logged_in_client, jawa_env):
+    _seed_rows(jawa_env)
+    body = logged_in_client.get("/dashboard").data.decode()
+    assert "MobileDeviceEnrolled" in body
+    assert "/hooks/HelpdeskTicket" in body
+    assert "Every day at 2:00 AM" in body
+    assert "Renames new iPads to the asset tag" in body
+
+
+def test_dashboard_row_is_one_link_to_the_detail_page(
+    logged_in_client, jawa_env
+):
+    _seed_rows(jawa_env)
+    body = logged_in_client.get("/dashboard").data.decode()
+    row = body[body.index('<li class="automation-row">') :]
+    row = row[: row.index("</li>")]
+    assert row.count("<a ") == 1
+    assert 'href="/automations/jamfpro/RenameOnEnroll"' in row
+    assert "View</a>" not in body
+
+
+def _css() -> str:
+    with open("static/css/main.css", encoding="utf-8") as handle:
+        return handle.read()
+
+
+def test_css_has_a_focus_visible_rule_with_outline():
+    css = _css()
+    assert ":focus-visible {" in css
+    start = css.index("/* ===== Keyboard focus")
+    rule = css[start : css.index("/* ===== Buttons", start)]
+    assert "outline: 2px solid var(--color-primary)" in rule
+    assert "outline-offset: 2px" in rule
+
+
+def test_body_keeps_navbar_offset_on_phones():
+    css = _css()
+    assert "padding-top: 56px;" in css
+    assert "@media (max-width: 979px) {\n    body" not in css
+
+
+def test_detail_buttons_wrap_on_phones(logged_in_client, jawa_env):
+    jawa_env.add_webhook(
+        {
+            "name": "Hook",
+            "tag": "custom",
+            "description": "",
+            "script": "/x/h.sh",
+        }
+    )
+    body = logged_in_client.get("/automations/custom/Hook").data.decode()
+    assert 'class="action-row mt-4"' in body
+    css = _css()
+    media = css[css.index("@media (max-width: 575px) {\n    .action-row") :]
+    assert "flex-wrap: wrap" in media
+    assert "min-width: 0" in media
+    assert ".action-row .btn-danger" in media

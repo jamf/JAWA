@@ -10,7 +10,9 @@
 <label class="form-check-label text-center" for="frequency">Frequency:</label>
 <select name="frequency" id="frequency" class="form-control text-center"
         onchange="showFrequencyFields(this.value)">
-    <option value="">{{ '-- Keep current --' if edit_mode else '' }}</option>
+    {% set current = cron_info.frequency if cron_info else '' %}
+    {% set readable = current and current not in ['everyhour', 'everyday', 'everyweek', 'everymonth', 'custom'] %}
+    <option value="">{% if edit_mode %}-- Keep current{% if readable %} ({{ current }}){% endif %} --{% endif %}</option>
     <option value="everyhour">Every Hour</option>
     <option value="everyday">Every Day</option>
     <option value="everyweek">Every Week</option>

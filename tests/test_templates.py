@@ -14,7 +14,7 @@ from bin import data_store
 class RecordingPopen:
     calls = []
 
-    def __init__(self, args, stdout=None, stderr=None):
+    def __init__(self, args, stdout=None, stderr=None, **kwargs):
         RecordingPopen.calls.append(args)
         self.stdout = io.BytesIO(b"ok\n")
 
@@ -110,8 +110,7 @@ def test_blank_auth_field_does_not_lock_the_webhook_out(
         # answered 200 anyway; the stub script here genuinely fails on
         # this payload, and that is a separate concern from auth.
         assert resp.status_code != 401, (
-            "inbound event rejected 401; the webhook is permanently "
-            "locked out"
+            "inbound event rejected 401; the webhook is permanently locked out"
         )
 
 
@@ -235,9 +234,7 @@ def _upload(client, package, **fields):
     )
 
 
-def test_import_rejects_script_that_does_not_parse(
-    logged_in_client, jawa_env
-):
+def test_import_rejects_script_that_does_not_parse(logged_in_client, jawa_env):
     """A truncated or malformed upload used to be written, chmod 0755'd
     and registered as a live webhook, then fail inside Popen where the
     only signal is a logged non-zero exit code (bug B16).
@@ -297,9 +294,7 @@ def test_import_form_offers_jamf_registration_by_default(logged_in_client):
     is the default, not an extra step the admin has to know about.
     """
     body = logged_in_client.get("/templates/import").get_data(as_text=True)
-    match = re.search(
-        r'<input[^>]*name="create_in_jamf"[^>]*>', body, re.S
-    )
+    match = re.search(r'<input[^>]*name="create_in_jamf"[^>]*>', body, re.S)
     assert match, "no create_in_jamf control on the import form"
     assert "checked" in match.group(0), (
         "the Jamf Pro registration box is not checked by default"
@@ -458,9 +453,7 @@ def test_substitution_rejects_a_token_no_param_declares():
         )
 
 
-def test_enable_files_the_automation_under_jamfpro(
-    logged_in_client, jawa_env
-):
+def test_enable_files_the_automation_under_jamfpro(logged_in_client, jawa_env):
     """Templates wrote tag "custom" while carrying a Jamf event, so they
     were misfiled under Custom and edited against a form with no event
     field -- their trigger was invisible and uneditable (bug B14).
@@ -510,9 +503,7 @@ def test_enable_writes_nothing_when_jamf_rejects(
         },
     )
 
-    assert (
-        data_store.get_webhook_by_name("Device-Naming-by-Asset-Tag") is None
-    )
+    assert data_store.get_webhook_by_name("Device-Naming-by-Asset-Tag") is None
     written = os.listdir(str(jawa_env.scripts_dir))
     assert written == [], f"orphaned script(s) left behind: {written}"
 
@@ -626,9 +617,9 @@ def test_fixed_event_template_does_not_offer_a_picker(
     picker there would let the admin choose an event the script cannot
     parse, and the server ignores the field anyway.
     """
-    body = logged_in_client.get(
-        "/templates/device-naming/enable"
-    ).get_data(as_text=True)
+    body = logged_in_client.get("/templates/device-naming/enable").get_data(
+        as_text=True
+    )
     assert 'name="event"' not in body
     assert "MobileDeviceEnrolled" in body
 
@@ -780,9 +771,9 @@ def test_enable_form_marks_which_keys_each_set_supplies(
             },
         ],
     )
-    body = logged_in_client.get(
-        "/templates/device-naming/enable"
-    ).get_data(as_text=True)
+    body = logged_in_client.get("/templates/device-naming/enable").get_data(
+        as_text=True
+    )
 
     assert 'data-supplies="server_url client_id client_secret"' in body
     assert 'data-supplies="server_url"' in body
@@ -812,9 +803,9 @@ def test_enable_form_never_renders_credential_values(
             }
         ],
     )
-    body = logged_in_client.get(
-        "/templates/device-naming/enable"
-    ).get_data(as_text=True)
+    body = logged_in_client.get("/templates/device-naming/enable").get_data(
+        as_text=True
+    )
 
     assert secret not in body
     assert client_id not in body
@@ -858,3 +849,87 @@ def test_partial_credential_set_still_takes_typed_value(jawa_env):
         "u = 'https://saved.jamfcloud.com'",
         "s = 'typed'",
     ]
+
+
+@pytest.mark.parametrize("register_in_jamf", [True, False])
+def test_import_with_api_key_rejects_unauthenticated_calls(
+    logged_in_client, jawa_env, fake_popen, register_in_jamf
+):
+    fields = {"choice": "custom", "api_key": "s3cret-import-key"}
+    if register_in_jamf:
+        fields["create_in_jamf"] = "yes"
+    resp = _upload(
+        logged_in_client,
+        _package("#!/usr/bin/env python3\nprint('hi')\n"),
+        **fields,
+    )
+    assert resp.status_code == 302
+
+    event = {"webhook": {"webhookEvent": "ComputerCheckIn"}}
+    denied = logged_in_client.post("/hooks/imported-hook", json=event)
+    assert denied.status_code == 401
+    assert fake_popen.calls == []
+
+    allowed = logged_in_client.post(
+        "/hooks/imported-hook",
+        json=event,
+        headers={"x-api-key": "s3cret-import-key"},
+    )
+    assert allowed.status_code == 200
+    assert len(fake_popen.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "path", ["/templates/import", "/templates/device-naming/enable"]
+)
+def test_import_and_enable_pages_preselect_a_generated_api_key(
+    logged_in_client, path
+):
+    body = logged_in_client.get(path).get_data(as_text=True)
+    custom = re.search(r'<input[^>]*value="custom"[^>]*>', body, re.S)
+    none = re.search(r'<input[^>]*value="none"[^>]*>', body, re.S)
+    assert custom and "checked" in custom.group(0)
+    assert none and "checked" not in none.group(0)
+    key = re.search(r'name="api_key"[^>]*value="([^"]+)"', body, re.S)
+    assert key and len(key.group(1)) >= 24
+
+
+@pytest.mark.parametrize("register_in_jamf", [False, True])
+def test_local_import_refuses_a_taken_name_and_keeps_existing_scripts(
+    logged_in_client, jawa_env, register_in_jamf
+):
+    fields = {"create_in_jamf": "yes"} if register_in_jamf else {}
+    first = _upload(
+        logged_in_client,
+        _package("#!/usr/bin/env python3\nprint('FIRST')\n", name="dup"),
+        **fields,
+    )
+    assert first.status_code == 302
+    script_path = data_store.get_webhook_by_name("dup")["script"]
+
+    second = logged_in_client.get(
+        _upload(
+            logged_in_client,
+            _package("#!/usr/bin/env python3\nprint('SECOND')\n", name="dup"),
+            **fields,
+        ).headers["Location"],
+    )
+    assert "already in use" in second.get_data(as_text=True)
+
+    assert len(json.loads(jawa_env.webhooks_file.read_text())) == 1
+    with open(script_path) as handle:
+        assert "FIRST" in handle.read()
+    assert os.listdir(jawa_env.scripts_dir) == [os.path.basename(script_path)]
+
+
+def test_import_never_writes_to_the_package_file_name(
+    logged_in_client, jawa_env
+):
+    existing = jawa_env.scripts_dir / "imported.py"
+    existing.write_text("#!/usr/bin/env python3\nprint('KEEP')\n")
+    _upload(
+        logged_in_client,
+        _package("#!/usr/bin/env python3\nprint('NEW')\n", name="other"),
+    )
+    assert "KEEP" in existing.read_text()
+    assert data_store.get_webhook_by_name("other")["script"] != str(existing)

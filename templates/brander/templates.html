@@ -1,0 +1,125 @@
+{% extends "shared/_layout.html" %}
+
+{% block title %}Brander templates | JAWA{% endblock %}
+
+{% import "vendor/roster-macros.html" as rb %}
+
+{% block additional_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/vendor/roster-web.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/vendor/roster-html.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/brander.css') }}">
+{% endblock %}
+
+{% macro fit_list(fit) %}
+{% if fit %}
+<ul class="brander-fit">
+    {% for f in fit %}
+    <li>{% if f.warnings %}<strong>{{ f.family }}: check the layout.</strong>
+        <ul>
+            {% for w in f.warnings[:6] %}<li>{{ w }}</li>{% endfor %}
+            {% if f.warnings | length > 6 %}<li>And {{ f.warnings | length - 6 }} more.</li>{% endif %}
+        </ul>
+        {% else %}<strong>{{ f.family }}: fits</strong> every screen.{% endif %}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endmacro %}
+
+{% macro upload_form() %}
+<form method="POST" action="/brander/templates" enctype="multipart/form-data" class="brander-upload-form">
+    <label for="package" class="rb-label">Upload a template (.brander.json from EWOK)</label>
+    <div class="brander-upload">
+        <input type="file" class="rb-input" id="package" name="package" accept=".json,application/json" required>
+        <button type="submit" class="rb-btn">Upload</button>
+    </div>
+</form>
+{% endmacro %}
+
+{% block content %}
+{% set icons_url = url_for('static', filename='css/vendor/icons.svg') %}
+<div class="container brander-page">
+    <h1 class="h3">Brander templates</h1>
+    <p class="lead">Wallpaper templates designed in EWOK, for this Jamf Pro tenant. Each upload is a new version; Brander sends the active one.</p>
+
+    {% if uploaded %}
+    <div class="rb-alert rb-alert--ok" role="status">{{ rb.icon("circle-check", icons_url=icons_url) }}<div class="rb-alert__content">
+        <p class="rb-alert__title">Uploaded {{ uploaded.name }} as version {{ uploaded.version }}{% if uploaded.active %}, now active{% else %}. Activate it below when you are ready{% endif %}.</p>
+        {{ fit_list(uploaded.fit) }}
+    </div></div>
+    {% endif %}
+    {% if problems %}
+    <div class="rb-alert" role="alert">{{ rb.icon("circle-exclamation", icons_url=icons_url) }}<div class="rb-alert__content">
+        <p class="rb-alert__title">{% if filename %}{{ filename }} was not stored:{% else %}Not done:{% endif %}</p>
+        <ul class="brander-problems">{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul>
+    </div></div>
+    {% endif %}
+
+    {% if templates %}
+    {{ upload_form() }}
+    {% endif %}
+
+    {% for t in templates %}
+    <section class="rb-card brander-template" aria-labelledby="t-{{ t.slug }}">
+        {% if t.active %}
+        <img class="brander-thumb" src="/brander/templates/{{ t.slug }}/thumbnail.png?v={{ t.active }}"
+             alt="Active version of {{ t.name }} on a sample device" loading="lazy">
+        {% endif %}
+        <div class="brander-template__body">
+        <h2 class="rb-card__title" id="t-{{ t.slug }}">{{ t.name }}</h2>
+        <p class="mb-1">Brander setting: <span class="brander-setting">store:{{ t.slug }}</span></p>
+        <p class="mb-2">
+            {% if used_by.get(t.slug) %}Used by: {{ used_by[t.slug] | join(", ") }}
+            {% else %}Not used by any Brander yet. To use it, edit a Brander (Automations, Tap Action) and set its template to <span class="brander-setting">store:{{ t.slug }}</span>.{% endif %}
+        </p>
+        {% if fits.get(t.slug) %}
+        <p class="mb-1">How the active version fits:</p>
+        {{ fit_list(fits[t.slug]) }}
+        {% endif %}
+        <div class="rb-table"><table>
+            <thead><tr><th scope="col">Version</th><th scope="col">Uploaded by</th><th scope="col">Uploaded</th><th scope="col">SHA-256</th><th scope="col">Status</th></tr></thead>
+            <tbody>
+            {% for v in t.versions | reverse %}
+            <tr>
+                <td>Version {{ v.version }}</td>
+                <td>{{ v.uploaded_by }}</td>
+                <td>{{ v.uploaded_at | int | timestamp_to_text }}</td>
+                <td><code>{{ v.sha256[:12] }}</code></td>
+                <td>
+                    {% if v.version == t.active %}
+                    {{ rb.badge("Active", "ok", icons_url=icons_url) }}
+                    {% else %}
+                    <form method="POST" action="/brander/templates/{{ t.slug }}/activate" class="d-inline">
+                        <input type="hidden" name="version" value="{{ v.version }}">
+                        <button type="submit" class="rb-btn rb-btn--outline rb-btn--sm">Activate version {{ v.version }}</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table></div>
+        <details>
+            <summary>Activation history</summary>
+            <ul class="mb-0">
+            {% for a in t.activations | reverse %}
+                <li>Version {{ a.version }} activated by {{ a.by }}, {{ a.at | int | timestamp_to_text }}</li>
+            {% endfor %}
+            </ul>
+        </details>
+        </div>
+    </section>
+    {% if loop.last and templates | length > 1 %}
+    <section aria-labelledby="store-sets">
+        <h2 id="store-sets" class="h5">A template per kind of device</h2>
+        <p class="mb-0">One Brander can send iPhones and iPads different designs. Set its template to a store set:
+            <span class="brander-setting">store:iphone={{ templates[0].slug }} ipad={{ templates[1].slug }}</span>.
+            Keys are a model identifier (iPad8,5), iphone, ipad or default, tried in that order.</p>
+    </section>
+    {% endif %}
+    {% else %}
+    {% call rb.empty("No templates yet", description="Design one in EWOK, choose \"Download for JAWA's template store\", and upload the .brander.json here.", icon_name="plus", heading_level=2, icons_url=icons_url) %}
+    {{ upload_form() }}
+    {% endcall %}
+    {% endfor %}
+</div>
+{% endblock %}

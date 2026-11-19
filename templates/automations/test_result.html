@@ -1,0 +1,36 @@
+{% extends "shared/_layout.html" %}
+{% from "shared/_macros.html" import hero_section %}
+
+{% block title %}Sample event | JAWA{% endblock %}
+
+{% block content %}
+{{ hero_section(title=automation.name, subtitle="Sample event") }}
+
+<div class="container">
+    <div class="form-section">
+        {% if outcome == 'no_sample' %}
+        <p><span class="status-text"><span aria-hidden="true">ⓘ</span> No sample for this event</span></p>
+        <p>The event catalog has no sample payload for {{ event or 'this automation' }}, so nothing was run.</p>
+        {% else %}
+        <p>
+            {% if outcome == 'succeeded' %}
+            <span class="status-text"><span aria-hidden="true">✓</span> Succeeded</span>
+            {% else %}
+            <span class="status-text"><span aria-hidden="true">✕</span> Failed</span> ({{ detail }})
+            {% endif %}
+            The script ran once with the sample payload below.
+        </p>
+        <h5>Script output</h5>
+        <pre class="run-output">{{ output or '(no output)' }}</pre>
+        <h5>Payload sent</h5>
+        <div class="script-preview code-wrapper">
+            <button type="button" class="copy-btn" aria-label="Copy the payload">Copy</button>
+            <pre><code class="language-json">{{ payload }}</code></pre>
+        </div>
+        {% endif %}
+        <div class="d-flex justify-content-center mt-4">
+            <a href="{{ back }}" class="btn btn-secondary btn-action">Back to {{ automation.name }}</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

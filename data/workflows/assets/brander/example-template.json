@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "name": "Brander basic (iPhone 15/16 Pro Max, portrait)",
+  "canvas": {"width": 1290, "height": 2796},
+  "background": {"color": "#0B2545"},
+  "layers": [
+    {"type": "image", "asset": "jawa-logo", "box": {"x": 0.3, "y": 0.36, "w": 0.4, "h": 0.18}},
+    {"type": "text", "text": "{{device_name}}", "box": {"x": 0.08, "y": 0.6, "w": 0.84, "h": 0.05}, "size": 0.028, "color": "#FFFFFF", "align": "center", "overflow": "ellipsis", "min_size": 0.0182},
+    {"type": "text", "text": "Serial {{serial_number}}", "box": {"x": 0.08, "y": 0.655, "w": 0.84, "h": 0.03}, "size": 0.016, "color": "#DCE6F2", "align": "center", "overflow": "ellipsis", "hide_if_empty": true},
+    {"type": "text", "text": "Asset {{asset_tag}}", "box": {"x": 0.08, "y": 0.685, "w": 0.84, "h": 0.03}, "size": 0.016, "color": "#DCE6F2", "align": "center", "overflow": "ellipsis", "hide_if_empty": true},
+    {"type": "text", "text": "{{location.building}}", "box": {"x": 0.08, "y": 0.715, "w": 0.84, "h": 0.03}, "size": 0.016, "color": "#DCE6F2", "align": "center", "overflow": "ellipsis", "hide_if_empty": true},
+    {"type": "qr", "data": "jamf-device:{{jss_id}}", "box": {"x": 0.35, "y": 0.76, "w": 0.3, "h": 0.14}, "hide_if_empty": true}
+  ]
+}

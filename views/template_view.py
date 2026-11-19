@@ -30,6 +30,7 @@ import json
 import math
 import os
 import re
+import secrets
 import sys
 from typing import Any, Dict, List, Optional, Union
 
@@ -47,11 +48,16 @@ from flask import (
 from markupsafe import escape
 from werkzeug.utils import secure_filename
 
-from bin import data_store, logger
+from bin import brander_store, data_store, logger
 from bin.data_store import get_jawa_address, get_webhook_schemas
-from bin.tokens import get_token, validate_token
+from bin.tokens import fresh_token
 from bin.view_modifiers import response
 from views._type_handlers.base import AutomationError
+from views._type_handlers.cron_handler import (
+    _apply_frequency,
+    _get_crontab,
+    cron_command,
+)
 from views._type_handlers.jamf_handler import (
     USER_AGENT_STRING,
     VERIFY_SSL,
@@ -61,6 +67,12 @@ from views._type_handlers.jamf_handler import (
     _extract_auth_fields,
     _smart_group_info,
     validate_webhook_name,
+)
+from views._type_handlers.tap_handler import (
+    PAGE_FIELDS,
+    build_service_entry,
+    register_profile,
+    service_url,
 )
 
 # Reused, not re-implemented: the one-shot success flash has to behave
@@ -101,6 +113,8 @@ def _ensure_scripts_dir() -> None:
     JAWA has no record of, and every retry gets HTTP 409.
     """
     os.makedirs(SCRIPTS_DIR, exist_ok=True)
+
+
 WEBHOOKS_FILE = os.path.join(BASE_DIR, "data", "webhooks.json")
 CREDENTIALS_FILE = os.path.join(BASE_DIR, "data", "credentials.json")
 
@@ -151,15 +165,11 @@ def _install_package(
     B14 mistake, where the trigger becomes invisible and uneditable.
     """
     script = package["script"]
-    _ensure_scripts_dir()
     safe_filename = secure_filename(script["filename"])
-    script_path = os.path.join(SCRIPTS_DIR, safe_filename)
-    with open(script_path, "w", encoding="utf-8") as f:
-        f.write(_retarget_shebang(script["content"]))
-    # Owner-only, and the same reason as _write_script: an imported
-    # package can carry credential values, and the explicit chmod
-    # overrides the operator's umask.
-    os.chmod(script_path, 0o700)
+    # A unique <name>_<n>.py, never the package's own file name: that name
+    # comes from a shared file and could land on another automation's
+    # script. _write_script also sets owner-only permissions.
+    script_path = _write_script(package["name"], script["content"])
 
     auth = auth_fields or {
         "webhook_username": "null",
@@ -214,6 +224,10 @@ def _credential_supplies(
 TOKEN_PREFIX = "__JAWA_"
 
 
+# Matches the default int/str digit limit of Python 3.11 and later.
+_MAX_NUMBER_DIGITS = 4300
+
+
 def _numeric_literal(value: str, param: Dict[str, Any]) -> str:
     """Validate a numeric config value and render it as a literal.
 
@@ -233,6 +247,14 @@ def _numeric_literal(value: str, param: Dict[str, Any]) -> str:
         raise AutomationError(
             "Invalid Configuration",
             f"{label} must be an ASCII number. Got: {value}",
+        )
+    # Bound the size before converting. Python 3.11+ refuses int() on
+    # strings past ~4300 digits, but older versions convert them, so the
+    # check is explicit here to give the same result on every version.
+    if sum(char.isdigit() for char in text) > _MAX_NUMBER_DIGITS:
+        raise AutomationError(
+            "Invalid Configuration",
+            f"{label} has too many digits (limit {_MAX_NUMBER_DIGITS}).",
         )
     try:
         number = int(text)
@@ -347,6 +369,10 @@ def substitute_params(
             value = cred[key]
         if not value:
             value = form.get(key, "")
+        if "default" in param and not str(value).strip():
+            # Optional settings declare a default instead of being
+            # required, so leaving them blank keeps documented behaviour.
+            value = str(param["default"])
         if not value:
             missing.append(param.get("label", key))
             continue
@@ -478,9 +504,7 @@ def _create_jamf_webhook(webhook_name: str, xml_data: str) -> str:
             timeout=30,
         )
     except requests.exceptions.Timeout as err:
-        logthis.error(
-            f"Timeout creating Jamf webhook {webhook_name}: {err}"
-        )
+        logthis.error(f"Timeout creating Jamf webhook {webhook_name}: {err}")
         raise AutomationError(
             "Connection Timeout",
             f"Request to Jamf Pro timed out after 30 seconds. {err}",
@@ -557,8 +581,7 @@ def _validate_package(package: dict) -> Union[str, None]:
         # legitimately rely on a runtime global. Bundled scripts are
         # held to the stricter F821 bar by the catalog tests.
         return (
-            f"Script does not parse as Python "
-            f"(line {err.lineno}): {err.msg}"
+            f"Script does not parse as Python (line {err.lineno}): {err.msg}"
         )
     except (ValueError, TypeError) as err:
         # e.g. embedded NUL bytes in the uploaded content.
@@ -683,6 +706,194 @@ def download_script(slug: str) -> Union[Response, str]:
     )
 
 
+BRANDER_ASSETS_DIR = os.path.join(
+    BASE_DIR, "data", "workflows", "assets", "brander"
+)
+
+
+def _template_path_options() -> List[str]:
+    """Suggestions for Brander's template setting: legacy, the template and
+    set files shipped in its assets folder, and this tenant's stored
+    templates (store:<slug>)."""
+    shipped = (
+        sorted(
+            name
+            for name in os.listdir(BRANDER_ASSETS_DIR)
+            if name.endswith(".json")
+        )
+        if os.path.isdir(BRANDER_ASSETS_DIR)
+        else []
+    )
+    stored = [
+        f"store:{entry['slug']}"
+        for entry in brander_store.list_templates(session.get("url", ""))
+    ]
+    return ["legacy"] + stored + shipped
+
+
+def _enable_tap(workflow: Dict[str, Any], credentials: list):
+    """Enable a Tap Action template: substitute config, write the
+    script, build the service record through the Tap Action handler
+    helpers, optionally create the web clip profile."""
+    defaults = workflow.get("tap", {})
+    name = request.form.get("webhook_name", workflow["hook_name"]).strip()
+    try:
+        validate_webhook_name(name)
+        if data_store.get_webhook_by_name(name):
+            raise AutomationError(
+                "Error", f'The name "{name}" is already in use.'
+            )
+        jawa_address = get_jawa_address()
+        if not jawa_address:
+            raise AutomationError(
+                "Setup Required",
+                "Configure your JAWA address before enabling a template.",
+                link="/setup",
+                link_text="Go to Setup",
+            )
+        src_path = os.path.join(TEMPLATE_SCRIPTS_DIR, workflow["script_file"])
+        if not os.path.isfile(src_path):
+            raise AutomationError(
+                "Script not found",
+                f"Script {workflow['script_file']} not found.",
+            )
+        with open(src_path, "r", encoding="utf-8") as f:
+            script_content = f.read()
+        script_content = substitute_params(
+            script_content,
+            workflow,
+            request.form,
+            credentials,
+            request.form.get("credential_set", ""),
+        )
+        # Form values win; the catalog supplies anything left blank.
+        merged = {
+            key: (request.form.get(key) or defaults.get(key, ""))
+            for key in PAGE_FIELDS + ("device_family", "cooldown_minutes")
+        }
+        session_data = {
+            "url": session.get("url", ""),
+            "username": session.get("username", ""),
+            "token": session.get("token"),
+            "expires": session.get("expires"),
+        }
+        # Validate before writing the script so a bad field leaves
+        # nothing on disk.
+        build_service_entry(name, "", merged, session_data)
+    except AutomationError as err:
+        return redirect(
+            url_for("error", error=err.title, error_message=err.message)
+        )
+
+    dest_path = _write_script(name, script_content)
+    entry = build_service_entry(
+        name,
+        dest_path,
+        merged,
+        session_data,
+        description=workflow.get("description", ""),
+    )
+    register_profile(
+        entry, session_data, request.form.get("create_profile") == "on"
+    )
+    data_store.add_webhook(entry)
+    url = service_url(jawa_address, name, entry["token"])
+    logthis.info(
+        f"[{session.get('url')}] {session.get('username')} enabled "
+        f"Tap Action template: {name} (profile: {entry['profile_status']})"
+    )
+    notice = "Web clip URL for the configuration profile:"
+    if entry["profile_status"] == "failed":
+        notice = (
+            "Jamf Pro did not accept the web clip profile; create it by "
+            "hand with this URL:"
+        )
+    return _flash_success(
+        success_msg=f"Enabled Tap Action template: {name}",
+        new_link=f"/automations/tap/{name}",
+        new_here=name,
+        extra_notice=notice,
+        custom_header={"URL": url},
+    )
+
+
+def _enable_cron(workflow: Dict[str, Any], credentials: list):
+    """Enable a timed template: fill its config, then create a timed
+    automation the same way the cron handler does (a crontab line that
+    calls bin/run_cron.py, and an entry in cron.json)."""
+    name = request.form.get("webhook_name", workflow["hook_name"]).strip()
+    schedule = (
+        request.form.get("schedule") or workflow.get("default_schedule", "")
+    ).strip()
+    try:
+        # The name is the crontab comment and run_cron.py's argument, so
+        # hold it to the same URL-safe rule as the other template names.
+        validate_webhook_name(name)
+        if data_store.cron_name_exists(name) or data_store.get_webhook_by_name(
+            name
+        ):
+            raise AutomationError(
+                "Error", f'The name "{name}" is already in use.'
+            )
+        if not schedule:
+            raise AutomationError("Error", "Enter a schedule.")
+        src_path = os.path.join(TEMPLATE_SCRIPTS_DIR, workflow["script_file"])
+        if not os.path.isfile(src_path):
+            raise AutomationError(
+                "Script not found",
+                f"Script {workflow['script_file']} not found.",
+            )
+        with open(src_path, "r", encoding="utf-8") as f:
+            script_content = f.read()
+        script_content = substitute_params(
+            script_content,
+            workflow,
+            request.form,
+            credentials,
+            request.form.get("credential_set", ""),
+        )
+        # Validate the schedule before writing anything: a bad expression
+        # raises here and leaves no script and no crontab line behind.
+        cron = _get_crontab()
+        job = cron.new(command=cron_command(name), comment=name)
+        frequency = _apply_frequency(job, "custom", {"customfreq": schedule})
+    except AutomationError as err:
+        return redirect(
+            url_for("error", error=err.title, error_message=err.message)
+        )
+
+    dest_path = _write_script(name, script_content)
+    try:
+        cron.write()
+    except Exception as err:
+        os.remove(dest_path)
+        logthis.error(f"Could not write the crontab for {name}: {err}")
+        return redirect(
+            url_for(
+                "error",
+                error="Crontab Error",
+                error_message="Could not write the crontab; nothing was enabled.",
+            )
+        )
+    data_store.add_cron(
+        {
+            "name": name,
+            "description": workflow.get("description", ""),
+            "frequency": frequency,
+            "script": dest_path,
+        }
+    )
+    logthis.info(
+        f"[{session.get('url')}] {session.get('username')} enabled timed "
+        f"template: {name} ({frequency})"
+    )
+    return _flash_success(
+        success_msg=f"Enabled timed template: {name} ({frequency})",
+        new_link=f"/automations/cron/{name}",
+        new_here=name,
+    )
+
+
 @blueprint.route("/templates/<slug>/enable", methods=["GET", "POST"])
 def enable_template(slug: str) -> Union[Response, str]:
     """Enable a template: configure and install as a webhook."""
@@ -702,12 +913,18 @@ def enable_template(slug: str) -> Union[Response, str]:
 
     credentials = _load_credentials()
 
+    if request.method == "POST" and workflow.get("trigger_type") == "tap":
+        return _enable_tap(workflow, credentials)
+    if request.method == "POST" and workflow.get("trigger_type") == "cron":
+        return _enable_cron(workflow, credentials)
+
     if request.method == "GET":
         return render_template(
             "workflows/enable.html",
             username=session.get("username"),
             workflow=workflow,
             credentials=credentials,
+            tap_defaults=workflow.get("tap", {}),
             event_categories=get_webhook_schemas()["categories"],
             # Passed, not hardcoded in Jinja: the template marks a param
             # required only when a credential set cannot supply it, and
@@ -723,6 +940,9 @@ def enable_template(slug: str) -> Union[Response, str]:
             # silently discarded by substitute_params' credential-first
             # precedence.
             credential_supplies=_credential_supplies(credentials),
+            template_path_options=_template_path_options(),
+            # Preselected so an open endpoint is an explicit choice.
+            generated_api_key=secrets.token_urlsafe(24),
         )
 
     # POST: enable the template
@@ -739,9 +959,7 @@ def enable_template(slug: str) -> Union[Response, str]:
             )
 
         # trigger_event is null for any-event templates: the form asks.
-        event = workflow.get("trigger_event") or request.form.get(
-            "event", ""
-        )
+        event = workflow.get("trigger_event") or request.form.get("event", "")
         if not event:
             raise AutomationError(
                 "Error", "Choose the Jamf Pro event to listen for."
@@ -757,9 +975,7 @@ def enable_template(slug: str) -> Union[Response, str]:
                 link_text="Go to Setup",
             )
 
-        src_path = os.path.join(
-            TEMPLATE_SCRIPTS_DIR, workflow["script_file"]
-        )
+        src_path = os.path.join(TEMPLATE_SCRIPTS_DIR, workflow["script_file"])
         if not os.path.isfile(src_path):
             raise AutomationError(
                 "Script not found",
@@ -778,12 +994,9 @@ def enable_template(slug: str) -> Union[Response, str]:
             request.form.get("credential_set", ""),
         )
 
-        if not validate_token(session.get("expires")):
-            get_token()
+        fresh_token()
 
-        notice, instructions, enablement, extra_xml = _smart_group_info(
-            event
-        )
+        notice, instructions, enablement, extra_xml = _smart_group_info(event)
         auth_xml = _build_auth_xml(request.form)
         (
             webhook_user,
@@ -870,7 +1083,10 @@ def import_template() -> Union[Response, Dict[str, Any]]:
         )
 
     if request.method != "POST":
-        return {"username": session.get("username")}
+        return {
+            "username": session.get("username"),
+            "generated_api_key": secrets.token_urlsafe(24),
+        }
 
     uploaded = request.files.get("package")
     if not uploaded or not uploaded.filename.endswith(".jawa.json"):
@@ -903,19 +1119,48 @@ def import_template() -> Union[Response, Dict[str, Any]]:
             )
         )
 
+    # Both branches need a free name: the receiver stops at the first
+    # entry with a given name, so a second one could never be reached.
+    if data_store.get_webhook_by_name(package["name"]):
+        return redirect(
+            url_for(
+                "error",
+                error="Error",
+                error_message=(
+                    f'The name "{package["name"]}" is already in use.'
+                ),
+            )
+        )
+
     # Default-on, and read as "absent means cleared": an unchecked box
     # posts nothing at all. These packages are predicated on Jamf Pro
     # events, so registering the webhook in Jamf -- the coupling the
     # regular create path gives -- is the expected outcome, not an extra
     # step the admin has to discover.
     if not request.form.get("create_in_jamf"):
-        _install_package(package)
+        (
+            local_user,
+            local_pass,
+            local_apikey,
+            local_notice,
+            local_header,
+        ) = _extract_auth_fields(request.form)
+        _install_package(
+            package,
+            auth_fields={
+                "webhook_username": local_user,
+                "webhook_password": local_pass,
+                "api_key": local_apikey,
+            },
+        )
         logthis.info(
             f"[{session.get('url')}] {session.get('username')} "
             f"imported template: {package['name']} (JAWA-local)"
         )
         return _flash_success(
-            success_msg=f"Installed template: {package['name']}"
+            success_msg=f"Installed template: {package['name']}",
+            extra_notice=local_notice,
+            custom_header=local_header,
         )
 
     webhook_name = package["name"]
@@ -936,10 +1181,6 @@ def import_template() -> Union[Response, Dict[str, Any]]:
                 f"package file, or clear the Jamf Pro box to install the "
                 f"script locally only.",
             )
-        if data_store.get_webhook_by_name(webhook_name):
-            raise AutomationError(
-                "Error", f'The name "{webhook_name}" is already in use.'
-            )
 
         server_address = get_jawa_address()
         if not server_address:
@@ -951,25 +1192,20 @@ def import_template() -> Union[Response, Dict[str, Any]]:
                 link_text="Go to Setup",
             )
 
-        if not validate_token(session.get("expires")):
-            get_token()
+        fresh_token()
 
-        notice, instructions, enablement, extra_xml = _smart_group_info(
-            event
-        )
-        # The helpers rather than a hardcoded NONE + "null" x3: the
-        # import form carries no auth fields today, so both reduce to
-        # unauthenticated -- but going through them keeps the XML JAWA
-        # sends and the credentials JAWA stores derived from one place.
-        # Hardcoding the pair is how they drift into telling Jamf NONE
-        # while storing something the receiver then rejects (B14).
+        notice, instructions, enablement, extra_xml = _smart_group_info(event)
+        # The same helpers as the enable path, so the XML JAWA sends and
+        # the credentials JAWA stores derive from one place. Hardcoding
+        # the pair is how they drift into telling Jamf NONE while storing
+        # something the receiver then rejects.
         auth_xml = _build_auth_xml(request.form)
         (
             webhook_user,
             webhook_pass,
             webhook_apikey,
-            _extra_notice,
-            _custom_header,
+            auth_notice,
+            auth_header,
         ) = _extract_auth_fields(request.form)
         xml_data = _build_webhook_xml(
             webhook_name,
@@ -1012,4 +1248,6 @@ def import_template() -> Union[Response, Dict[str, Any]]:
         new_here=webhook_name,
         smart_group_notice=notice,
         smart_group_instructions=instructions,
+        extra_notice=auth_notice,
+        custom_header=auth_header,
     )

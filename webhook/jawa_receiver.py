@@ -27,11 +27,18 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 from flask import Blueprint, request
+import hmac
 import json
 import os
+import signal
 import subprocess
+import threading
+import time
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from bin import data_store
+from bin import failure_alert
 from bin import okta_verification
 from bin import logger
 
@@ -59,7 +66,34 @@ class ScriptExecutionError(Exception):
     is indistinguishable from script stdout and the caller then answers
     2xx either way -- the same "reports success, did nothing" shape that
     made template webhooks appear to fire for a whole release.
+
+    ``output`` holds whatever the script printed before it failed.
+    ``exit_code`` is the script's exit status when it ran and exited
+    non-zero; it stays None when the script never started or timed out.
     """
+
+    output: bytes = b""
+    status: int = 500
+    exit_code: Optional[int] = None
+
+
+class ScriptTimeoutError(ScriptExecutionError):
+    """The script ran past JAWA_SCRIPT_TIMEOUT and its process group was killed."""
+
+    status = 504
+
+
+DEFAULT_SCRIPT_TIMEOUT = 120.0
+
+
+def script_timeout() -> float:
+    """Seconds a script may run, from JAWA_SCRIPT_TIMEOUT (default 120)."""
+    raw = os.environ.get("JAWA_SCRIPT_TIMEOUT")
+    try:
+        value = float(raw) if raw else DEFAULT_SCRIPT_TIMEOUT
+    except ValueError:
+        return DEFAULT_SCRIPT_TIMEOUT
+    return value if value > 0 else DEFAULT_SCRIPT_TIMEOUT
 
 
 def load_json(file_path: str) -> Union[Dict[str, Any], List[Any]]:
@@ -88,7 +122,32 @@ def validate_webhook(
                     "not enabled."
                 )
                 return False
+            # A Tap Action automation is only reachable through
+            # /tap/<name> with its token. Its record carries the
+            # "null" auth sentinels, which would otherwise make
+            # /hooks/<name> an open, token-free way to run the script.
+            if each_webhook.get("tag") == "tap":
+                logthis.warning(
+                    f"Rejecting /hooks/{webhook_name}: Tap Action "
+                    "automations only run from /tap/."
+                )
+                return False
             truth_test = True
+            if each_webhook.get("tag") == "okta":
+                # Okta sends the stored secret verbatim as the
+                # Authorization header. An entry created before secrets
+                # existed has none, so it fails closed.
+                secret = each_webhook.get("okta_secret")
+                if not secret:
+                    logthis.warning(
+                        f"Rejecting /hooks/{webhook_name}: this Okta "
+                        "automation has no secret. Delete and re-create it."
+                    )
+                    return False
+                supplied = request.headers.get("Authorization", "")
+                return hmac.compare_digest(
+                    supplied.encode("utf-8"), str(secret).encode("utf-8")
+                )
             if (
                 # Missing auth keys default to the "null" no-auth
                 # sentinel so a legacy/hand-edited entry degrades to
@@ -115,24 +174,72 @@ def run_script(webhook_data: JSONType, webhook_name: str) -> Optional[bytes]:
             return script_results(webhook_data, each_webhook)
 
 
+def _record_run(
+    name: Optional[str],
+    started: str,
+    began: float,
+    exit_code: Optional[int],
+    output: bytes,
+) -> None:
+    """Remember this run for the automation's detail page. Never raises."""
+    if not name:
+        return
+    try:
+        head_lines = output.decode("utf-8", errors="replace").splitlines()
+        head = "\n".join(head_lines[:5])[:500]
+        data_store.record_run(
+            name, started, time.monotonic() - began, exit_code, head
+        )
+    except Exception as err:
+        logthis.warning(f"Could not record run of {name}: {err}")
+
+
 def script_results(webhook_data: JSONType, each_webhook: Dict) -> bytes:
     webhook_data = json.dumps(webhook_data)
+    started = datetime.now().astimezone().isoformat(timespec="seconds")
+    began = time.monotonic()
+    return_code: Optional[int] = None
+    output = b""
     try:
         proc = subprocess.Popen(
             [each_webhook["script"], f"{webhook_data}"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            start_new_session=True,
         )
-        output = proc.stdout.read()
-        return_code = proc.wait()
+        timed_out = threading.Event()
+
+        def _kill_group() -> None:
+            timed_out.set()
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError, OSError):
+                pass
+
+        timer = threading.Timer(script_timeout(), _kill_group)
+        timer.daemon = True
+        timer.start()
+        try:
+            output = proc.stdout.read()
+            return_code = proc.wait()
+        finally:
+            timer.cancel()
+        if timed_out.is_set():
+            logthis.error(
+                f"Script for {each_webhook.get('name')} timed out after "
+                f"{script_timeout():g}s; its process group was killed."
+            )
+            failure = ScriptTimeoutError(
+                f"script timed out after {script_timeout():g} seconds"
+            )
+            failure.output = output
+            raise failure
 
         # Tolerant for the same reason as the response decode below: a
         # script that exited 0 must not be turned into a failure by the
         # bytes it chose to print. Strict decode here raised before the
         # response path was ever reached.
-        for each_line in output.decode(
-            "utf-8", errors="replace"
-        ).split("\n"):
+        for each_line in output.decode("utf-8", errors="replace").split("\n"):
             if each_line:
                 logthis.info(f"{each_webhook.get('name')} - {each_line}")
 
@@ -141,9 +248,10 @@ def script_results(webhook_data: JSONType, each_webhook: Dict) -> bytes:
                 f"Script execution failed for {each_webhook.get('name')} "
                 f"with exit code {return_code}"
             )
-            raise ScriptExecutionError(
-                f"script exited {return_code}"
-            )
+            failure = ScriptExecutionError(f"script exited {return_code}")
+            failure.output = output
+            failure.exit_code = return_code
+            raise failure
 
         return output
     except ScriptExecutionError:
@@ -152,7 +260,15 @@ def script_results(webhook_data: JSONType, each_webhook: Dict) -> bytes:
         logthis.error(
             f"Error executing script for webhook {each_webhook.get('name')}: {err}"
         )
-        raise ScriptExecutionError(str(err)) from err
+        if not output:
+            output = str(err).encode("utf-8", errors="replace")
+        failure = ScriptExecutionError(str(err))
+        failure.output = output
+        raise failure from err
+    finally:
+        _record_run(
+            each_webhook.get("name"), started, began, return_code, output
+        )
 
 
 def custom_output_options(
@@ -165,6 +281,51 @@ def custom_output_options(
             send_output = each_webhook.get("output")
             return webhook_tag, send_output
     return None, None
+
+
+# Failure alerts: at most one per automation in this window. Kept in memory,
+# so it resets on restart, which is acceptable for a chat nudge. The
+# sending core lives in bin/failure_alert.py, shared with timed runs.
+ALERT_INTERVAL_SECONDS = failure_alert.ALERT_INTERVAL_SECONDS
+_alert_lock = threading.Lock()
+_last_alert_at: Dict[str, float] = {}
+
+
+def _failure_alert_url() -> str:
+    """The chat webhook set on /setup, or "" when none is configured."""
+    return failure_alert.alert_url(server_json_file)
+
+
+def _post_failure_alert(url: str, text: str) -> None:
+    # Runs in a daemon thread. Never raises.
+    failure_alert.post(url, text, log=logthis)
+
+
+def _start_alert_thread(target: Any, args: Tuple[Any, ...]) -> None:
+    threading.Thread(
+        target=target, args=args, daemon=True, name="jawa-failure-alert"
+    ).start()
+
+
+def notify_run_failed(webhook_name: str, err: ScriptExecutionError) -> None:
+    """Tell the configured chat webhook that a run failed. Never raises."""
+    try:
+        url = _failure_alert_url()
+        if not url:
+            return
+        now = time.monotonic()
+        with _alert_lock:
+            last = _last_alert_at.get(webhook_name)
+            if last is not None and now - last < ALERT_INTERVAL_SECONDS:
+                return
+            _last_alert_at[webhook_name] = now
+        code = err.exit_code if err.exit_code is not None else "n/a"
+        text = failure_alert.alert_text(webhook_name, code)
+        _start_alert_thread(_post_failure_alert, (url, text))
+    except Exception as alert_err:
+        logthis.warning(
+            f"Failure alert for {webhook_name} was not queued: {alert_err}"
+        )
 
 
 @blueprint.route("/hooks/<webhook_name>", methods=["POST", "GET"])
@@ -227,7 +388,11 @@ def webhook_handler(
             # Never answer 2xx for a script that did not run: Jamf Pro
             # records delivery status, and a 200 here is what made a dead
             # automation indistinguishable from a working one.
-            return {"webhook": f"{webhook_name}", "error": str(err)}, 500
+            notify_run_failed(webhook_name, err)
+            return {
+                "webhook": f"{webhook_name}",
+                "error": str(err),
+            }, err.status
         if raw is None:
             logthis.error(
                 f"Webhook {webhook_name} disappeared between validation "

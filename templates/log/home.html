@@ -26,6 +26,7 @@
 {###}
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {% extends "shared/_layout.html" %}
+{% from "shared/_macros.html" import empty_state %}
 {% block title %}JAWA Log{% endblock %}
 
 {% block additional_css %}
@@ -104,6 +105,20 @@
         transition: all 0.15s ease;
     }
     .level-filter.active { border-color: currentColor; }
+    /* The active level carries a check mark as well as its colour. */
+    .level-filter .level-check { display: none; }
+    .level-filter[aria-pressed="true"] .level-check { display: inline; }
+    .follow-toggle {
+        padding: 0.25rem 0.6rem;
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: var(--radius-pill);
+        font-size: 0.7rem;
+        font-weight: 600;
+        background: transparent;
+        color: var(--color-code-text);
+        cursor: pointer;
+    }
+    .follow-toggle[aria-pressed="true"] { background: rgba(255,255,255,0.12); }
     .level-filter[data-level="all"]      { color: var(--color-code-text); }
     .level-filter[data-level="all"].active { background: rgba(255,255,255,0.1); }
     .level-filter[data-level="debug"]    { color: #8a95a3; }
@@ -149,7 +164,8 @@
         flex: 1;
         min-width: 0;
         white-space: pre-wrap;
-        word-break: break-all;
+        /* Break at spaces; split a long token only when it can't fit. */
+        overflow-wrap: anywhere;
     }
     /* Rainbow token colors */
     .log-ts     { color: #78c8e6; }
@@ -173,8 +189,31 @@
         padding-left: 1rem;
         white-space: nowrap;
     }
+    .level-select {
+        display: none;
+        padding: 0.3rem 0.6rem;
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: var(--radius-pill);
+        background: rgba(255,255,255,0.06);
+        color: var(--color-code-text);
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+    }
+    .level-select option { background: var(--color-code-bg); }
+
+    /* Phones: search, a level menu and Follow on one row; no line numbers. */
+    @media (max-width: 600px) {
+        .log-toolbar .level-filter { display: none; }
+        .level-select { display: block; }
+        .log-toolbar .log-search { min-width: 0; flex-basis: 100%; }
+        .log-count { margin-left: auto; padding-left: 0; }
+        .log-gutter { display: none; }
+        .log-content { font-size: 0.72rem; }
+    }
 </style>
 {% endblock %}
+
+{% block body_class %}page-fill{% endblock %}
 
 {% block content %}
 <div class="hero-section">
@@ -196,19 +235,28 @@
         </div>
     </div>
 </div>
-<div class="container-fluid" style="max-width: 1800px;">
+<div class="container-fluid log-page" style="max-width: 1800px;">
 
 
     <div class="log-container">
         <div class="log-view">
             <div class="log-toolbar">
-                <input type="text" class="log-search" id="logSearch" placeholder="Search logs...">
-                <button class="level-filter active" data-level="all" onclick="filterLevel('all', this)">ALL</button>
-                <button class="level-filter" data-level="debug" onclick="filterLevel('debug', this)">DEBUG</button>
-                <button class="level-filter" data-level="info" onclick="filterLevel('info', this)">INFO</button>
-                <button class="level-filter" data-level="warning" onclick="filterLevel('warning', this)">WARNING</button>
-                <button class="level-filter" data-level="error" onclick="filterLevel('error', this)">ERROR</button>
-                <button class="level-filter" data-level="critical" onclick="filterLevel('critical', this)">CRITICAL</button>
+                <input type="text" class="log-search" id="logSearch" placeholder="Search logs..." aria-label="Search logs">
+                <select class="level-select" id="levelSelect" aria-label="Log level">
+                    <option value="all">All levels</option>
+                    <option value="debug">Debug</option>
+                    <option value="info">Info</option>
+                    <option value="warning">Warning</option>
+                    <option value="error">Error</option>
+                    <option value="critical">Critical</option>
+                </select>
+                <button type="button" class="level-filter active" data-level="all" aria-pressed="true" onclick="filterLevel('all', this)"><span class="level-check" aria-hidden="true">✓ </span>ALL</button>
+                <button type="button" class="level-filter" data-level="debug" aria-pressed="false" onclick="filterLevel('debug', this)"><span class="level-check" aria-hidden="true">✓ </span>DEBUG</button>
+                <button type="button" class="level-filter" data-level="info" aria-pressed="false" onclick="filterLevel('info', this)"><span class="level-check" aria-hidden="true">✓ </span>INFO</button>
+                <button type="button" class="level-filter" data-level="warning" aria-pressed="false" onclick="filterLevel('warning', this)"><span class="level-check" aria-hidden="true">✓ </span>WARNING</button>
+                <button type="button" class="level-filter" data-level="error" aria-pressed="false" onclick="filterLevel('error', this)"><span class="level-check" aria-hidden="true">✓ </span>ERROR</button>
+                <button type="button" class="level-filter" data-level="critical" aria-pressed="false" onclick="filterLevel('critical', this)"><span class="level-check" aria-hidden="true">✓ </span>CRITICAL</button>
+                <button type="button" class="follow-toggle" id="followToggle" aria-pressed="false">Follow</button>
                 <span class="log-count" id="logCount"></span>
             </div>
             <div class="overflow-auto log-frame">
@@ -222,6 +270,9 @@
                     {% endfor %}
                 {% endif %}
                 </ul>
+                <div id="logEmpty"{% if log %} hidden{% endif %}>
+                {{ empty_state("No log entries yet. JAWA adds them here as it runs.", icon="log") }}
+                </div>
             </div>
         </div>
     </div>
@@ -232,11 +283,14 @@
 <script>
 (function() {
     var LOG_RE = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d+)( - )([\w.]+)( - )(DEBUG|INFO|WARNING|ERROR|CRITICAL)( - )([\s\S]*)$/;
-    var lines = document.querySelectorAll('.log-line');
+    var list = document.getElementById('logLines');
+    var lines = list.querySelectorAll('.log-line');
     var activeLevel = 'all';
     var searchTerm = '';
 
-    lines.forEach(function(li) {
+    lines.forEach(decorate);
+
+    function decorate(li) {
         var raw = li.getAttribute('data-raw') || li.querySelector('.log-content').textContent;
         var m = raw.match(LOG_RE);
         if (m) {
@@ -259,7 +313,23 @@
         } else {
             li.setAttribute('data-level', 'info');
         }
-    });
+    }
+
+    function buildLine(raw, n) {
+        var li = document.createElement('li');
+        li.className = 'log-line';
+        li.setAttribute('data-raw', raw);
+        var gutter = document.createElement('span');
+        gutter.className = 'log-gutter';
+        gutter.textContent = n;
+        var content = document.createElement('span');
+        content.className = 'log-content';
+        content.textContent = raw;
+        li.appendChild(gutter);
+        li.appendChild(content);
+        decorate(li);
+        return li;
+    }
 
     function esc(s) {
         var d = document.createElement('div');
@@ -292,17 +362,122 @@
 
     window.filterLevel = function(level, btn) {
         activeLevel = level;
-        document.querySelectorAll('.level-filter').forEach(function(b) { b.classList.remove('active'); });
-        btn.classList.add('active');
+        setActiveButton(btn);
         applyFilters();
+        syncUrl();
     };
 
-    document.getElementById('logSearch').addEventListener('input', function() {
-        searchTerm = this.value.toLowerCase();
-        applyFilters();
+    function setActiveButton(btn) {
+        document.querySelectorAll('.level-filter').forEach(function(b) {
+            b.classList.remove('active');
+            b.setAttribute('aria-pressed', 'false');
+        });
+        btn.classList.add('active');
+        btn.setAttribute('aria-pressed', 'true');
+        // Keep the phone toolbar's level menu in step with the buttons.
+        var select = document.getElementById('levelSelect');
+        if (select) select.value = btn.dataset.level;
+    }
+
+    document.getElementById('levelSelect').addEventListener('change', function() {
+        var btn = document.querySelector('.level-filter[data-level="' + this.value + '"]');
+        if (btn) window.filterLevel(this.value, btn);
     });
 
+    // ?q=, ?level= and ?follow=1 make a filtered view bookmarkable and
+    // let other pages link to it. replaceState keeps the address bar in
+    // step without adding history entries.
+    var FOLLOW_MS = 10000;
+    var LEVELS = ['all', 'debug', 'info', 'warning', 'error', 'critical'];
+    var searchBox = document.getElementById('logSearch');
+    var followBtn = document.getElementById('followToggle');
+    var logFrame = document.querySelector('.log-frame');
+    var following = false;
+    var followTimer = null;
+
+    function syncUrl() {
+        var params = new URLSearchParams();
+        if (searchBox.value) params.set('q', searchBox.value);
+        if (activeLevel !== 'all') params.set('level', activeLevel);
+        if (following) params.set('follow', '1');
+        var qs = params.toString();
+        history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
+    }
+
+    function scrollToEnd() {
+        logFrame.scrollTop = logFrame.scrollHeight;
+    }
+
+    function setFollow(on) {
+        following = on;
+        followBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        followBtn.textContent = on ? 'Following: updates every 10 s' : 'Follow';
+        clearTimeout(followTimer);
+        if (on) scheduleFollow();
+        syncUrl();
+    }
+
+    // Follow fetches the newest lines and swaps them into the list in
+    // place: no page reload, so the header, filters and scroll position
+    // stay put. It only jumps to the end if you were already there.
+    function scheduleFollow() {
+        followTimer = setTimeout(pollLines, FOLLOW_MS);
+    }
+
+    function lastRaw() {
+        var last = list.lastElementChild;
+        return last ? last.getAttribute('data-raw') : null;
+    }
+
+    function pollLines() {
+        if (!following) return;
+        if (document.hidden) { scheduleFollow(); return; }
+        fetch('/log/lines', {credentials: 'same-origin', headers: {'Accept': 'application/json'}})
+            .then(function(res) {
+                if (res.status === 401) { location.reload(); return null; }
+                return res.ok ? res.json() : null;
+            })
+            .then(function(data) { if (data) renderLines(data.lines || []); })
+            .catch(function() { /* keep the current lines; try again next tick */ })
+            .then(function() { if (following) scheduleFollow(); });
+    }
+
+    function renderLines(raws) {
+        var newest = raws.length ? raws[raws.length - 1] : null;
+        if (raws.length === lines.length && newest === lastRaw()) return;
+        var atEnd = logFrame.scrollHeight - logFrame.scrollTop - logFrame.clientHeight < 24;
+        var frag = document.createDocumentFragment();
+        raws.forEach(function(raw, i) { frag.appendChild(buildLine(raw, i + 1)); });
+        list.replaceChildren(frag);
+        lines = list.querySelectorAll('.log-line');
+        document.getElementById('logEmpty').hidden = lines.length > 0;
+        applyFilters();
+        if (atEnd) scrollToEnd();
+    }
+
+    followBtn.addEventListener('click', function() { setFollow(!following); });
+
+    searchBox.addEventListener('input', function() {
+        searchTerm = this.value.toLowerCase();
+        applyFilters();
+        syncUrl();
+    });
+
+    var initial = new URLSearchParams(location.search);
+    var initialLevel = (initial.get('level') || 'all').toLowerCase();
+    if (LEVELS.indexOf(initialLevel) !== -1) {
+        activeLevel = initialLevel;
+        setActiveButton(document.querySelector('.level-filter[data-level="' + initialLevel + '"]'));
+    }
+    if (initial.get('q')) {
+        searchBox.value = initial.get('q');
+        searchTerm = searchBox.value.toLowerCase();
+    }
     applyFilters();
+    scrollToEnd();
+    if (initial.get('follow') === '1') {
+        setFollow(true);
+    }
 })();
 </script>
 {% endblock %}

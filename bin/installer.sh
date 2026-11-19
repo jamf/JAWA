@@ -728,12 +728,12 @@ install() {
   /bin/echo -ne '[############            ](60%) Cloning the JAWA project from GitHub... '
   /bin/echo '[############            ](60%) Cloning the JAWA project from GitHub... ' >>/var/log/jawaInstall.log 2>&1
 
-  git clone --branch "$branch" https://github.com/jamf/JAWA.git jawa >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  git clone --branch "$branch" "$repoUrl" jawa >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   cloneStatus=$?
   # spinner propagates the background job's exit code; also confirm the clone actually landed
   if [ "$cloneStatus" -ne 0 ] || [ ! -d "$installDir/jawa/.git" ]; then
     /usr/bin/clear
-    /bin/echo "Unable to clone the JAWA project (branch '$branch') from GitHub."
+    /bin/echo "Unable to clone the JAWA project (branch '$branch') from $repoUrl."
     /bin/echo "Check your network connection and that the branch exists, then see /var/log/jawaInstall.log for details."
     /bin/echo "Unable to clone the JAWA project (branch '$branch') from GitHub." >>/var/log/jawaInstall.log 2>&1
     exit 2
@@ -811,6 +811,66 @@ if [ -d "$currentDir/jawabackup-$timenow" ]; then
     /bin/echo "Python dependency install FAILED (status $requirementsStatus); flask not importable. Aborting." >>/var/log/jawaInstall.log 2>&1
     exit 2
   fi #
+  # Pin the Jamf Pro URL before the service starts. Until one is pinned,
+  # the console refuses every sign-in.
+  /usr/bin/clear
+  # An upgrade keeps the values already pinned in server.json.
+  pinnedValue() {
+    "$installDir/jawa/venv/bin/python" -c 'import json, sys; print(json.load(open(sys.argv[1])).get(sys.argv[2], ""))' \
+      "$installDir/jawa/data/server.json" "$1" 2>/dev/null
+  }
+  jamfUrl="${JAWA_JPS_URL:-$(pinnedValue jps_url)}"
+  jawaAddress="${JAWA_ADDRESS:-$(pinnedValue jawa_address)}"
+  while [ -z "$jamfUrl" ]; do
+    read -r -p "Jamf Pro URL (for example https://jamf.example.com):  " jamfUrl
+  done
+  if [ -z "$jawaAddress" ]; then
+    read -r -p "JAWA address that Jamf Pro will call (for example https://jawa.example.com):  " jawaAddress
+  fi
+  /bin/mkdir -p "$installDir/jawa/data"
+  JAWA_SERVER_JSON="$installDir/jawa/data/server.json" JAWA_PIN_URL="$jamfUrl" JAWA_PIN_ADDRESS="$jawaAddress" \
+    "$installDir/jawa/venv/bin/python" - <<'PYEOF' >>/var/log/jawaInstall.log 2>&1
+import json, os
+path = os.environ["JAWA_SERVER_JSON"]
+try:
+    with open(path) as handle:
+        config = json.load(handle)
+except (OSError, ValueError):
+    config = {}
+config["jps_url"] = os.environ["JAWA_PIN_URL"].rstrip("/")
+if os.environ["JAWA_PIN_ADDRESS"]:
+    config["jawa_address"] = os.environ["JAWA_PIN_ADDRESS"].rstrip("/")
+with open(path, "w") as handle:
+    json.dump(config, handle)
+PYEOF
+  chown jawa "$installDir/jawa/data/server.json"
+  chmod 600 "$installDir/jawa/data/server.json"
+  # Ban addresses that repeatedly fail the console login. The sign-in code
+  # writes one "LOGIN FAILED user=<name> ip=<address>" line per failure to
+  # data/jawa-auth.log, a file that holds nothing else.
+  if [ -d /etc/fail2ban ]; then
+    /usr/bin/touch "$installDir/jawa/data/jawa-auth.log"
+    chown jawa "$installDir/jawa/data/jawa-auth.log"
+    /bin/mkdir -p /etc/fail2ban/filter.d /etc/fail2ban/jail.d
+    cat > /etc/fail2ban/filter.d/jawa.conf <<'F2BEOF'
+[Definition]
+failregex = ^(?:\S+ \S+ - )?jawa\.auth - WARNING - LOGIN FAILED user=\S+ ip=<HOST>$
+ignoreregex =
+F2BEOF
+    cat > /etc/fail2ban/jail.d/jawa.conf <<F2BEOF
+[jawa]
+enabled  = true
+filter   = jawa
+logpath  = $installDir/jawa/data/jawa-auth.log
+maxretry = 5
+findtime = 10m
+bantime  = 30m
+port     = 443
+F2BEOF
+    /bin/systemctl enable fail2ban >>/var/log/jawaInstall.log 2>&1
+    /bin/systemctl restart fail2ban >>/var/log/jawaInstall.log 2>&1 || \
+      /bin/echo "Could not restart fail2ban; see the log." >>/var/log/jawaInstall.log 2>&1
+  fi
   #pip install --upgrade uwsgi
   /usr/bin/clear
   /bin/echo -ne '[##################      ](90%) Creating jawa service in systemd... '
@@ -1231,7 +1291,7 @@ configure_nginx_redhat() {
   cat << EOF > /etc/nginx/conf.d/jawa.conf
 
 upstream jawa {
-    server 0.0.0.0:8000       weight=5;
+    server 127.0.0.1:8000       weight=5;
 }
 server {
         #listen 80 default_server;
@@ -1251,6 +1311,7 @@ server {
         location / {
                 # First attempt to serve request as file, then
                 proxy_pass http://jawa;
+                proxy_read_timeout 150s;
                 proxy_redirect     off;
                 proxy_set_header   Host                 \$host;
                 proxy_set_header   X-Real-IP            \$remote_addr;
@@ -1339,7 +1400,8 @@ configure_nginx_ubuntu() {
           client_max_body_size 16m;
           location / {
                   # First attempt to serve request as file, then
-                  proxy_pass http://localhost:8000;
+                  proxy_pass http://127.0.0.1:8000;
+                  proxy_read_timeout 150s;
                   proxy_redirect     off;
                   proxy_set_header   Host                 \$host;
                   proxy_set_header   X-Real-IP            \$remote_addr;
@@ -1406,6 +1468,10 @@ while [[ $# -gt 0 ]]; do
       branch="$2"
       shift 2  # Shift to the next argument
       ;;
+    r|repo)
+      repoUrl="$2"
+      shift 2
+      ;;
     *)
       # Handle unknown options or arguments
       echo "Unknown option: $1"
@@ -1417,6 +1483,12 @@ done
 # If no branch argument was provided, default to "main" (production install path)
 if [ -z "$branch" ]; then
   branch="main"
+fi
+
+# Clone from jamf/JAWA by default. Pass "repo <git url>" to install from
+# another repository, such as a fork.
+if [ -z "$repoUrl" ]; then
+  repoUrl="https://github.com/jamf/JAWA.git"
 fi
 
 

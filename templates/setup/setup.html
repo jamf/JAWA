@@ -84,6 +84,17 @@
                     </div>
 
                     <div class="mb-3">
+                        <label for="failure-alert-url" class="form-label">Failure alert webhook URL</label>
+                        <input id="failure-alert-url" type="url" class="form-control" name="failure_alert_url"
+                               placeholder="https://hooks.example.com/..." pattern="https://.+" title="Use https://"
+                               value="{{ failure_alert_url if failure_alert_url }}">
+                        <div class="form-text">
+                            Optional. A Teams or Slack incoming webhook. JAWA posts one message per automation
+                            at most every 15 minutes when a run fails. Leave empty to turn alerts off.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
                         <label for="session-timeout" class="form-label">Session timeout</label>
                         <select id="session-timeout" name="session_timeout_minutes" class="form-select">
                             <option value="15" {% if session_timeout == 15 %}selected{% endif %}>15 minutes (default)</option>
@@ -91,6 +102,22 @@
                             <option value="240" {% if session_timeout == 240 %}selected{% endif %}>4 hours</option>
                             <option value="480" {% if session_timeout == 480 %}selected{% endif %}>8 hours</option>
                         </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="allowed-admins" class="form-label">Allowed admin accounts</label>
+                        <textarea id="allowed-admins" name="allowed_admins" class="form-control" rows="3"
+                                  placeholder="One Jamf Pro username per line">{{ allowed_admins }}</textarea>
+                        <div class="form-text">
+                            Only these Jamf Pro accounts may sign in to JAWA (case-insensitive).
+                            Your own account is always kept on the list.
+                        </div>
+                        {% if not allowed_admins %}
+                        <div class="alert alert-warning mt-2" role="alert">
+                            The list is empty, so any Jamf Pro account that can sign in has full
+                            access to JAWA, including uploading and running scripts.
+                        </div>
+                        {% endif %}
                     </div>
 
                     <div class="d-flex justify-content-center container-fluid">

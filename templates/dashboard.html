@@ -29,7 +29,7 @@
 {#    Sorry about the mess.    #}
 
 {% extends "shared/_layout.html" %}
-{% from "shared/_macros.html" import hero_section, automation_card, empty_state %}
+{% from "shared/_macros.html" import hero_section, automation_row, empty_state with context %}
 
 {% block title %}JAWA Dashboard{% endblock %}
 
@@ -38,8 +38,8 @@
     title="JAWA Dashboard",
     subtitle=(total_webhooks or '0')|string ~ " webhooks &middot; " ~ (total_cron or '0')|string ~ " timed automations &middot; ",
     subtitle_link_url=session.get('url', ''),
-    create_url="/automations/jamfpro/new",
-    create_label="Create Webhook",
+    create_url="/automations/new",
+    create_label="Create automation",
     secondary_url="/templates",
     secondary_label="Browse Templates"
 ) }}
@@ -50,15 +50,20 @@
     {% endfor %}
 
     {% if not ns.has_any %}
-        <div class="form-container">
-            {{ empty_state("No Jamf Pro webhooks to display.", "/automations/jamfpro/new") }}
-            {{ empty_state("No Okta webhooks to display.", "/automations/okta/new") }}
-            {{ empty_state("No Custom webhooks to display.", "/automations/custom/new") }}
-            {{ empty_state("No Timed Automations to display.", "/automations/cron/new") }}
+        <div class="start-here">
+            <h3>Start here</h3>
+            <p>JAWA runs your scripts when something happens in Jamf Pro or on a schedule. Pick the kind of automation you need.</p>
+            <ul>
+                <li><a href="/automations/jamfpro/new"><b>Jamf Pro webhook</b></a>: run a script when Jamf Pro reports an event, such as a device enrolling.</li>
+                <li><a href="/automations/okta/new"><b>Okta webhook</b></a>: run a script when Okta reports an event, such as a user leaving.</li>
+                <li><a href="/automations/custom/new"><b>Custom webhook</b></a>: run a script when any other service calls a URL on this server.</li>
+                <li><a href="/automations/cron/new"><b>Timed automation</b></a>: run a script on a schedule, such as every night.</li>
+            </ul>
+            <a href="/automations/jamfpro/new" class="btn btn-jawa btn-action">Create a Jamf Pro webhook</a>
         </div>
     {% else %}
         {# Webhooks section #}
-        {% set webhook_tags = ['jamfpro', 'okta', 'custom'] %}
+        {% set webhook_tags = ['jamfpro', 'okta', 'custom', 'tap'] %}
         {% set wns = namespace(has_webhooks=false) %}
         {% for tag in webhook_tags %}
             {% if categorized.get(tag, {}).get('items', []) %}{% set wns.has_webhooks = true %}{% endif %}
@@ -67,28 +72,28 @@
         {% if wns.has_webhooks %}
         <div class="section-header">
             <h3>Webhooks</h3>
-            <a href="/automations" style="font-size: 0.85rem; color: var(--color-primary);">View all</a>
+            <a href="/automations" class="section-link">View all</a>
         </div>
-        <div class="row dash-list justify-content-center" style="margin-right: 0; margin-left: 0">
+        <ul class="automation-list">
             {% for tag in webhook_tags %}
                 {% for item in categorized.get(tag, {}).get('items', []) %}
-                    {{ automation_card(item, categorized[tag].handler, loop.index, tag) }}
+                    {{ automation_row(item, categorized[tag].handler, tag) }}
                 {% endfor %}
             {% endfor %}
-        </div>
+        </ul>
         {% endif %}
 
         {# Cron section #}
         {% if categorized.get('cron', {}).get('items', []) %}
         <div class="section-header mt-4">
             <h3>Timed Automations</h3>
-            <a href="/automations/cron" style="font-size: 0.85rem; color: var(--color-primary);">View all</a>
+            <a href="/automations/cron" class="section-link">View all</a>
         </div>
-        <div class="row dash-list justify-content-center" style="margin-right: 0; margin-left: 0">
+        <ul class="automation-list">
             {% for item in categorized.get('cron', {}).get('items', []) %}
-                {{ automation_card(item, categorized.cron.handler, loop.index, 'cron') }}
+                {{ automation_row(item, categorized.cron.handler, 'cron') }}
             {% endfor %}
-        </div>
+        </ul>
         {% endif %}
     {% endif %}
 </div>

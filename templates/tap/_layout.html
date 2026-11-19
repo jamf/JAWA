@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="referrer" content="no-referrer">
+    <meta name="robots" content="noindex">
+    <title>{% block title %}{{ brand_name or 'Tap action' }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vendor/roster-web.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vendor/roster-html.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tap.css') }}">
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+{% if icon_symbols %}<svg xmlns="http://www.w3.org/2000/svg" hidden aria-hidden="true">{{ icon_symbols }}</svg>{% endif %}
+<main class="ss-page">
+    <div class="ss-brand">
+        <img src="{{ url_for('static', filename='img/jawa_icon.png') }}" alt="">
+        {% if brand_name %}<span>{{ brand_name }}</span>{% endif %}
+    </div>
+    <div class="ss-card">
+        {% block card %}{% endblock %}
+    </div>
+</main>
+{% block scripts %}{% endblock %}
+</body>
+</html>

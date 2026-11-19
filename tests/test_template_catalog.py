@@ -175,7 +175,10 @@ def test_any_event_template_never_renders_the_word_none(
     trigger must fall back to a real label instead.
     """
     slug = next(
-        wf["slug"] for wf in CATALOG if wf.get("trigger_event") is None
+        wf["slug"]
+        for wf in CATALOG
+        if wf.get("trigger_event") is None
+        and wf.get("trigger_type") not in ("tap", "cron")
     )
     for path in (
         "/templates",
@@ -206,7 +209,10 @@ def test_enabling_an_any_event_template_stores_no_none_event(
     from bin import data_store
 
     slug = next(
-        wf["slug"] for wf in CATALOG if wf.get("trigger_event") is None
+        wf["slug"]
+        for wf in CATALOG
+        if wf.get("trigger_event") is None
+        and wf.get("trigger_type") not in ("tap", "cron")
     )
     form = enable_form(slug, webhook_name="any-hook")
     logged_in_client.post(f"/templates/{slug}/enable", data=form)
@@ -410,6 +416,82 @@ def test_unfilled_param_fails_loud():
             'DB_PATH = "__JAWA_DB_PATH__"\n', workflow, {}, [], ""
         )
     assert "SQLite Database Path" in excinfo.value.message
+
+
+def test_blank_param_with_a_default_uses_the_default():
+    """Optional settings (Brander's template_path and max_kb) declare a
+    default, so an admin who leaves them blank gets the documented
+    behaviour instead of a Missing Configuration error."""
+    from views import template_view
+
+    workflow = {
+        "config_params": [
+            {
+                "key": "template_path",
+                "token": '"__JAWA_TEMPLATE_PATH__"',
+                "type": "text",
+                "default": "legacy",
+            },
+            {
+                "key": "max_kb",
+                "token": "__JAWA_MAX_KB__",
+                "type": "number",
+                "default": "1500",
+            },
+        ]
+    }
+    out = template_view.substitute_params(
+        'T = "__JAWA_TEMPLATE_PATH__"\nK = __JAWA_MAX_KB__\n',
+        workflow,
+        {"template_path": "", "max_kb": "  "},
+        [],
+        "",
+    )
+    assert out == "T = 'legacy'\nK = 1500\n"
+
+
+def test_blank_param_without_a_default_is_still_missing():
+    from views import template_view
+    from views._type_handlers.base import AutomationError
+
+    workflow = {
+        "config_params": [
+            {
+                "key": "path",
+                "label": "Path",
+                "token": '"__JAWA_P__"',
+                "type": "text",
+            }
+        ]
+    }
+    with pytest.raises(AutomationError):
+        template_view.substitute_params(
+            'P = "__JAWA_P__"\n', workflow, {"path": ""}, [], ""
+        )
+
+
+def test_whitespace_value_is_kept_when_there_is_no_default():
+    """Only params that declare a default treat blank as unset; a
+    secret that happens to be spaces must still reach the script."""
+    from views import template_view
+
+    workflow = {
+        "config_params": [
+            {"key": "secret", "token": '"__JAWA_S__"', "type": "password"}
+        ]
+    }
+    out = template_view.substitute_params(
+        'S = "__JAWA_S__"\n', workflow, {"secret": "  "}, [], ""
+    )
+    assert out == "S = '  '\n"
+
+
+def test_enable_form_prefills_param_defaults(logged_in_client, jawa_env):
+    response = logged_in_client.get("/templates/tap-brander/enable")
+    html = response.get_data(as_text=True)
+    assert 'id="param-template_path"' in html
+    assert 'value="legacy"' in html
+    assert 'value="1500"' in html
 
 
 def test_credential_set_fills_the_standard_three():
@@ -1044,8 +1126,12 @@ def test_deployed_script_is_executable(jawa_env):
     # bakes the credential set's client_secret into this source, so any
     # group or other bit hands that secret to every local account.
     leaked = mode & (
-        stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP
-        | stat.S_IROTH | stat.S_IWOTH | stat.S_IXOTH
+        stat.S_IRGRP
+        | stat.S_IWGRP
+        | stat.S_IXGRP
+        | stat.S_IROTH
+        | stat.S_IWOTH
+        | stat.S_IXOTH
     )
     assert not leaked, (
         f"_write_script left {oct(mode)} on {dest}; this file can hold a "
@@ -1082,9 +1168,7 @@ def test_write_script_leaves_a_non_python_shebang_alone(jawa_env):
     """An operator's bash script is theirs; only python is retargeted."""
     from views import template_view
 
-    dest = template_view._write_script(
-        "bash-check", "#!/bin/bash\necho hi\n"
-    )
+    dest = template_view._write_script("bash-check", "#!/bin/bash\necho hi\n")
     first_line = open(dest, encoding="utf-8").readline().rstrip("\n")
     assert first_line == "#!/bin/bash"
 
@@ -1133,9 +1217,16 @@ def test_deployed_script_interpreter_can_import_its_dependencies(
     assert shebang.startswith("#!"), f"{slug} lost its shebang"
     interpreter = shebang[2:].strip().split()
 
+    # Vendored packages (wallrender) are put on sys.path by the script
+    # itself, from <JAWA>/data/workflows/lib; import them the same way so
+    # their own dependencies are still checked against this interpreter.
+    lib = os.path.join(REPO_ROOT, "data", "workflows", "lib")
     for module in sorted(needed):
+        code = f"import {module}"
+        if os.path.isdir(os.path.join(lib, module)):
+            code = f"import sys; sys.path.insert(0, {lib!r}); {code}"
         proc = subprocess.run(
-            interpreter + ["-c", f"import {module}"],
+            interpreter + ["-c", code],
             capture_output=True,
         )
         assert proc.returncode == 0, (
@@ -1168,9 +1259,18 @@ def test_every_outbound_call_in_a_bundled_script_is_bounded(workflow):
         func = node.func
         if not isinstance(func, ast.Attribute):
             continue
-        if not (isinstance(func.value, ast.Name) and func.value.id == "requests"):
+        if not (
+            isinstance(func.value, ast.Name) and func.value.id == "requests"
+        ):
             continue
-        if func.attr not in ("get", "post", "put", "delete", "patch", "request"):
+        if func.attr not in (
+            "get",
+            "post",
+            "put",
+            "delete",
+            "patch",
+            "request",
+        ):
             continue
         if not any(kw.arg == "timeout" for kw in node.keywords):
             unbounded.append(f"line {node.lineno}: requests.{func.attr}")

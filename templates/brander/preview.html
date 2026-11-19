@@ -1,0 +1,81 @@
+{% extends "shared/_layout.html" %}
+
+{% block title %}Brander preview | JAWA{% endblock %}
+
+{% import "vendor/roster-macros.html" as rb %}
+
+{% block additional_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/vendor/roster-web.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/vendor/roster-html.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/brander.css') }}">
+{% endblock %}
+
+{% block content %}
+{% set icons_url = url_for('static', filename='css/vendor/icons.svg') %}
+<div class="container brander-page">
+    <h1 class="h3">Brander preview</h1>
+    <p class="lead">Render a template for a real device from its Jamf Pro record. Nothing is sent to the device.</p>
+
+    {% if problems %}
+    <div class="rb-alert" role="alert">{{ rb.icon("circle-exclamation", icons_url=icons_url) }}<div class="rb-alert__content">
+        <ul class="brander-problems">{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul>
+    </div></div>
+    {% endif %}
+
+    <form method="POST" action="/brander/preview" class="mb-4">
+        <div class="brander-preview-form">
+            <div class="rb-field">
+                <label for="template" class="rb-label">Template</label>
+                <select class="rb-input" id="template" name="template" required>
+                    {% for value, label in choices %}<option value="{{ value }}" {% if form and form.template == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="rb-field">
+                <label for="jss_id" class="rb-label">Device's Jamf Pro ID</label>
+                <input class="rb-input" id="jss_id" name="jss_id" inputmode="numeric" required
+                       value="{{ form.jss_id if form else '' }}">
+            </div>
+            <button type="submit" class="rb-btn">Preview</button>
+        </div>
+        <div class="rb-field rb-field--check mt-3">
+            <input class="rb-check" type="checkbox" id="allow_person_fields" name="allow_person_fields"
+                   {% if form and form.allow %}checked{% endif %}>
+            <label class="rb-label" for="allow_person_fields">Preview as a Brander that allows personal fields</label>
+        </div>
+    </form>
+
+    {% if image %}
+    <div class="brander-preview-grid">
+        <div class="brander-preview-image">
+            <img src="data:image/png;base64,{{ image }}" alt="Wallpaper preview for {{ device.name }}">
+        </div>
+        <div>
+            {{ rb.alert("info", body="Nothing was sent to the device.", icons_url=icons_url) }}
+            <dl>
+                <dt>Device</dt><dd>{{ device.name }} ({{ device.model or 'unknown model' }})</dd>
+                <dt>Template</dt><dd>{{ chosen }}</dd>
+                <dt>Image</dt><dd>{{ size[0] }}×{{ size[1] }}</dd>
+                <dt>Would Brander send it?</dt>
+                <dd>{% if device.supervised is sameas true and device.os_type in ('iOS', 'iPadOS') %}Yes: supervised {{ device.os_type }}.{% else %}No: Brander only sends to supervised iOS and iPadOS devices.{% endif %}</dd>
+            </dl>
+            <h2 class="h6">Fit on {{ fit.screen }} screens</h2>
+            <p class="small">Checked on: {{ fit.devices | join(", ") }}.</p>
+            {% if fit.warnings %}
+            <ul class="brander-warnings">{% for w in fit.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+            {% else %}
+            <p>Fits every one of them.</p>
+            {% endif %}
+            {% if warnings %}
+            <h2 class="h6">Warnings</h2>
+            <ul class="brander-warnings">{% for w in warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+            {% else %}
+            <p>No warnings.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <hr class="my-4">
+    <p>For EWOK's role picker: <a href="/brander/ea-names.json">download this tenant's extension attribute names</a> (names only).</p>
+</div>
+{% endblock %}

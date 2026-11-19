@@ -1,6 +1,7 @@
 line-length = 79
 
-exclude = ["data/workflows/scripts"]
+# wallrender is vendored from EWOK and hash-pinned (test_wallrender_vendor).
+exclude = ["data/workflows/scripts", "data/workflows/lib/wallrender"]
 
 [format]
 quote-style = "double"

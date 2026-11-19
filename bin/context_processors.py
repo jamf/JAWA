@@ -59,7 +59,23 @@ def inject_common_vars() -> dict:
     from bin import data_store
 
     minutes = _resolve_session_timeout(data_store.get_server_config())
+    failed_cache: dict = {}
+
+    def last_run_failed(name: str) -> bool:
+        """True when the automation's most recent run did not exit 0.
+
+        Reads the run history on first use only, so pages that never ask
+        pay nothing.
+        """
+        if "names" not in failed_cache:
+            try:
+                failed_cache["names"] = data_store.get_failed_run_names()
+            except (OSError, ValueError):
+                failed_cache["names"] = set()
+        return name in failed_cache["names"]
+
     return {
+        "last_run_failed": last_run_failed,
         "username": session.get("username"),
         "session_url": session.get("url"),
         "session_timeout_seconds": minutes * 60,

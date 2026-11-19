@@ -29,7 +29,7 @@
 import glob
 import json
 import os
-import uuid
+import secrets
 
 from datetime import timedelta
 from flask import (
@@ -46,7 +46,11 @@ from waitress import serve
 from typing import Any, Dict, Tuple, Union
 
 from bin import logger
-from bin.context_processors import inject_common_vars, register_static_cache_bust
+from bin.context_processors import (
+    inject_common_vars,
+    register_static_cache_bust,
+)
+from bin.tokens import SessionEnded, fresh_token, session_ended_response
 from bin.url_safety import safe_path_segment
 from bin.view_modifiers import response
 from views.home_view import _strip_trailing_slash, load_home
@@ -67,6 +71,7 @@ def _resolve_session_timeout(config: dict) -> int:
     if type(value) is int and value in SESSION_TIMEOUT_CHOICES:
         return value
     return DEFAULT_SESSION_TIMEOUT
+
 
 # Initiate Flask
 app = Flask(__name__)
@@ -91,9 +96,49 @@ app.config.update(
 def _session_heartbeat() -> None:
     from bin import data_store
 
+    if request.endpoint == "healthz":
+        return
     minutes = _resolve_session_timeout(data_store.get_server_config())
     app.permanent_session_lifetime = timedelta(minutes=minutes)
     session.modified = True
+    # The session keeps no password, so the Jamf Pro token can only be
+    # renewed while it is still valid: do it on every console request.
+    if session.get("token") and request.endpoint not in (
+        "static",
+        "home_view.logout",
+    ):
+        fresh_token()
+
+
+@app.errorhandler(SessionEnded)
+def _session_ended(_err: SessionEnded) -> Response:
+    return session_ended_response()
+
+
+def load_secret_key(project_dir: str) -> str:
+    """Return the key that signs session cookies.
+
+    JAWA_SECRET_KEY wins when set. Otherwise the key lives in
+    data/.secret_key (mode 0600), created once and reused, so a restart
+    does not sign every admin out.
+    """
+    from_env = os.environ.get("JAWA_SECRET_KEY")
+    if from_env:
+        return from_env
+    key_file = os.path.join(project_dir, "data", ".secret_key")
+    try:
+        with open(key_file) as handle:
+            existing = handle.read().strip()
+        if existing:
+            return existing
+    except FileNotFoundError:
+        pass
+    key = secrets.token_hex(32)
+    fd = os.open(key_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as handle:
+        handle.write(key)
+    os.chmod(key_file, 0o600)
+    return key
 
 
 app.context_processor(inject_common_vars)
@@ -105,11 +150,21 @@ def main() -> None:
     logthis.info(f"JAWA initializing...\n Sandcrawler home:  {base_dir}")
     try:
         environment_setup(base_dir)
+        from bin import data_store
+
+        data_store.secure_private_files()
+        from views._type_handlers import cron_handler
+
+        cron_handler.migrate_cron_commands()
         register_blueprints()
-        app.secret_key = str(uuid.uuid4())
+        app.secret_key = load_secret_key(base_dir)
         app.permanent_session_lifetime = timedelta(minutes=15)
         serve(
-            app, url_scheme="https", host="0.0.0.0", port=8000, threads=15
+            app,
+            url_scheme="https",
+            host=os.environ.get("JAWA_BIND", "127.0.0.1"),
+            port=8000,
+            threads=15,
         )  # Serve me the sky with a big slice of lemon
     except Exception as err:
         logthis.critical(
@@ -142,6 +197,10 @@ def register_blueprints() -> None:
     from webhook import jawa_receiver
 
     app.register_blueprint(jawa_receiver.blueprint)
+    # Tap action receiver (device-facing /tap/<service-name>)
+    from webhook import tap_receiver
+
+    app.register_blueprint(tap_receiver.blueprint)
     # Log view
     from views import log_view
 
@@ -159,6 +218,9 @@ def register_blueprints() -> None:
 
     app.register_blueprint(search_view.blueprint)
     # Webhook event reference (read-only docs)
+    from views import brander_view
+
+    app.register_blueprint(brander_view.blueprint)
     from views import reference_view
 
     app.register_blueprint(reference_view.blueprint)
@@ -275,6 +337,22 @@ def _redir_webhook_delete():
 
 
 # Server setup including making .json file necessary for webhooks
+def _read_server_json(path: str) -> Dict[str, Any]:
+    """Return the saved server settings, or {} if missing or unreadable."""
+    if not os.path.isfile(path):
+        return {}
+    with open(path, "r") as fin:
+        try:
+            data = json.load(fin)
+        except json.JSONDecodeError:
+            logthis.error(
+                f"{os.path.basename(path)} cannot be parsed; Setup will "
+                "replace it with the values just saved."
+            )
+            return {}
+    return data if isinstance(data, dict) else {}
+
+
 @app.route("/setup", methods=["GET", "POST"])
 def setup() -> Union[Response, str]:
     if "username" not in session:
@@ -312,37 +390,42 @@ def setup() -> Union[Response, str]:
             f"Alternate enabled?: {jps2_check}"
         )
         new_json = {}
+        if "allowed_admins" in request.form:
+            from views.home_view import _parse_admin_names
+
+            admins = _parse_admin_names(request.form["allowed_admins"])
+            # Never let a save lock out the account making it.
+            me = str(session.get("username") or "")
+            if admins and me.lower() not in {a.lower() for a in admins}:
+                admins.append(me)
+            new_json["allowed_admins"] = admins
         if server_url != "":
             new_json["jawa_address"] = server_url
         if jps_url != "":
             new_json["jps_url"] = jps_url
-        if not os.path.isfile(server_json_file):
-            with open(server_json_file, "w") as outfile:
-                server_json = {
-                    "jawa_address": server_url,
-                    "jps_url": jps_url,
-                    "alternate_jps": jps_url2,
-                    "session_timeout_minutes": session_timeout,
-                }
-                json.dump(server_json, outfile)
-        elif os.path.isfile(server_json_file):
-            with open(server_json_file, "w") as outfile:
-                server_json = {
-                    "jawa_address": server_url,
-                    "jps_url": jps_url,
-                    "alternate_jps": jps_url2,
-                    "session_timeout_minutes": session_timeout,
-                }
-                json.dump(server_json, outfile)
-            with open(server_json_file, "r") as fin:
-                data = json.load(fin)
-            data.update(new_json)
-            with open(server_json_file, "w+") as outfile:
-                json.dump(data, outfile)
-
-        return redirect(
-            url_for("success", success_msg="JAWA Setup Complete!")
+        if "failure_alert_url" in request.form:
+            # Empty clears the alert. Only saved when the field was posted,
+            # so a save from another form cannot wipe it.
+            new_json["failure_alert_url"] = (
+                request.form.get("failure_alert_url") or ""
+            ).strip()
+        # Start from what is already saved, so keys this form does not
+        # post (brand, and anything else other code keeps here) survive.
+        server_json = _read_server_json(server_json_file)
+        server_json.update(
+            {
+                "jawa_address": server_url,
+                "jps_url": jps_url,
+                "alternate_jps": jps_url2,
+                "session_timeout_minutes": session_timeout,
+            }
         )
+        server_json.update(new_json)
+        from bin.data_store import atomic_write_json
+
+        atomic_write_json(server_json_file, server_json)
+
+        return redirect(url_for("success", success_msg="JAWA Setup Complete!"))
     else:
         logthis.debug(
             f"[{session.get('url')}] {session.get('username')} - /setup - GET"
@@ -371,6 +454,8 @@ def setup() -> Union[Response, str]:
             jps_url2=jps_url2,
             jawa_url=jawa_url,
             session_timeout=session_timeout,
+            allowed_admins="\n".join(server_json.get("allowed_admins") or []),
+            failure_alert_url=server_json.get("failure_alert_url") or "",
             username=session.get("username"),
         )
 
@@ -426,6 +511,26 @@ def cleanup() -> Union[Response, Dict[str, Any]]:
 @app.route("/")
 def home() -> Union[Response, str]:
     return load_home()
+
+
+@app.route("/healthz")
+def healthz() -> Tuple[Dict[str, str], int]:
+    """Unauthenticated health check for uptime monitors.
+
+    Reads the stores directly instead of through data_store, whose readers
+    create missing files, so a probe never writes to disk or the log.
+    """
+    from bin import data_store
+
+    for path in (data_store.WEBHOOKS_FILE, data_store.CRON_FILE):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                json.load(f)
+        except (OSError, ValueError):
+            return {"status": "fail", "check": os.path.basename(path)}, 503
+    if not os.path.isdir(data_store.SCRIPTS_DIR):
+        return {"status": "fail", "check": "scripts"}, 503
+    return {"status": "ok"}, 200
 
 
 @app.route("/success", methods=["GET", "POST"])
@@ -495,8 +600,7 @@ def page_not_found(e) -> Union[Response, str]:
 @app.errorhandler(500)
 def internal_error(e) -> Union[Response, Tuple[str, int]]:
     logthis.exception(
-        f"500 at {request.path} for "
-        f"{session.get('username', 'anonymous')}"
+        f"500 at {request.path} for {session.get('username', 'anonymous')}"
     )
     if "username" in session:
         return (

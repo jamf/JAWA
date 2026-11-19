@@ -101,7 +101,10 @@
 {% block content %}
 <div class="hero-section">
     <div class="container">
-        <h2>Edit {{ handler.display_name }} {% if auto_type == 'cron' %}Job{% else %}Webhook{% endif %}</h2>
+        <h2>Edit {{ handler.display_name }}
+            {% if auto_type == 'cron' %}Job
+            {%- elif auto_type == 'tap' %}Service
+            {%- else %}Webhook{% endif %}</h2>
         <p>Modify settings for {{ automation_name }}.</p>
         <div class="hero-cta">
             <a href="/automations/{{ auto_type }}/{{ automation_name }}" class="btn btn-hero-secondary">
@@ -115,13 +118,17 @@
     <form method="POST" action="/automations/{{ auto_type }}/{{ automation_name }}/edit"
           class="form-card" enctype="multipart/form-data">
         <h1>Edit {{ handler.display_name }}
-            {% if auto_type == 'cron' %}Job{% else %}Webhook{% endif %}</h1>
+            {% if auto_type == 'cron' %}Job
+            {%- elif auto_type == 'tap' %}Service
+            {%- else %}Webhook{% endif %}</h1>
 
         {% set edit_mode = true %}
         {% if auto_type == 'jamfpro' %}
             {% include "automations/_partials/_jamf_fields.html" %}
         {% elif auto_type == 'custom' %}
             {% include "automations/_partials/_custom_fields.html" %}
+        {% elif auto_type == 'tap' %}
+            {% include "automations/_partials/_tap_fields.html" %}
         {% elif auto_type == 'cron' %}
             {% include "automations/_partials/_cron_fields.html" %}
         {% endif %}

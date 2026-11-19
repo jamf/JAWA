@@ -27,6 +27,7 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 
 {% extends "shared/_layout.html" %}
+{% from "shared/_macros.html" import copy_field %}
 {% block title %}Success!{% endblock %}
 
 {% block additional_css %}
@@ -100,7 +101,7 @@
         color: var(--color-text);
     }
     .success-notice strong {
-        color: var(--color-primary);
+        color: var(--color-link);
         display: block;
         margin-bottom: 0.5rem;
     }
@@ -113,7 +114,7 @@
         text-align: center;
     }
     .success-link a {
-        color: var(--color-primary);
+        color: var(--color-link);
         text-decoration: none;
         font-weight: 500;
         transition: all 0.2s ease;
@@ -188,6 +189,14 @@
             {{ success_msg }}
         </div>
 
+        {% if webhook_url %}
+        {{ copy_field("Webhook URL", webhook_url) }}
+        {% elif webhook_url_missing %}
+        <div class="success-notice">
+            Set the JAWA server address in <a href="/setup">Setup</a> to see the full URL.
+        </div>
+        {% endif %}
+
         {% if smart_group_notice %}
         <div class="success-notice">
             <strong>{{ smart_group_notice }}</strong>
@@ -208,8 +217,10 @@
         {% endif %}
 
         {% if custom_header %}
-        <div class="success-header-display">
-            {{ custom_header }}
+        <div class="success-header-fields">
+            {% for header_name, header_value in custom_header.items() %}
+            {{ copy_field(header_name, header_value) }}
+            {% endfor %}
         </div>
         {% endif %}
 

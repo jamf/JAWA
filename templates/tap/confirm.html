@@ -1,0 +1,66 @@
+{% extends "tap/_layout.html" %}
+{% import "vendor/roster-macros.html" as rb %}
+
+{% block title %}{{ strings.page_title }}{% endblock %}
+
+{% block card %}
+<h1>{{ strings.page_title }}</h1>
+<p>{{ strings.page_description }}</p>
+<form method="POST"{% if not preview %} action="/tap/{{ service_name }}"{% endif %}
+      class="ss-actions" id="confirm-form">
+    {% if not preview %}
+    <input type="hidden" name="token" value="{{ token }}">
+    <input type="hidden" name="id" value="{{ jss_id }}">
+    <input type="hidden" name="udid" value="{{ udid }}">
+    {% for key, value in params.items() %}
+    <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endfor %}
+    {% endif %}
+    {% if cooldown %}
+    {{ rb.alert("warn", body=cooldown, icons_url="") }}
+    {% endif %}
+    <button type="submit" class="rb-btn rb-btn--lg" id="confirm-button"
+            data-label="{{ strings.confirm_label }}"
+            {% if cooldown %}disabled data-cooldown{% elif preview %}disabled{% endif %}>
+        <span class="ss-spinner" hidden></span>
+        <span class="ss-btn-label">{{ strings.confirm_label }}</span>
+    </button>
+    <p class="ss-status" id="confirm-status" role="status" aria-live="polite"></p>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (function () {
+        var form = document.getElementById('confirm-form');
+        var button = document.getElementById('confirm-button');
+        var spinner = button.querySelector('.ss-spinner');
+        var label = button.querySelector('.ss-btn-label');
+        var status = document.getElementById('confirm-status');
+
+        function showWorking() {
+            button.disabled = true;
+            spinner.hidden = false;
+            label.textContent = 'Working...';
+            status.textContent =
+                'This can take up to a minute. Keep this screen open.';
+        }
+
+        function restore() {
+            spinner.hidden = true;
+            label.textContent = button.getAttribute('data-label');
+            status.textContent = '';
+            // A cooldown's button stays disabled: the server refuses it anyway.
+            if (!button.hasAttribute('data-cooldown')
+                    && !{{ 'true' if preview else 'false' }}) {
+                button.disabled = false;
+            }
+        }
+
+        form.addEventListener('submit', showWorking);
+        // Going back from the result page restores this page from the
+        // back-forward cache in its submitted state.
+        window.addEventListener('pageshow', restore);
+    })();
+</script>
+{% endblock %}

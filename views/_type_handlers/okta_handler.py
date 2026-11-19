@@ -28,6 +28,7 @@
 
 import json
 import os
+import secrets
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
@@ -47,6 +48,7 @@ OKTA_VERIFICATION_FILE = os.path.abspath(
 class OktaHandler(AutomationHandler):
     tag = "okta"
     display_name = "Okta"
+    summary = "Runs a script when Okta sends an event hook."
     badge_class = "badge-observability"
     icon = "webhook.png"
     supports_edit = False
@@ -96,6 +98,7 @@ class OktaHandler(AutomationHandler):
         webhook_url = f"{server_address}/hooks/{okta_name}"
         logthis.info(webhook_url)
 
+        okta_secret = secrets.token_urlsafe(32)
         payload = {
             "name": okta_name,
             "events": {"type": "EVENT_TYPE", "items": [okta_event]},
@@ -113,7 +116,7 @@ class OktaHandler(AutomationHandler):
                     "authScheme": {
                         "type": "HEADER",
                         "key": "Authorization",
-                        "value": "${api_key}",
+                        "value": okta_secret,
                     },
                 },
             },
@@ -138,13 +141,17 @@ class OktaHandler(AutomationHandler):
                 f"Request to Okta server timed out after 30 seconds. {err}",
             )
         except requests.exceptions.ConnectionError as err:
-            logthis.error(f"Connection error creating Okta webhook {okta_name}: {err}")
+            logthis.error(
+                f"Connection error creating Okta webhook {okta_name}: {err}"
+            )
             raise AutomationError(
                 "Connection Error",
                 f"Could not connect to Okta server. Check network connectivity. {err}",
             )
         except Exception as err:
-            logthis.error(f"Unexpected error creating Okta webhook {okta_name}: {err}")
+            logthis.error(
+                f"Unexpected error creating Okta webhook {okta_name}: {err}"
+            )
             raise AutomationError(
                 "API Error", f"Failed to create webhook in Okta. {err}"
             )
@@ -183,6 +190,7 @@ class OktaHandler(AutomationHandler):
             "description": description,
             "webhook_username": "null",
             "webhook_password": "null",
+            "okta_secret": okta_secret,
             "tag": "okta",
         }
 
@@ -201,19 +209,28 @@ class OktaHandler(AutomationHandler):
                 f"Verification request timed out after 30 seconds. {err}",
             )
         except requests.exceptions.ConnectionError as err:
-            logthis.error(f"Connection error verifying Okta webhook {okta_name}: {err}")
+            logthis.error(
+                f"Connection error verifying Okta webhook {okta_name}: {err}"
+            )
             raise AutomationError(
                 "Connection Error",
                 f"Could not connect to Okta for verification. {err}",
             )
         except json.JSONDecodeError as err:
-            logthis.error(f"Invalid verification response for webhook {okta_name}: {err}")
+            logthis.error(
+                f"Invalid verification response for webhook {okta_name}: {err}"
+            )
             raise AutomationError(
-                "API Error", f"Okta returned invalid verification response. {err}"
+                "API Error",
+                f"Okta returned invalid verification response. {err}",
             )
         except Exception as err:
-            logthis.error(f"Unexpected error verifying Okta webhook {okta_name}: {err}")
-            raise AutomationError("API Error", f"Failed to verify webhook. {err}")
+            logthis.error(
+                f"Unexpected error verifying Okta webhook {okta_name}: {err}"
+            )
+            raise AutomationError(
+                "API Error", f"Failed to verify webhook. {err}"
+            )
 
         if "errorCode" in verification:
             logthis.warning(

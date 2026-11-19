@@ -85,8 +85,6 @@
 {% endif %}
 <script>
 (function () {
-    var COPIED_RESET_MS = 2000;
-
     {% if examples.get(selected_event) %}
     // The payload crosses into JS as data (tojson) and is written with
     // textContent, so it is never parsed as markup. The layout already
@@ -103,22 +101,6 @@
         }
     }
     {% endif %}
-
-    document.querySelectorAll('.copy-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var code = btn.closest('.code-wrapper').querySelector('code');
-            navigator.clipboard.writeText(code.textContent).then(
-                function () {
-                    btn.textContent = 'Copied!';
-                    btn.classList.add('copied');
-                    setTimeout(function () {
-                        btn.textContent = 'Copy';
-                        btn.classList.remove('copied');
-                    }, COPIED_RESET_MS);
-                }
-            );
-        });
-    });
 })();
 </script>
 {% endblock %}

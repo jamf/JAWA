@@ -16,7 +16,7 @@
     /* Text hierarchy */
     --color-text: #112a46;
     --color-text-secondary: #5a6978;
-    --color-text-muted: #8a95a3;
+    --color-text-muted: #5b6776;
 
     /* Surfaces */
     --color-surface: #faf8f5;
@@ -32,7 +32,24 @@
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
 
-    /* Spacing and shape */
+    /* Spacing scale: 4 / 8 / 12 / 16 / 24 / 32 / 48 */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+    --gutter: var(--space-4);
+
+    /* Link and page colors (re-pointed in dark mode) */
+    --color-link: #3c6aa7;
+    --color-link-hover: #26446b;
+    --color-input-bg: #fff;
+    --color-card-bg: #fff;
+    --color-page: #e6bc99;
+
+    /* Shape */
     --radius-sm: 6px;
     --radius-md: 8px;
     --radius-lg: 12px;
@@ -48,6 +65,7 @@
 body {
     margin: 0;
     padding-top: 56px;
+    background-color: var(--color-page);
     font-family: var(--font-sans);
     color: var(--color-text);
     -webkit-font-smoothing: antialiased;
@@ -56,15 +74,15 @@ body {
 }
 
 a {
-    color: var(--color-primary);
+    color: var(--color-link);
 }
 
 a:visited {
-    color: var(--color-primary-hover);
+    color: var(--color-link-hover);
 }
 
 a:hover {
-    color: var(--color-primary-hover);
+    color: var(--color-link-hover);
     text-decoration: underline;
 }
 
@@ -177,7 +195,6 @@ h3 {
     color: #FFFFFF;
     font-size: 17px;
     cursor: pointer !important;
-    outline: none;
 }
 
 .submit:hover {
@@ -271,7 +288,7 @@ h3 {
 }
 
 .hippocrates tr:nth-child(even) {
-    background-color: #f2f2f2;
+    background-color: var(--color-surface-raised);
 }
 
 .hippocrates tr:hover {
@@ -362,6 +379,18 @@ h3 {
 
 .modal-footer .btn-jawa {
     font-size: unset;
+}
+
+/* ===== Keyboard focus ===== */
+:where(.btn, .nav-link, .navbar-brand, .navbar-toggler, .filter-btn, a.card-link, .submit):focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* On the burgundy navbar and hero the accent clears 3:1; on light
+   surfaces the primary blue does. */
+:where(.navbar, .hero-section) :where(.btn, .nav-link, .navbar-brand, .navbar-toggler, a):focus-visible {
+    outline-color: var(--color-accent);
 }
 
 /* ===== Buttons ===== */
@@ -686,12 +715,6 @@ footer a {
     background-color: var(--color-surface);
 }
 
-@media (max-width: 979px) {
-    body {
-        padding-top: 0;
-    }
-}
-
 .sub_links.affix {
     position: fixed;
     top: 0;
@@ -904,6 +927,29 @@ form.files-form {
     padding: 0.45rem 1.25rem;
 }
 
+/* Button rows on a phone: wrap, and keep Delete on its own line. */
+.action-row {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+@media (max-width: 575px) {
+    .action-row {
+        flex-wrap: wrap;
+        row-gap: 12px;
+    }
+
+    .action-row .btn-action {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .action-row .btn-danger {
+        flex-basis: 100%;
+    }
+}
+
 /* ===== Code / Script Previews ===== */
 .script-preview pre {
     background: var(--color-code-bg);
@@ -1014,6 +1060,7 @@ code {
     display: flex;
     justify-content: left;
     gap: 0.75rem;
+    flex-wrap: wrap;
     margin-top: 1.25rem;
     position: relative;
 }
@@ -1135,7 +1182,7 @@ a.btn-hero-secondary:visited {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     padding: 1.25rem;
-    background: #fff;
+    background: var(--color-card-bg);
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     width: auto;
     height: 100%;
@@ -1227,7 +1274,7 @@ a.btn-hero-secondary:visited {
     padding: 0.3rem 0.9rem;
     font-size: 0.82rem;
     font-weight: 500;
-    background: #fff;
+    background: var(--color-card-bg);
     color: var(--color-text-secondary);
     cursor: pointer;
     transition: all 0.15s ease;
@@ -1282,7 +1329,7 @@ a.btn-hero-secondary:visited {
     width: 380px;
     max-height: 400px;
     overflow-y: auto;
-    background: #fff;
+    background: var(--color-card-bg);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
@@ -1489,10 +1536,38 @@ a.btn-hero-secondary:visited {
     border-radius: var(--radius-lg);
 }
 
+.empty-state-icon {
+    display: block;
+    margin: 0 auto 0.75rem;
+    color: var(--color-text-secondary);
+}
+
 .empty-state-message {
     margin: 0 0 1rem;
     font-size: 0.95rem;
     color: var(--color-text-secondary);
+}
+
+.start-here {
+    max-width: 800px;
+    margin: 1rem auto;
+    padding: 2rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.start-here h3 {
+    margin: 0 0 0.5rem;
+}
+
+.start-here ul {
+    margin: 0 0 1.25rem;
+    padding-left: 1.25rem;
+}
+
+.start-here li {
+    margin-bottom: 0.4rem;
 }
 
 /* Field group whose value comes from the selected saved credential set.
@@ -1506,4 +1581,833 @@ a.btn-hero-secondary:visited {
 .enable-param-label {
     font-weight: 500;
     font-size: 0.88rem;
+}
+
+/* ===== Copyable values ===== */
+.detail-field {
+    margin-bottom: 0.4rem;
+}
+
+.copy-field {
+    margin-bottom: 0.6rem;
+}
+
+.copy-field-box {
+    margin-top: 0.25rem;
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 5rem 0.5rem 0.75rem;
+}
+
+.copy-field-box code {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--color-text);
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.copy-field-box .copy-btn {
+    color: var(--color-text);
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    font-size: 0.8rem;
+    min-height: 28px;
+}
+
+.copy-field-box .copy-btn:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text);
+}
+
+.copy-field-box .copy-btn.copied {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+/* No hover on touch screens, so the button is always visible there. */
+@media (hover: none) {
+    .copy-btn {
+        opacity: 1;
+    }
+}
+
+/* ===== Automation list rows ===== */
+.automation-list {
+    list-style: none;
+    margin: 0 0 2rem;
+    padding: 0;
+}
+
+.automation-row {
+    margin-bottom: 0.5rem;
+}
+
+.automation-link {
+    display: grid;
+    grid-template-columns: 8.5rem minmax(0, 2fr) minmax(0, 1.5fr) auto;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+.automation-link:hover,
+.automation-link:focus-visible {
+    background: var(--color-surface-hover);
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+.automation-type {
+    justify-self: start;
+}
+
+.automation-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    text-align: left;
+}
+
+.automation-name {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.automation-desc {
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.automation-trigger {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    overflow-wrap: anywhere;
+    text-align: left;
+}
+
+.automation-flags {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+@media (max-width: 767px) {
+    .automation-link {
+        grid-template-columns: minmax(0, 1fr);
+        row-gap: var(--space-1);
+        padding: var(--space-3);
+    }
+
+    .automation-flags {
+        align-items: flex-start;
+    }
+}
+
+/* ===== Automation detail ===== */
+.script-details summary {
+    cursor: pointer;
+    font-weight: 600;
+    padding: 0.4rem 0;
+}
+
+.script-details .script-preview pre {
+    max-height: 60vh;
+    overflow: auto;
+    padding-right: 5rem;
+}
+
+/* Send sample event: the device the sample names, then the payload. */
+.sample-device {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 0.5rem 1rem;
+    max-width: 48rem;
+    margin: 0 0 0.5rem;
+}
+
+.sample-device legend {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+}
+
+.sample-device-udid {
+    grid-column: 1 / -1;
+}
+
+.sample-device-jssID input,
+.sample-device-serialNumber input,
+.sample-device-udid input {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+}
+
+.sample-device .form-label {
+    font-size: 0.88rem;
+    font-weight: 500;
+    margin-bottom: 0.15rem;
+}
+
+.sample-payload {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    max-width: 48rem;
+}
+
+.script-note {
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+}
+
+.run-table {
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+.run-table th,
+.run-table td {
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: top;
+    text-align: left;
+}
+
+.run-output {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+}
+
+.status-text {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+/* ===== Design pass: spacing, forms, dark mode ===== */
+
+/* One gutter and one bottom margin for every page. */
+.container,
+.container-fluid {
+    padding-left: var(--gutter);
+    padding-right: var(--gutter);
+}
+
+.main-content {
+    padding-bottom: var(--space-7);
+}
+
+.main-content-no-nav {
+    padding-bottom: 0;
+}
+
+.hero-section {
+    margin-bottom: var(--space-6);
+}
+
+.section-header {
+    margin-top: var(--space-6);
+    margin-bottom: var(--space-4);
+}
+
+.section-header:first-child {
+    margin-top: 0;
+}
+
+.files-upload {
+    margin-bottom: var(--space-5);
+}
+
+.files-upload .form-section {
+    max-width: none;
+}
+
+.files-form,
+form.files-form {
+    margin-bottom: 0;
+}
+
+.log-container {
+    padding: 0;
+    margin-bottom: var(--space-4);
+}
+
+.page-sub-nav,
+.container > .text-center.mb-4:not(.form-section) {
+    row-gap: var(--space-2);
+}
+
+.container > .text-center.mb-4:not(.form-section) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Create / edit forms: left-aligned fields and labels. */
+.form-card .text-center,
+.form-card .d-flex.justify-content-center:not(.form-actions) {
+    text-align: left !important;
+    justify-content: flex-start !important;
+}
+
+.form-page-container .form-card h1 {
+    text-align: left;
+}
+
+.form-page-container .form-card .form-control {
+    margin-bottom: var(--space-4);
+}
+
+.form-card .form-control::placeholder {
+    text-align: left;
+}
+
+.form-card select.form-control {
+    padding-left: var(--space-3);
+}
+
+.form-card .form-actions {
+    justify-content: flex-end;
+}
+
+.custom-file {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+
+.custom-file-label {
+    order: -1;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.custom-file-input {
+    margin-bottom: 0 !important;
+}
+
+.field-hint {
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+}
+
+.field-hint p {
+    margin: 0 0 var(--space-4);
+}
+
+.auth-row {
+    display: flex;
+    margin-bottom: var(--space-2);
+}
+
+.auth-row label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    cursor: pointer;
+}
+
+.auth-row input[type="checkbox"],
+.auth-row input[type="radio"] {
+    flex: none;
+    margin: 0;
+}
+
+.auth-fields {
+    width: 100%;
+    margin: 0 0 var(--space-3) var(--space-5);
+}
+
+.auth-fields > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.auth-fields input {
+    flex: 1 1 200px;
+    min-width: 0;
+    width: 100%;
+    padding: 0.4rem 0.75rem !important;
+    background: var(--color-input-bg);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+}
+
+.auth-fields.is-hidden,
+.auth-fields.is-hidden * {
+    display: none;
+}
+
+.form-card .auth-row ~ .auth-row {
+    margin-top: var(--space-1);
+}
+
+.form-card .alert-danger {
+    margin-bottom: var(--space-4);
+}
+
+/* Bare form controls and detail rows. */
+.form-section {
+    padding: var(--space-5);
+}
+
+.detail-field {
+    margin-bottom: var(--space-2);
+    overflow-wrap: anywhere;
+}
+
+.form-section .action-row,
+.form-section .text-center.mt-3 {
+    margin-top: var(--space-5) !important;
+}
+
+@media (max-width: 575px) {
+    .hero-section {
+        padding: var(--space-6) 0;
+    }
+
+    .form-card {
+        padding: var(--space-5) !important;
+    }
+
+    .form-section {
+        padding: var(--space-4);
+    }
+
+    .hero-cta .btn {
+        padding-left: var(--space-4);
+        padding-right: var(--space-4);
+    }
+
+    /* Reference tables: stack each row instead of clipping the text. */
+    .schema-section .hippocrates thead {
+        display: none;
+    }
+
+    .schema-section .hippocrates,
+    .schema-section .hippocrates tbody,
+    .schema-section .hippocrates tr,
+    .schema-section .hippocrates td {
+        display: block;
+        width: 100%;
+    }
+
+    .schema-section .hippocrates tr {
+        padding: var(--space-3) 0;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .schema-section .hippocrates td {
+        border: none;
+        padding: var(--space-1) var(--space-3);
+    }
+}
+
+.btn-form-cancel,
+a.btn-form-cancel:visited {
+    color: var(--color-text);
+}
+
+@media (max-width: 575px) {
+    .form-card .form-actions > * {
+        flex: 1 1 auto;
+        text-align: center;
+    }
+}
+
+.btn + .script-note {
+    margin-left: var(--space-2);
+}
+
+.log-container {
+    max-width: calc(1400px - 2 * var(--gutter));
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.section-link {
+    font-size: 0.85rem;
+}
+
+/* Page title and back link on pages without a hero banner. */
+.page-title {
+    text-align: left;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: -1px;
+    margin: var(--space-2) 0 var(--space-2);
+}
+
+.back-link {
+    display: inline-block;
+    font-size: 0.88rem;
+    margin-bottom: var(--space-2);
+}
+
+/* ===== Dark mode ===== */
+/* ===== Page layout (J41) ===== */
+/* Hero band: title and subtitle on the left, buttons on the right. Every
+   page uses this compact band (J41); the older 3rem hero rules above are
+   overridden here. */
+/* The fixed nav is ~72px tall but body padding reserves 56px, so the
+   top padding carries the extra 16px. */
+.hero-section {
+    padding: var(--space-6) 0 var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+.hero-section .container {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "title cta" "sub cta";
+    column-gap: var(--space-5);
+    align-items: center;
+}
+
+.hero-section h2 {
+    grid-area: title;
+    font-size: 1.5rem;
+    letter-spacing: -0.5px;
+    margin: 0;
+}
+
+.hero-section p {
+    grid-area: sub;
+    font-size: 0.95rem;
+}
+
+.hero-section .hero-cta {
+    grid-area: cta;
+    margin-top: 0;
+}
+
+.hero-section .hero-cta .btn {
+    padding: 0.4rem 1.1rem;
+}
+
+@media (max-width: 767px) {
+    .hero-section {
+        padding: var(--space-5) 0 var(--space-4);
+    }
+
+    .hero-section .container {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "title" "sub" "cta";
+    }
+
+    .hero-section h2 {
+        font-size: 1.35rem;
+    }
+
+    .hero-section .hero-cta {
+        margin-top: var(--space-3);
+        gap: var(--space-2);
+    }
+
+    .hero-section .hero-cta .btn {
+        padding: 0.35rem 0.9rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* A tool page (the log) is exactly the window height: the nav, hero and
+   footer stay put and only its panel scrolls. */
+body.page-fill {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.page-fill .main-content {
+    min-height: 0;
+    padding-bottom: var(--space-4);
+    display: flex;
+    flex-direction: column;
+}
+
+.page-fill .log-page,
+.page-fill .log-container,
+.page-fill .log-view {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-fill .log-page {
+    width: 100%;
+}
+
+.page-fill .main-content > .hero-section {
+    flex-shrink: 0;
+}
+
+.page-fill .log-container {
+    margin-bottom: 0;
+}
+
+.page-fill .log-frame {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+}
+
+/* Sign-in: the icon shrinks with the window height so the form, any
+   error message and the footer fit on one screen. */
+.login-icon {
+    max-height: min(310px, 27vh);
+    width: auto;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-text: #f3e8dc;
+        --color-text-secondary: #cdb9a5;
+        --color-text-muted: #a8937e;
+        --color-surface: #2b211d;
+        --color-surface-raised: #33281f;
+        --color-surface-hover: #3b2e26;
+        --color-border: #4a3a30;
+        --color-primary-light: #3a2c22;
+        --color-link: #e6bd8f;
+        --color-link-hover: #f3d3ae;
+        --color-input-bg: #1f1814;
+        --color-card-bg: #2b211d;
+        --color-page: #1d1512;
+        --color-code-bg: #140e0b;
+        --color-code-text: #f0e4d6;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+        --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.35);
+    }
+
+    .jawa-bg {
+        /* Desert night: the light mode's sand bands after sunset. */
+        background-image: linear-gradient(to bottom, #2a1d18, #251a15, #211713, #1d1512, #1b1310, #1b1310, #1d1512, #211713, #251a15);
+    }
+
+    .hippocrates th {
+        background-color: #5a2a2b;
+    }
+
+    .hippocrates tr:hover {
+        background-color: var(--color-surface-hover);
+    }
+
+    .form-control,
+    .form-select,
+    .login-form-container .form-control {
+        background-color: var(--color-input-bg);
+        color: var(--color-text);
+        border-color: var(--color-border);
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        background-color: var(--color-input-bg);
+        color: var(--color-text);
+    }
+
+    .form-control::placeholder {
+        color: var(--color-text-muted);
+    }
+
+    .form-control:disabled,
+    .form-control[readonly] {
+        background-color: var(--color-surface-raised);
+    }
+
+    .form-control::file-selector-button {
+        background-color: var(--color-surface-hover);
+        color: var(--color-text);
+    }
+
+    .form-check-input {
+        background-color: var(--color-input-bg);
+        border-color: var(--color-text-muted);
+    }
+
+    .form-check-input:checked {
+        background-color: #4a78b5;
+        border-color: #4a78b5;
+    }
+
+    .text-muted,
+    .form-text {
+        color: var(--color-text-secondary) !important;
+    }
+
+    .btn-jawa,
+    .btn-form-primary {
+        background-color: #3f6ba6;
+        border-color: #3f6ba6;
+    }
+
+    .btn-jawa:hover {
+        background-color: #4a78b5;
+        border-color: #4a78b5;
+    }
+
+    .btn-jawa:disabled {
+        background-color: #3f6ba6;
+        border-color: #3f6ba6;
+    }
+
+    .form-card,
+    .form-section,
+    .card,
+    .modal-content,
+    .copy-field-box {
+        color: var(--color-text);
+    }
+
+    .card,
+    .modal-content {
+        background-color: var(--color-card-bg);
+    }
+
+    .form-page-container .form-card h1,
+    .section-header h3,
+    .workflow-card .card-title,
+    .session-countdown-seconds {
+        color: var(--color-text);
+    }
+
+    .session-countdown-seconds {
+        color: var(--color-accent);
+    }
+
+    .alert-warning {
+        background-color: #3a2c18;
+        border-color: #7a5a2e;
+        color: #f5e2bf;
+    }
+
+    /* The sign-in warning forces a pale fill in light mode; give it a dark
+       fill here so its heading and message stay readable. */
+    .login-form-container .alert-warning {
+        background: #3a2c18 !important;
+        border-color: #7a5a2e !important;
+        color: #f5e2bf;
+    }
+
+    .login-form-container .alert-warning .text-wrap {
+        color: #f5e2bf;
+    }
+
+    .alert-danger {
+        background-color: #3a1f22;
+        border-color: #6b3338;
+        color: #ffd9d4;
+    }
+
+    .alert-info {
+        background-color: #27313b;
+        border-color: #435468;
+        color: #dce6f0;
+    }
+
+    .error-msg {
+        color: #ffb4aa;
+    }
+
+    code,
+    .lead code {
+        color: #f0b48a;
+    }
+
+    .copy-field-box code {
+        color: var(--color-text);
+    }
+
+    .badge-observability {
+        background-color: #8a6a43;
+    }
+
+    .alert-secondary,
+    .pre-scrollable {
+        background-color: var(--color-surface-raised);
+        color: var(--color-text);
+        border-color: var(--color-border);
+    }
+
+    .dropdown-menu .dropdown-item {
+        color: var(--color-text);
+    }
+
+    .event-link.active {
+        color: var(--color-link);
+    }
+
+    .event-link:hover {
+        color: var(--color-link);
+    }
+
+    .page-sub-nav a:hover,
+    .page-sub-nav a.active,
+    .filter-btn:hover,
+    .filter-btn.active {
+        background: #3f6ba6;
+        border-color: #3f6ba6;
+    }
+
+    hr {
+        border-color: var(--color-border);
+        opacity: 1;
+    }
+
+    .modal-content .btn-close {
+        filter: invert(1);
+    }
+
+    /* Desert night accents: sand-gold rules and focus rings; blue stays
+       the action colour on buttons. */
+    .section-header {
+        border-bottom-color: var(--color-accent);
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--color-accent);
+        box-shadow: 0 0 0 3px rgba(215, 167, 115, 0.2);
+    }
+
+    .card,
+    .modal-content {
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), var(--shadow-md);
+    }
+
+    .list-group-item {
+        background-color: var(--color-card-bg);
+        color: var(--color-text);
+    }
+
+    .list-group-item-action:hover,
+    .list-group-item-action:focus {
+        background-color: var(--color-surface-hover);
+        color: var(--color-text);
+    }
 }

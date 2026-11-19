@@ -3,13 +3,13 @@
 {% block content %}
 <div class="container" style="max-width: 1400px; padding-top: 2rem;">
     <div class="mb-3">
-        <a href="/templates" style="color: var(--color-primary); font-size: 0.88rem;">&larr; Back to Catalog</a>
+        <a href="/templates" class="back-link">&larr; Back to Catalog</a>
     </div>
 
     <div class="row">
         <div class="col-lg-8">
             <span class="badge badge-{{ workflow.category }} mb-2">{{ workflow.category }}</span>
-            <h2 style="font-size: 1.8rem; text-align: left; letter-spacing: -1px; margin-top: 0.5rem;">{{ workflow.title }}</h2>
+            <h2 class="page-title">{{ workflow.title }}</h2>
             <p style="color: var(--color-text-secondary); font-size: 0.95rem;">{{ workflow.description }}</p>
 
             {% if workflow.exit_codes %}
@@ -41,7 +41,7 @@
             <div class="workflow-detail-sidebar">
                 <dl>
                     <dt>Trigger Event</dt>
-                    <dd>{{ workflow.trigger_event or "Any Event" }}</dd>
+                    <dd>{% if workflow.trigger_type == 'tap' %}Tap action (web clip){% elif workflow.trigger_type == 'cron' %}Schedule ({{ workflow.default_schedule }}){% else %}{{ workflow.trigger_event or "Any Event" }}{% endif %}</dd>
 
                     <dt>Script File</dt>
                     <dd><code>{{ workflow.script_file }}</code></dd>

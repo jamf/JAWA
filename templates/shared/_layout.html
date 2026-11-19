@@ -50,7 +50,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 </head>
 
-<body class="jawa-bg d-flex flex-column">
+<body class="jawa-bg d-flex flex-column {% block body_class %}{% endblock %}">
 
 {% if username %}
     <nav class="navbar fixed-top navbar-dark navbar-expand-md">
@@ -78,6 +78,8 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('log_view.log_home') }}">Log</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('resources_view.files') }}">Files</a></li>
+                            <li><a class="dropdown-item" href="/brander/templates">Brander templates</a></li>
+                            <li><a class="dropdown-item" href="/brander/preview">Brander preview</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('reference.webhooks') }}">Webhook Reference</a></li>
                         </ul>
@@ -110,6 +112,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
 <script>hljs.highlightAll();</script>
+<script src="{{ url_for('static', filename='js/copy.js') }}"></script>
+<script src="{{ url_for('static', filename='js/confirm.js') }}"></script>
 {% if username %}
 <script src="{{ url_for('static', filename='js/search.js') }}"></script>
 

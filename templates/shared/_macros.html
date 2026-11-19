@@ -21,28 +21,63 @@
 </div>
 {% endmacro %}
 
-{% macro automation_card(item, handler, loop_index, auto_type, session_url="") %}
-<div class="card col-md-6 col-lg-3 webhooks-list container-bg border-info d-flex flex-column">
-    <span class="badge {{ handler.badge_class }} mb-2">{{ handler.display_name }}</span>
-    <img src="{{ url_for('static', filename='img/' ~ handler.icon) }}" class="card-img mx-auto" alt="{{ handler.display_name }}">
-    <div class="card-body flex-column d-flex webhooks-list">
-        <h6 class="overflow-hidden card-title font-weight-bolder">{{ item.name }}</h6>
-        <a class="btn btn-jawa text-white overflow-hidden mt-auto"
-           href="/automations/{{ auto_type }}/{{ item.name }}">
-            View
-        </a>
-    </div>
-</div>
+{# Text that says what starts an automation: the Jamf Pro or Okta event,
+   the hook path for a custom webhook, or the schedule for a timed job. #}
+{% macro trigger_label(item, auto_type) -%}
+{%- if auto_type == 'jamfpro' -%}{{ item.event or 'Jamf Pro event' }}
+{%- elif auto_type == 'okta' -%}{{ item.okta_event or 'Okta event' }}
+{%- elif auto_type == 'tap' -%}Web clip
+{%- elif auto_type == 'custom' -%}/hooks/{{ item.name }}
+{%- elif auto_type == 'cron' -%}
+  {%- set presets = {'everyhour': 'Every hour', 'everyday': 'Every day', 'everyweek': 'Every week', 'everymonth': 'Every month', 'custom': 'Custom schedule'} -%}
+  {{ presets.get(item.frequency, item.frequency) or 'Not scheduled' }}
+{%- endif -%}
+{%- endmacro %}
+
+{# One automation as a single link row: type, name, trigger, description. #}
+{% macro automation_row(item, handler, auto_type) %}
+<li class="automation-row">
+    <a class="automation-link" href="/automations/{{ auto_type }}/{{ item.name }}">
+        <span class="badge {{ handler.badge_class }} automation-type">{{ handler.display_name }}</span>
+        <span class="automation-main">
+            <span class="automation-name">{{ item.name }}</span>
+            {% if item.description %}<span class="automation-desc">{{ item.description }}</span>{% endif %}
+        </span>
+        <span class="automation-trigger">{{ trigger_label(item, auto_type) }}</span>
+        <span class="automation-flags">
+            {% if last_run_failed(item.name) %}<span class="flag-text"><span aria-hidden="true">✕</span> Last run failed</span>{% endif %}
+            {% if auto_type == 'jamfpro' and item.jamf_enabled is sameas false %}<span class="flag-text"><span aria-hidden="true">!</span> Off in Jamf Pro</span>{% endif %}
+        </span>
+    </a>
+</li>
 {% endmacro %}
 
+{# One field on a detail page. Long values wrap; nothing is clipped. #}
 {% macro detail_field(label, value) %}
-<div class="overflow-auto text-break" style="max-height: 10vh">
+<div class="detail-field text-break">
     <b>{{ label }}</b>: {{ value }}
 </div>
 {% endmacro %}
 
-{% macro empty_state(message, create_url="", create_label="Create one now") %}
+{# A value an admin will paste somewhere else (a URL, a header, a path).
+   The full value wraps inside a monospace box with a Copy button; the
+   button is handled by static/js/copy.js. #}
+{% macro copy_field(label, value) %}
+<div class="copy-field">
+    <b>{{ label }}</b>:
+    <div class="code-wrapper copy-field-box">
+        <code>{{ value }}</code>
+        <button type="button" class="copy-btn" aria-label="Copy {{ label }}">Copy</button>
+    </div>
+</div>
+{% endmacro %}
+
+{# icon: optional; "log" draws a page of lines above the message. #}
+{% macro empty_state(message, create_url="", create_label="Create one now", icon="") %}
 <div class="empty-state">
+    {% if icon == "log" %}
+    <svg class="empty-state-icon" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.75h8.5L19.25 7.5v13.75H6z"/><path d="M14.25 2.75V7.75h5"/><path d="M9 12h7M9 15.5h7M9 19h4"/></svg>
+    {% endif %}
     <p class="empty-state-message">{{ message }}</p>
     {% if create_url %}
     <a href="{{ create_url }}" class="btn btn-jawa btn-action">{{ create_label }}</a>
@@ -185,21 +220,22 @@
 </div>
 {% endmacro %}
 
-{% macro description_field(value="") %}
+{% macro description_field(value="", label=none) %}
+{% if label %}<label class="form-label mt-3" for="description">{{ label }}</label>{% endif %}
 <textarea name="description" rows="3" type="text" placeholder="Description (optional)"
-          class="form-control text-center">{{ value }}</textarea>
+          {% if label %}id="description" {% endif %}class="form-control">{{ value }}</textarea>
 {% endmacro %}
 
 {% macro script_upload(field_name="new_file", required=true) %}
-<div class="d-flex justify-content-center text-center custom-file">
+<div class="custom-file">
     <input type="file" name="{{ field_name }}" id="{{ field_name }}" pattern="[^' ']+"
            {% if required %}required{% endif %}
-           class="custom-file-input text-center"
+           class="custom-file-input form-control"
            title="No Spaces in the filename!"
            accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"/>
-    <label class="custom-file-label text-center" for="{{ field_name }}">Upload a script</label>
+    <label class="custom-file-label" for="{{ field_name }}">Upload a script</label>
 </div>
-<div class="d-flex justify-content-center">
+<div class="field-hint">
     <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>,
     <a href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>]</p>
 </div>
@@ -207,16 +243,16 @@
 
 {% macro auth_fields(show_basic=true, show_custom=true, show_output=false, webhook_info=none) %}
 {% if show_basic %}
-<div class="d-flex justify-content-center">
+<div class="auth-row">
     <label>
         <input type="checkbox" class="form-check-input" name="basic" value="basic"
                onchange="toggleAuthField('auth-basic-fields')">
         <b>&nbsp;Basic Authentication (optional):</b>
     </label>
 </div>
-<div class="d-flex justify-content-center">
-    <div id="auth-basic-fields" style="display:none" class="center_box">
-        <div class="d-flex justify-content-center">
+<div class="auth-row">
+    <div id="auth-basic-fields" style="display:none" class="center_box auth-fields">
+        <div class="auth-row">
             <input class="form-control-sm" name="basic_username" title="Username (optional)"
                    autocomplete="off" placeholder="Username (optional)"
                    {% if webhook_info and webhook_info[0].webhook_username != 'null' %}value="{{ webhook_info[0].webhook_username }}"{% endif %}>
@@ -227,15 +263,15 @@
 </div>
 {% endif %}
 {% if show_custom %}
-<div class="d-flex justify-content-center">
+<div class="auth-row">
     <label>
         <input type="checkbox" class="form-check-input" name="custom" value="custom"
                onchange="toggleAuthField('auth-custom-fields')">
         <b>&nbsp;Custom Authentication (optional):</b>
     </label>
 </div>
-<div class="d-flex justify-content-center">
-    <div id="auth-custom-fields" style="display:none">
+<div class="auth-row">
+    <div id="auth-custom-fields" style="display:none" class="auth-fields">
         <input name="api_key" class="form-control-sm" title="x-api-key (optional)"
                placeholder="x-api-key value (optional)" autocomplete="off"
                {% if webhook_info and webhook_info[0].api_key != 'null' %}value="{{ webhook_info[0].api_key }}"{% endif %}>
@@ -243,7 +279,7 @@
 </div>
 {% endif %}
 {% if show_output %}
-<div class="d-flex justify-content-center">
+<div class="auth-row">
     <label>
         <input name="output" class="form-check-input" type="checkbox"
                {% if webhook_info and webhook_info[0].output %}checked{% endif %}>
@@ -253,7 +289,7 @@
 {% endif %}
 {% endmacro %}
 
-{% macro jamf_auth_fields(webhook_info=none) %}
+{% macro jamf_auth_fields(webhook_info=none, default_api_key=none) %}
 {# These are RADIOS, so they need hide-all-then-show-one. The shared
    toggleAuthField() FLIPS one div, which is right for the checkboxes in
    auth_fields() above but wrong here: a radio's change event fires only
@@ -264,8 +300,8 @@
    authentication" radio also makes the documented default visible and
    gives the operator a way back, which two radios alone did not. #}
 {% set has_basic = webhook_info and webhook_info[0].webhook_username not in (none, '', 'null') %}
-{% set has_custom = webhook_info and webhook_info[0].api_key not in (none, '', 'null') %}
-<div class="d-flex justify-content-center">
+{% set has_custom = (webhook_info and webhook_info[0].api_key not in (none, '', 'null')) or (not webhook_info and default_api_key) %}
+<div class="auth-row">
     <label>
         <input type="radio" name="choice" value="none"
                {% if not has_basic and not has_custom %}checked{% endif %}
@@ -273,7 +309,7 @@
         <b>&nbsp;No authentication</b>
     </label>
 </div>
-<div class="d-flex justify-content-center">
+<div class="auth-row">
     <label>
         <input type="radio" name="choice" value="basic"
                {% if has_basic %}checked{% endif %}
@@ -281,9 +317,9 @@
         <b>&nbsp;Basic Authentication (optional):</b>
     </label>
 </div>
-<div class="d-flex justify-content-center">
-    <div id="jamf-auth-basic-fields" class="center_box{% if not has_basic %} is-hidden{% endif %}">
-        <div class="d-flex justify-content-center">
+<div class="auth-row">
+    <div id="jamf-auth-basic-fields" class="center_box auth-fields{% if not has_basic %} is-hidden{% endif %}">
+        <div class="auth-row">
             <input class="form-control-sm" name="basic_username" title="Username (optional)"
                    autocomplete="off" placeholder="Username (optional)" style="padding: unset"
                    {% if webhook_info and webhook_info[0].webhook_username != 'null' %}value="{{ webhook_info[0].webhook_username }}"{% endif %}>
@@ -292,7 +328,7 @@
         </div>
     </div>
 </div>
-<div class="d-flex justify-content-center">
+<div class="auth-row">
     <label>
         <input type="radio" name="choice" value="custom"
                {% if has_custom %}checked{% endif %}
@@ -300,11 +336,11 @@
         <b>&nbsp;Custom Authentication (optional):</b>
     </label>
 </div>
-<div class="d-flex justify-content-center">
-    <div id="jamf-auth-custom-fields"{% if not has_custom %} class="is-hidden"{% endif %}>
+<div class="auth-row">
+    <div id="jamf-auth-custom-fields" class="auth-fields{% if not has_custom %} is-hidden{% endif %}">
         <input name="api_key" class="form-control-sm" title="x-api-key (optional)"
                placeholder="x-api-key value (optional)" autocomplete="off"
-               {% if webhook_info and webhook_info[0].api_key != 'null' %}value="{{ webhook_info[0].api_key }}"{% endif %}>
+               {% if webhook_info and webhook_info[0].api_key != 'null' %}value="{{ webhook_info[0].api_key }}"{% elif not webhook_info and default_api_key %}value="{{ default_api_key }}"{% endif %}>
     </div>
 </div>
 {% endmacro %}

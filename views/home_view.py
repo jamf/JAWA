@@ -26,9 +26,11 @@
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import base64
 import json
+import logging
 import os
+import re
+from logging import handlers
 from typing import Optional, Union
 
 import requests
@@ -73,6 +75,8 @@ verify_ssl = True  # Enables Jamf Pro SSL certificate verification
 
 blueprint = Blueprint("home_view", __name__, template_folder="templates")
 
+# Development only: allow a login before a Jamf Pro URL is pinned.
+ALLOW_UNPINNED_ENV = "JAWA_ALLOW_UNPINNED_LOGIN"
 LOGOUT_ENDPOINT = "home_view.logout"
 DASHBOARD_ENDPOINT = "home_view.dashboard"
 HOME_TEMPLATE = "home.html"
@@ -121,12 +125,61 @@ def _strip_trailing_slash(url: str) -> str:
     return url.rstrip("/") if url.endswith("/") else url
 
 
-def _login_error(title: str, message) -> Response:
+_auth_logger = logging.getLogger("jawa.auth")
+_auth_handler_path: Optional[str] = None
+
+
+def _auth_log_path() -> str:
+    return os.path.join(os.path.dirname(server_file), "jawa-auth.log")
+
+
+def _field(value) -> str:
+    """One whitespace-free token, so a caller cannot forge extra fields
+    or a second log line through a user name or header."""
+    text = re.sub(r"[^\x21-\x7e]", "?", str(value or ""))[:128]
+    return text or "-"
+
+
+def _client_address() -> str:
+    # nginx sets X-Real-IP from the socket address; the app itself only
+    # ever sees the proxy.
+    return _field(request.headers.get("X-Real-IP") or request.remote_addr)
+
+
+def _log_failed_login(username: str) -> None:
+    """Write one fixed-format line per failed console sign-in.
+
+    fail2ban reads it from data/jawa-auth.log. That file holds only
+    these lines, because the main log also carries text that remote
+    callers control (such as webhook names), which could otherwise be
+    shaped to look like a failed login from someone else's address.
+    """
+    global _auth_handler_path
+    path = _auth_log_path()
+    if _auth_handler_path != path:
+        for old in list(_auth_logger.handlers):
+            old.close()
+            _auth_logger.removeHandler(old)
+        handler = handlers.RotatingFileHandler(
+            path, maxBytes=10 * 1048576, backupCount=3
+        )
+        handler.setFormatter(logger.formatter)
+        _auth_logger.addHandler(handler)
+        _auth_logger.setLevel(logging.INFO)
+        _auth_handler_path = path
+    _auth_logger.warning(
+        f"LOGIN FAILED user={_field(username)} ip={_client_address()}"
+    )
+
+
+def _login_error(title: str, message, count: bool = True) -> Response:
     """Redirect to logout with an error. Stash the entered username
     and JPS URL (never the password) in the session for one-shot
     re-display on the login page. Using the signed session (not query
     params) prevents an attacker from crafting a link that pre-fills
     the JPS URL field (credential-target phishing)."""
+    if count:
+        _log_failed_login(request.form.get("username", ""))
     session["login_retry"] = {
         "username": request.form.get("username", ""),
         "url": request.form.get("url", ""),
@@ -134,6 +187,21 @@ def _login_error(title: str, message) -> Response:
     return redirect(
         url_for(LOGOUT_ENDPOINT, error_title=title, error_message=message)
     )
+
+
+def _parse_admin_names(value) -> list:
+    """Normalise an allow-list (list or comma/newline separated text)."""
+    if isinstance(value, str):
+        value = value.replace(",", "\n").splitlines()
+    return [str(name).strip() for name in (value or []) if str(name).strip()]
+
+
+def _admin_allowed(server_json: dict, username: str) -> bool:
+    """True when no allow-list is set or the account is on it."""
+    allowed = _parse_admin_names(server_json.get("allowed_admins"))
+    if not allowed:
+        return True
+    return username.strip().lower() in {name.lower() for name in allowed}
 
 
 def _validate_credentials() -> Union[Response, None]:
@@ -164,6 +232,7 @@ def _verify_jamf_access() -> Union[Response, None]:
                 "User-Agent": "JAWA%20v3.2.0",
             },
             verify=verify_ssl,
+            timeout=30,
         )
         resp.raise_for_status()
         # A reachable non-Jamf site also answers 200 here; confirm the
@@ -194,7 +263,7 @@ def _verify_jamf_access() -> Union[Response, None]:
         return _login_error(
             "Login error", "check account credentials and privileges"
         )
-    except requests.exceptions.ConnectTimeout as err:
+    except requests.exceptions.Timeout as err:
         logthis.error(f"Error occurred: {err}")
         return _login_error("Connection Timeout", err)
     except requests.exceptions.ConnectionError as err:
@@ -206,9 +275,24 @@ def _verify_jamf_access() -> Union[Response, None]:
 @blueprint.route("/login", methods=["GET", "POST"])
 def login() -> Response:
     if request.method == "POST":
+        server_json = {}
         if os.path.isfile(server_file):
             with open(server_file) as json_file:
                 server_json = json.load(json_file)
+        if (
+            not server_json.get("jps_url")
+            and os.environ.get(ALLOW_UNPINNED_ENV) != "1"
+        ):
+            # Until a Jamf Pro URL is pinned, the sign-in would be checked
+            # by whatever server the form names, so anyone could use a
+            # server of their own to get in.
+            logthis.warning("Refusing a login: no Jamf Pro URL is pinned.")
+            return _login_error(
+                "Setup required",
+                "Finish install: set the Jamf Pro URL with the installer",
+                count=False,
+            )
+        if os.path.isfile(server_file):
             resolved = _resolve_url_from_server(request.form, server_json)
             if resolved is None:
                 logthis.warning(
@@ -225,15 +309,12 @@ def login() -> Response:
             session["url"] = _strip_trailing_slash(request.form.get("url", ""))
 
         session["username"] = request.form["username"]
-        session["password"] = request.form["password"]
-        session["b64_auth"] = base64.b64encode(
-            str.encode(f"{session.get('username')}:{session.get('password')}")
-        )
         # Honor a token-fetch failure: get_token() returns a redirect
         # when the token endpoint is unreachable or answers with a
         # non-Jamf body. Ignoring it let login proceed on a failed fetch.
-        token_error = get_token()
+        token_error = get_token(session["username"], request.form["password"])
         if token_error:
+            _log_failed_login(request.form.get("username", ""))
             return token_error
         logthis.info(
             f"[{session.get('url')}] Attempting login for: "
@@ -247,6 +328,26 @@ def login() -> Response:
         error = _verify_jamf_access()
         if error:
             return error
+
+        if not _admin_allowed(server_json, session["username"]):
+            logthis.warning(
+                f"[{session.get('url')}] Refusing login for "
+                f"{str(escape(session['username']))}: not in allowed_admins."
+            )
+            invalidate_token()
+            retry = {
+                "username": request.form.get("username", ""),
+                "url": request.form.get("url", ""),
+            }
+            session.clear()
+            session["login_retry"] = retry
+            return redirect(
+                url_for(
+                    LOGOUT_ENDPOINT,
+                    error_title="Login error",
+                    error_message="this account is not allowed to use JAWA",
+                )
+            )
 
         logthis.info(
             f"[{session.get('url')}] Logging In: "

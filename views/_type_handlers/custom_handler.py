@@ -29,7 +29,12 @@
 from typing import Any, Dict, List, Optional, Tuple
 
 from bin import logger
-from bin.data_store import save_script, save_all_webhooks, retire_script
+from bin.data_store import (
+    get_jawa_address,
+    retire_script,
+    save_all_webhooks,
+    save_script,
+)
 from views._type_handlers.base import AutomationError, AutomationHandler
 
 logthis = logger.setup_child_logger("jawa", "custom_handler")
@@ -40,13 +45,37 @@ def _get_form_value(form: Any, key: str, default: str = "null") -> str:
     return value if value else default
 
 
+NO_ADDRESS_HINT = "Set the JAWA server address in Setup to see the full URL"
+
+
+def hook_url(name: str) -> Optional[str]:
+    """The URL a sender must POST to, or None without a server address."""
+    address = (get_jawa_address() or "").strip().rstrip("/")
+    if not address:
+        return None
+    return f"{address}/hooks/{name}"
+
+
+def auth_label(automation: Dict) -> str:
+    """Which credentials the endpoint wants. Never includes the values."""
+    parts = []
+    user = automation.get("webhook_username")
+    if user not in (None, "", "null"):
+        parts.append(f"Basic (username {user})")
+    if automation.get("api_key") not in (None, "", "null"):
+        parts.append("x-api-key header")
+    return " and ".join(parts) if parts else "None"
+
+
 class CustomHandler(AutomationHandler):
     tag = "custom"
     display_name = "Custom"
+    summary = "Gives you a URL that any system can call to run a script."
     badge_class = "badge-provisioning"
     icon = "webhook.png"
     supports_edit = True
     supports_auth = True
+    copyable_labels = ("Script path", "Webhook URL")
 
     def get_create_context(self, session_data: Dict) -> Dict[str, Any]:
         return {}
@@ -101,9 +130,14 @@ class CustomHandler(AutomationHandler):
             "output": output,
         }
 
+        url = hook_url(custom_name)
         return {
             "entry": entry,
-            "success_msg": "New webhook created:",
+            "success_msg": "Webhook created. Send POST requests to:",
+            "webhook_url": url,
+            "webhook_url_missing": url is None,
+            "new_link": f"/automations/custom/{custom_name}",
+            "new_here": "View the webhook details",
             "extra_notice": extra_notice,
             "custom_header": custom_header,
         }
@@ -160,8 +194,11 @@ class CustomHandler(AutomationHandler):
             f"{session_data.get('username')} edited a custom webhook ({name})."
         )
 
+        url = hook_url(new_name)
         return {
             "success_msg": f"Edited custom webhook {new_name}.",
+            "webhook_url": url,
+            "webhook_url_missing": url is None,
             "extra_notice": extra_notice,
             "custom_header": custom_header,
         }
@@ -175,6 +212,11 @@ class CustomHandler(AutomationHandler):
     def get_detail_fields(self, automation: Dict) -> List[Tuple[str, str]]:
         fields = [
             ("Automation name", automation.get("name", "")),
+            (
+                "Webhook URL",
+                hook_url(automation.get("name", "")) or NO_ADDRESS_HINT,
+            ),
+            ("Authentication", auth_label(automation)),
             ("Script path", automation.get("script", "")),
             ("Description", automation.get("description", "")),
         ]

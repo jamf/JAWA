@@ -26,6 +26,7 @@
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+import re
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -49,15 +50,48 @@ class AutomationError(Exception):
         super().__init__(message)
 
 
+# A webhook name is interpolated into the XML body AND into the callback
+# URL Jamf calls. A positive rule, not a blocklist: xml_escape() makes
+# "Dev&Prod" well-formed XML, so Jamf then calls /hooks/Dev&Prod, and
+# Flask's /hooks/<webhook_name> route matches "Dev" with "Prod" as a
+# query param -- the webhook silently never fires. A blocklist also
+# missed "#", "?", "%" and an interior tab (`" " in name` catches none of
+# those). Same argument _raw_literal makes in template_view.
+WEBHOOK_NAME_RE = re.compile(r"[A-Za-z0-9._-]+")
+
+WEBHOOK_NAME_RULE = (
+    "Use only letters, numbers, dots, underscores and hyphens -- the "
+    "name becomes part of the URL Jamf Pro calls."
+)
+
+
+def validate_webhook_name(name: str) -> None:
+    """Raise AutomationError unless the name is URL- and XML-safe."""
+    if not name:
+        raise AutomationError("Error", "Webhook name is required.")
+    if not WEBHOOK_NAME_RE.fullmatch(name):
+        raise AutomationError("Error", WEBHOOK_NAME_RULE)
+
+
 class AutomationHandler(ABC):
     """Base class for automation type handlers."""
 
     tag: str = ""
     display_name: str = ""
+    # One line on what starts this kind of automation, for the
+    # "Create automation" chooser.
+    summary: str = ""
     badge_class: str = ""
     icon: str = "webhook.png"
     supports_edit: bool = True
     supports_auth: bool = False
+    # Detail-page labels whose values an admin is likely to paste
+    # elsewhere; they render with a Copy button.
+    copyable_labels: Tuple[str, ...] = ("Script path",)
+
+    def get_edit_context(self, automation: Dict) -> Dict[str, Any]:
+        """Extra template context for the edit form (none by default)."""
+        return {}
 
     @abstractmethod
     def get_create_context(self, session_data: Dict) -> Dict[str, Any]:

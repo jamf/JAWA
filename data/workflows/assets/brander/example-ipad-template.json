@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "name": "Brander iPad (portrait and landscape)",
+  "canvas": {"width": 2732, "height": 2732},
+  "background": {"color": "#0B2545"},
+  "layers": [
+    {"type": "image", "asset": "jawa-logo", "box": {"x": 0.42, "y": 0.3, "w": 0.16, "h": 0.14}},
+    {"type": "text", "text": "{{device_name}}", "box": {"x": 0.14, "y": 0.47, "w": 0.72, "h": 0.06}, "size": 0.04, "color": "#FFFFFF", "align": "center", "overflow": "ellipsis", "min_size": 0.026},
+    {"type": "text", "text": "Serial {{serial_number}}", "box": {"x": 0.14, "y": 0.535, "w": 0.72, "h": 0.04}, "size": 0.025, "color": "#D6E2F0", "align": "center", "overflow": "ellipsis", "hide_if_empty": true},
+    {"type": "text", "text": "Asset {{asset_tag}}", "box": {"x": 0.14, "y": 0.575, "w": 0.72, "h": 0.04}, "size": 0.025, "color": "#D6E2F0", "align": "center", "overflow": "ellipsis", "hide_if_empty": true},
+    {"type": "text", "text": "{{location.building}}", "box": {"x": 0.14, "y": 0.615, "w": 0.72, "h": 0.04}, "size": 0.025, "color": "#D6E2F0", "align": "center", "overflow": "ellipsis", "hide_if_empty": true},
+    {"type": "qr", "data": "jamf-device:{{jss_id}}", "box": {"x": 0.42, "y": 0.67, "w": 0.16, "h": 0.16}, "hide_if_empty": true}
+  ]
+}

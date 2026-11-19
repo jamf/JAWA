@@ -1,0 +1,132 @@
+/* Device-facing Tap Action pages. Standalone: does not load the
+   console stylesheet, so none of its navigation or footer appears.
+   Layout and the rb-* parts come from the vendored roster files
+   (vendor/roster-web.css and vendor/roster-html.css), loaded first.
+   Roster is the shared component library, not the colour scheme: the
+   colours are JAWA's own Tap Action palette below, and the block after
+   it points the roster tokens the parts read at that palette. */
+:root {
+    --ss-bg: #f9fafb;
+    --ss-card: #ffffff;
+    --ss-text: #111827;
+    --ss-muted: #4b5563;
+    --ss-border: #e5e7eb;
+    --ss-accent: #1d4ed8;
+    --ss-accent-hover: #1e40af;
+    --ss-accent-soft: #eff6ff;
+    --ss-accent-text: #ffffff;
+    --ss-ok: #166534;
+    --ss-fail: #b91c1c;
+    --ss-warn: #92400e;
+    --ss-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+}
+
+:root {
+    --roster-font-ui: var(--ss-font);
+    --rb-surface: var(--ss-bg);
+    --rb-text: var(--ss-text);
+    --rb-text-soft: var(--ss-muted);
+    --roster-card-bg: var(--ss-card);
+    --roster-card-border: var(--ss-border);
+    --roster-card-text: var(--ss-text);
+    --roster-elevation-raised: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --roster-primary-50: var(--ss-accent-soft);
+    --roster-primary-500: var(--ss-accent);
+    --roster-primary-600: var(--ss-accent);
+    --roster-primary-700: var(--ss-accent-hover);
+    --roster-ring: var(--ss-accent);
+    --rb-status-danger: var(--ss-fail);
+    --rb-status-warn: var(--ss-warn);
+    /* rb-alert: --_bd is the 500 step, --_bg the 50 step, --_fg 800/900. */
+    --roster-success-50: #f0fdf4;
+    --roster-success-500: #16a34a;
+    --roster-success-800: var(--ss-ok);
+    --roster-error-50: #fef2f2;
+    --roster-error-500: #dc2626;
+    --roster-error-800: var(--ss-fail);
+    --roster-amber-50: #fffbeb;
+    --roster-amber-500: #d97706;
+    --roster-amber-900: var(--ss-warn);
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; min-height: 100%; }
+
+body {
+    background: var(--rb-surface);
+    color: var(--rb-text);
+    font-family: var(--roster-font-ui);
+    font-size: 1.0625rem;
+    line-height: 1.5;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+        env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.ss-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem 1rem;
+}
+
+.ss-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: var(--rb-text-soft);
+}
+
+.ss-brand img { width: 36px; height: 36px; border-radius: 8px; }
+
+.ss-card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--roster-card-bg);
+    color: var(--roster-card-text);
+    border: 1px solid var(--roster-card-border);
+    border-radius: 14px;
+    padding: 1.75rem 1.5rem;
+    text-align: center;
+    box-shadow: var(--roster-elevation-raised);
+}
+
+.ss-card h1 { font-size: 1.5rem; line-height: 1.25; margin: 0 0 0.75rem; }
+.ss-card p { margin: 0 0 0.75rem; color: var(--rb-text-soft); }
+.ss-card .ss-detail { font-size: 1rem; }
+
+.ss-icon { width: 48px; height: 48px; margin: 0 auto 0.75rem; display: block; }
+.ss-icon-error { color: var(--rb-status-danger); }
+.ss-icon-info { color: var(--rb-status-warn); }
+
+/* Result and cooldown messages are rb-alert boxes: icon, then text. */
+.ss-card .rb-alert { margin: 0 0 0.75rem; text-align: left; font-size: 1rem; }
+.ss-card .rb-alert__body { font-weight: 600; }
+
+.ss-actions { margin-top: 1.5rem; }
+
+/* The buttons are rb-btn rb-btn--lg; keep them a large touch target. */
+.ss-actions .rb-btn { min-width: 12rem; min-height: 3rem; font-size: 1rem; font-weight: 600; border-radius: 10px; }
+.ss-actions .rb-btn--outline { border-width: 2px; }
+
+.ss-status { min-height: 1.5rem; margin: 0.75rem 0 0; font-size: 1rem; }
+
+.ss-spinner {
+    width: 1em;
+    height: 1em;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: ss-spin 0.8s linear infinite;
+}
+
+@keyframes ss-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .ss-spinner { animation: none; border-right-color: currentColor; }
+}

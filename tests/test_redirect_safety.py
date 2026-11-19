@@ -61,7 +61,9 @@ def _assert_local_redirect(resp, prefix):
     # No embedded "//" in the path -- an interpolated separator run can
     # be re-parsed as protocol-relative by intermediaries.
     assert "//" not in path, f"embedded '//' in path: {loc!r}"
-    assert path.startswith(prefix), f"Location {loc!r} escaped prefix {prefix!r}"
+    assert path.startswith(prefix), (
+        f"Location {loc!r} escaped prefix {prefix!r}"
+    )
 
 
 # ---- app.py single-segment name routes ----

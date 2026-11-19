@@ -1,0 +1,108 @@
+{# roster-bridge 0.1.0 from @blakesteve/roster 5.17.0 macros.html sha256:7f69b455c50a #}
+{#- Jinja2 macros for roster-html.css. Usage: {% import "macros.html" as rb %} then {{ rb.status("Paid", "ok") }}.
+    Every macro takes icons_url (default "icons.svg"): the URL your page serves icons.svg at.
+    Status kinds: ok, warn, danger, info. Each one renders its scheme icon next to the text.
+    rb.status with a blank label shows the kind's word (OK, Warning, Error, Info) and an error comment.
+    rb.field renders a label, a control (type "select" takes options, "textarea", "checkbox", or any input type),
+    a hint and an error (icon + text), linked by for, aria-describedby and aria-invalid. -#}
+
+{%- set rb_scheme_icons = {"ok": "circle-check", "warn": "triangle-exclamation", "danger": "circle-exclamation", "info": "circle-info"} -%}
+{%- set rb_status_words = {"ok": "OK", "warn": "Warning", "danger": "Error", "info": "Info"} -%}
+
+{%- macro icon(name, label=none, icons_url="icons.svg") -%}
+<svg{% if label %} role="img" aria-label="{{ label|e }}"{% else %} aria-hidden="true"{% endif %} focusable="false"><use href="{{ icons_url|e }}#{{ name|e }}"/></svg>
+{%- endmacro -%}
+
+{%- macro btn(label, variant="solid", size=none, href=none, type="button", icon_name=none, disabled=false, icons_url="icons.svg") -%}
+{%- set cls = "rb-btn" ~ ("" if variant == "solid" else " rb-btn--" ~ variant) ~ (" rb-btn--" ~ size if size else "") -%}
+{%- if href -%}
+<a class="{{ cls }}"{% if disabled %} role="link" tabindex="-1" aria-disabled="true"{% else %} href="{{ href|e }}"{% endif %}>{% if icon_name %}{{ icon(icon_name, icons_url=icons_url) }}{% endif %}{{ label|e }}</a>
+{%- else -%}
+<button class="{{ cls }}" type="{{ type|e }}"{% if disabled %} disabled{% endif %}>{% if icon_name %}{{ icon(icon_name, icons_url=icons_url) }}{% endif %}{{ label|e }}</button>
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro card(title=none, size=none) -%}
+<div class="rb-card{{ ' rb-card--' ~ size if size }}">{% if title %}<h3 class="rb-card__title">{{ title|e }}</h3>{% endif %}{{ caller() if caller }}</div>
+{%- endmacro -%}
+
+{%- macro badge(label, kind="neutral", icon_name=none, icons_url="icons.svg") -%}
+{%- set name = icon_name if icon_name is not none else rb_scheme_icons.get(kind) -%}
+<span class="rb-badge{{ ' rb-badge--' ~ kind if kind != 'neutral' }}">{% if name %}{{ icon(name, icons_url=icons_url) }}{% endif %}{{ label|e }}</span>
+{%- endmacro -%}
+
+{%- macro status(label, kind, icons_url="icons.svg") -%}
+{%- if kind is not defined or kind not in rb_scheme_icons -%}
+<!-- rb.status error: kind must be one of ok, warn, danger, info -->
+{%- else -%}
+{%- if label is not defined or label is none or not (label|string|trim) -%}
+{%- set label = rb_status_words[kind] -%}
+<!-- rb.status error: a text label is required; showing the status word instead -->
+{%- endif -%}
+<span class="rb-status rb-status--{{ kind }}">{{ icon(rb_scheme_icons[kind], icons_url=icons_url) }}<span>{{ label|e }}</span></span>
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro alert(kind="danger", title=none, body=none, icons_url="icons.svg") -%}
+{%- set text = caller() if caller else body -%}
+{%- if kind not in rb_scheme_icons -%}
+<!-- rb.alert error: kind must be one of ok, warn, danger, info -->
+{%- elif not title and not text -%}
+<!-- rb.alert error: a title or body is required -->
+{%- else -%}
+<div class="rb-alert{{ ' rb-alert--' ~ kind if kind != 'danger' }}" role="{{ 'alert' if kind == 'danger' else 'status' }}">{{ icon(rb_scheme_icons[kind], icons_url=icons_url) }}<div class="rb-alert__content">{% if title %}<p class="rb-alert__title">{{ title|e }}</p>{% endif %}{% if text %}<div class="rb-alert__body">{{ text|e }}</div>{% endif %}</div></div>
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro table(columns, rows, numeric=(), caption=none, zebra=false, hover=false) -%}
+<div class="rb-table{{ ' rb-table--zebra' if zebra }}{{ ' rb-table--hover' if hover }}"><table>
+{%- if caption %}<caption>{{ caption|e }}</caption>{% endif -%}
+<thead><tr>{% for col in columns %}<th scope="col"{% if loop.index0 in numeric %} class="rb-num"{% endif %}>{{ col|e }}</th>{% endfor %}</tr></thead>
+<tbody>{% for row in rows %}<tr>{% for cell in row %}<td{% if loop.index0 in numeric %} class="rb-num"{% endif %}>{{ cell|e }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+</table></div>
+{%- endmacro -%}
+
+{%- macro empty(title, description=none, icon_name=none, heading_level=3, icons_url="icons.svg") -%}
+<div class="rb-empty">{% if icon_name %}<div class="rb-empty__icon">{{ icon(icon_name, icons_url=icons_url) }}</div>{% endif -%}
+<h{{ heading_level|int }} class="rb-empty__title">{{ title|e }}</h{{ heading_level|int }}>
+{%- if description %}<p class="rb-empty__desc">{{ description|e }}</p>{% endif -%}
+{%- if caller %}<div class="rb-empty__action">{{ caller() }}</div>{% endif %}</div>
+{%- endmacro -%}
+
+{%- macro skeleton(shape="block", lines=1, width=none) -%}
+{%- set cls = "rb-skeleton" ~ ("" if shape == "block" else " rb-skeleton--" ~ shape) -%}
+{%- for _ in range(lines if shape == "line" else 1) -%}
+<span class="{{ cls }}" aria-hidden="true"{% if width %} style="width: {{ width|e }}"{% endif %}></span>
+{%- endfor -%}
+{%- endmacro -%}
+
+
+{%- macro field(label, name, type="text", value=none, error=none, hint=none, id=none, options=(), placeholder=none, required=false, icons_url="icons.svg") -%}
+{%- set fid = id or "rb-field-" ~ name -%}
+{%- set described = ([fid ~ "-hint"] if hint else []) + ([fid ~ "-error"] if error else []) -%}
+{%- set aria -%}
+{% if required %} required{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if described %} aria-describedby="{{ described|join(' ')|e }}"{% endif %}
+{%- endset -%}
+{%- set lbl %}<label class="rb-label" for="{{ fid|e }}">{{ label|e }}</label>{% endset -%}
+<div class="rb-field{{ ' rb-field--check' if type == 'checkbox' }}">
+{%- if type == "checkbox" -%}
+<input class="rb-check" id="{{ fid|e }}" name="{{ name|e }}" type="checkbox"{% if value %} checked{% endif %}{{ aria }}>{{ lbl }}
+{%- else -%}
+{{ lbl }}
+{%- if type == "select" -%}
+<select class="rb-input" id="{{ fid|e }}" name="{{ name|e }}"{{ aria }}>
+{%- for opt in options -%}
+{%- set v, text = (opt, opt) if opt is string else opt -%}
+<option value="{{ v|e }}"{% if value is not none and v|string == value|string %} selected{% endif %}>{{ text|e }}</option>
+{%- endfor -%}
+</select>
+{%- elif type == "textarea" -%}
+<textarea class="rb-input" id="{{ fid|e }}" name="{{ name|e }}"{% if placeholder %} placeholder="{{ placeholder|e }}"{% endif %}{{ aria }}>{{ value|e if value is not none }}</textarea>
+{%- else -%}
+<input class="rb-input" id="{{ fid|e }}" name="{{ name|e }}" type="{{ type|e }}"{% if value is not none %} value="{{ value|e }}"{% endif %}{% if placeholder %} placeholder="{{ placeholder|e }}"{% endif %}{{ aria }}>
+{%- endif -%}
+{%- endif -%}
+{%- if hint %}<p class="rb-field__hint" id="{{ fid|e }}-hint">{{ hint|e }}</p>{% endif -%}
+{%- if error %}<p class="rb-field__error" id="{{ fid|e }}-error">{{ icon("circle-exclamation", icons_url=icons_url) }}<span>{{ error|e }}</span></p>{% endif -%}
+</div>
+{%- endmacro -%}

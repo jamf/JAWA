@@ -1,5 +1,5 @@
 {% extends "shared/_layout.html" %}
-{% from "shared/_macros.html" import hero_section, automation_card, empty_state %}
+{% from "shared/_macros.html" import hero_section, automation_row, empty_state with context %}
 
 {% block title %}All Automations | JAWA{% endblock %}
 
@@ -7,8 +7,8 @@
 {{ hero_section(
     title="All Automations",
     subtitle="Manage all webhooks and timed automations",
-    create_url="/automations/jamfpro/new",
-    create_label="Create Webhook",
+    create_url="/automations/new",
+    create_label="Create automation",
     secondary_url="/automations/cron/new",
     secondary_label="Create Timed Job"
 ) }}
@@ -19,6 +19,7 @@
         <a href="/automations/jamfpro" class="filter-btn">Jamf Pro</a>
         <a href="/automations/okta" class="filter-btn">Okta</a>
         <a href="/automations/custom" class="filter-btn">Custom</a>
+        <a href="/automations/tap" class="filter-btn">Tap Action</a>
         <a href="/automations/cron" class="filter-btn">Cron</a>
     </div>
 
@@ -36,13 +37,13 @@
             {% if data.get('items', []) %}
             <div class="section-header {% if not loop.first %}mt-4{% endif %}">
                 <h3>{{ data.handler.display_name }}</h3>
-                <a href="/automations/{{ tag }}" style="font-size: 0.85rem; color: var(--color-primary);">View all</a>
+                <a href="/automations/{{ tag }}" class="section-link">View all</a>
             </div>
-            <div class="row dash-list justify-content-center" style="margin-right: 0; margin-left: 0">
+            <ul class="automation-list">
                 {% for item in data.get('items', []) %}
-                    {{ automation_card(item, data.handler, loop.index, tag) }}
+                    {{ automation_row(item, data.handler, tag) }}
                 {% endfor %}
-            </div>
+            </ul>
             {% endif %}
         {% endfor %}
     {% endif %}

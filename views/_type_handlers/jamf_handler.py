@@ -40,8 +40,12 @@ from bin.data_store import (
     save_all_webhooks,
     retire_script,
 )
-from bin.tokens import validate_token, get_token
-from views._type_handlers.base import AutomationError, AutomationHandler
+from bin.tokens import fresh_token
+from views._type_handlers.base import (
+    AutomationError,
+    AutomationHandler,
+    validate_webhook_name,
+)
 
 USER_AGENT_STRING = "JAWA%20v3.2.0"
 
@@ -84,29 +88,6 @@ def xml_escape(value: str) -> str:
         .replace(">", "&gt;")
         .replace('"', "&quot;")
     )
-
-
-# A webhook name is interpolated into the XML body AND into the callback
-# URL Jamf calls. A positive rule, not a blocklist: xml_escape() makes
-# "Dev&Prod" well-formed XML, so Jamf then calls /hooks/Dev&Prod, and
-# Flask's /hooks/<webhook_name> route matches "Dev" with "Prod" as a
-# query param -- the webhook silently never fires. A blocklist also
-# missed "#", "?", "%" and an interior tab (`" " in name` catches none of
-# those). Same argument _raw_literal makes in template_view.
-WEBHOOK_NAME_RE = re.compile(r"[A-Za-z0-9._-]+")
-
-WEBHOOK_NAME_RULE = (
-    "Use only letters, numbers, dots, underscores and hyphens -- the "
-    "name becomes part of the URL Jamf Pro calls."
-)
-
-
-def validate_webhook_name(name: str) -> None:
-    """Raise AutomationError unless the name is URL- and XML-safe."""
-    if not name:
-        raise AutomationError("Error", "Webhook name is required.")
-    if not WEBHOOK_NAME_RE.fullmatch(name):
-        raise AutomationError("Error", WEBHOOK_NAME_RULE)
 
 
 def _build_auth_xml(form: Any) -> str:
@@ -212,9 +193,66 @@ def _extract_auth_fields(form: Any) -> Tuple[str, str, str, Any, Any]:
     )
 
 
+JAMF_STATUS_TIMEOUT_S = 5
+
+
+def jamf_status(automation: Dict, session_data: Dict) -> Dict[str, Any]:
+    """Ask Jamf Pro whether it will send this automation's event.
+
+    Returns {"state": "enabled" | "disabled" | "unknown",
+    "smart_group_id": ..., "reason": ...}. A slow or unreachable Jamf Pro
+    gives "unknown" and never raises, so the detail page still renders.
+    """
+    jamf_id = automation.get("jamf_id")
+    base = session_data.get("url") or automation.get("url")
+    if not jamf_id or not base:
+        return {"state": "unknown", "reason": "no Jamf Pro ID stored"}
+    try:
+        resp = requests.get(
+            f"{base}/JSSResource/webhooks/id/{jamf_id}",
+            headers={
+                "Accept": "application/json",
+                "Authorization": f"Bearer {session_data.get('token')}",
+                "User-Agent": USER_AGENT_STRING,
+            },
+            verify=VERIFY_SSL,
+            timeout=JAMF_STATUS_TIMEOUT_S,
+        )
+    except requests.exceptions.Timeout:
+        return {"state": "unknown", "reason": "timed out"}
+    except requests.exceptions.RequestException as err:
+        logthis.warning(f"Jamf Pro status check failed: {err}")
+        return {"state": "unknown", "reason": "connection failed"}
+    if resp.status_code != 200:
+        return {
+            "state": "unknown",
+            "reason": f"Jamf Pro answered HTTP {resp.status_code}",
+        }
+    try:
+        body = resp.json()
+        webhook = body.get("webhook") if isinstance(body, dict) else None
+        if not isinstance(webhook, dict):
+            raise ValueError("no webhook object")
+        enabled = webhook["enabled"]
+    except (ValueError, KeyError):
+        return {"state": "unknown", "reason": "unexpected reply"}
+    if isinstance(enabled, str):
+        enabled = enabled.strip().lower() == "true"
+    group = webhook.get("smart_group_id")
+    return {
+        "state": "enabled" if enabled else "disabled",
+        "smart_group_id": group,
+        "reason": "",
+    }
+
+
 class JamfHandler(AutomationHandler):
     tag = "jamfpro"
     display_name = "Jamf Pro"
+    summary = (
+        "Runs a script when Jamf Pro sends an event, for example a device "
+        "enrolls."
+    )
     badge_class = "badge-extensions"
     icon = "webhook.png"
     supports_edit = True
@@ -254,8 +292,7 @@ class JamfHandler(AutomationHandler):
             )
 
         # Ensure token is valid
-        if not validate_token(session_data.get("expires")):
-            get_token()
+        fresh_token(session_data)
 
         # Save script
         new_file = files.get("new_file")
@@ -365,6 +402,9 @@ class JamfHandler(AutomationHandler):
             "description": description,
             "tag": "jamfpro",
             "jamf_id": jamf_id,
+            # What Jamf Pro was told at creation. The receiver does not
+            # read this key; it only labels the automation in lists.
+            "jamf_enabled": enablement == "true",
         }
 
         return {
@@ -386,8 +426,7 @@ class JamfHandler(AutomationHandler):
         existing: Dict,
         all_items: Any,
     ) -> Dict[str, Any]:
-        if not validate_token(session_data.get("expires")):
-            get_token()
+        fresh_token(session_data)
 
         name = existing["name"]
         new_name = form.get("webhook_name") or name
@@ -460,14 +499,18 @@ class JamfHandler(AutomationHandler):
                 f"Request to Jamf Pro server timed out after 30 seconds. {err}",
             )
         except requests.exceptions.ConnectionError as err:
-            logthis.error(f"Connection error editing Jamf webhook {new_name}: {err}")
+            logthis.error(
+                f"Connection error editing Jamf webhook {new_name}: {err}"
+            )
             raise AutomationError(
                 "Connection Error",
                 f"The request could not be sent to your Jamf Pro server, "
                 f"check your network connection. Details: {err}",
             )
         except Exception as err:
-            logthis.error(f"Unexpected error editing Jamf webhook {new_name}: {err}")
+            logthis.error(
+                f"Unexpected error editing Jamf webhook {new_name}: {err}"
+            )
             raise AutomationError(
                 "Connection Error",
                 f"The request could not be sent to your Jamf Pro server, "
@@ -530,8 +573,7 @@ class JamfHandler(AutomationHandler):
     def process_delete(
         self, automation: Dict, session_data: Dict
     ) -> Optional[str]:
-        if not validate_token(session_data.get("expires")):
-            get_token()
+        fresh_token(session_data)
         # Disable and rename in Jamf Pro
         data = (
             f"<webhook><name>{automation['name']}.old.{time.time()}</name>"
@@ -557,9 +599,18 @@ class JamfHandler(AutomationHandler):
                     f"Error disabling Jamf webhook {automation['name']}: "
                     f"HTTP {resp.status_code}"
                 )
+                return (
+                    f"Jamf Pro refused to disable the webhook "
+                    f"(HTTP {resp.status_code}). The automation was kept "
+                    f"so the webhook is not left running unmanaged."
+                )
         except Exception as err:
             logthis.error(
                 f"Failed to disable Jamf webhook {automation['name']}: {err}"
+            )
+            return (
+                f"Could not reach Jamf Pro to disable the webhook: {err}. "
+                f"The automation was kept."
             )
         retire_script(automation.get("script", ""))
         return None

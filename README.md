@@ -5,7 +5,7 @@
 
 JAWA allows an IT Administrator to focus on providing the best end user experience through automation.
 
-> **Prefer a hosted option?** JAWA is self-hosted — you run and maintain the server yourself. If you'd rather not operate infrastructure, **[Jamf Routines](https://learn.jamf.com/r/en-US/jamf-routines-documentation/jamf_workflow_automation)** is a Jamf-hosted, Jamf-supported automation service. You can run both — see [JAWA vs. Jamf Routines](#jawa-vs-jamf-routines) below.
+> **Prefer a hosted option?** JAWA is self-hosted — you run and maintain the server yourself. If you'd rather not operate infrastructure, **[Jamf Routines](https://learn.jamf.com/r/en-US/prerelease-routines-beta/Routines)** is a Jamf-hosted, Jamf-supported automation service. You can run both — see [JAWA vs. Jamf Routines](#jawa-vs-jamf-routines) below.
 
 ***[!]** NOTE: Always test automations in a dev/eval environment before deploying to production.*
 
@@ -20,7 +20,7 @@ JAWA, the Jamf Automation and Webhook Assistant, is a web server designed to str
 
 ## JAWA vs. Jamf Routines
 
-JAWA and [Jamf Routines](https://learn.jamf.com/r/en-US/jamf-routines-documentation/jamf_workflow_automation) both automate Jamf Pro workflows, in different ways.
+JAWA and [Jamf Routines](https://learn.jamf.com/r/en-US/prerelease-routines-beta/Routines) both automate Jamf Pro workflows, in different ways.
 
 | | **JAWA** | **Jamf Routines** |
 |---|---|---|
@@ -30,7 +30,7 @@ JAWA and [Jamf Routines](https://learn.jamf.com/r/en-US/jamf-routines-documentat
 | **Automation model** | Your own scripts, triggered by webhooks or a schedule | Template-based workflows that connect tools to Jamf Pro |
 | **Setup effort** | Provision a server, certificate, and DNS | Sign in and go |
 
-**Choose JAWA** if you want full control, custom scripting, and don't mind running a server. **Choose Jamf Routines** if you'd rather not manage infrastructure and want a Jamf-supported, hosted experience. You can run both — they complement each other. For Jamf Routines availability and pricing, see the [Jamf Routines documentation](https://learn.jamf.com/r/en-US/jamf-routines-documentation/jamf_workflow_automation).
+**Choose JAWA** if you want full control, custom scripting, and don't mind running a server. **Choose Jamf Routines** if you'd rather not manage infrastructure and want a Jamf-supported, hosted experience. You can run both — they complement each other. For Jamf Routines availability and pricing, see the [Jamf Routines documentation](https://learn.jamf.com/r/en-US/prerelease-routines-beta/Routines).
 
 ## Server Requirements
 
@@ -63,6 +63,30 @@ JAWA and [Jamf Routines](https://learn.jamf.com/r/en-US/jamf-routines-documentat
 > The installer checks the Python version **before it touches an existing install** and stops
 > with the detected version if the host is below Python 3.12.
 
+### Sign-in and the Jamf Pro URL
+
+The installer asks for your Jamf Pro URL and saves it in `data/server.json`. Until a URL is saved
+there, the console refuses every sign-in with "Finish install: set the Jamf Pro URL with the
+installer". For local development only, set `JAWA_ALLOW_UNPINNED_LOGIN=1` to allow a sign-in
+before a URL is saved.
+
+JAWA signs session cookies with the key in `JAWA_SECRET_KEY` when that variable is set. Otherwise
+it creates `data/.secret_key` (mode 0600) on first start and reuses it, so a restart does not sign
+admins out. The session keeps only the Jamf Pro bearer token, never the password.
+
+Any Jamf Pro account that can sign in can use the console, and the console can upload and run
+scripts on the JAWA server. To limit that, list the permitted Jamf Pro usernames under "Allowed
+admin accounts" on the Setup page (or as `allowed_admins` in `data/server.json`). Names are
+compared case-insensitively. While the list is empty, which is the default so existing installs
+keep working, every account that Jamf Pro accepts can sign in, and the Setup page shows a warning.
+
+Each failed console sign-in writes a `LOGIN FAILED user=<name> ip=<address>` line to
+`data/jawa-auth.log`, using the `X-Real-IP` header that the installer's nginx configuration sets.
+The installer adds a fail2ban filter and jail for that file (five failures in ten minutes ban the
+address for thirty minutes on port 443). On servers installed earlier, copy the same two files
+(`/etc/fail2ban/filter.d/jawa.conf` and `/etc/fail2ban/jail.d/jawa.conf`) by hand or rerun the
+installer.
+
 ### Network Requirements:
 
 - Inbound port 443 from JPS for
@@ -71,6 +95,13 @@ JAWA and [Jamf Routines](https://learn.jamf.com/r/en-US/jamf-routines-documentat
 - Outbound port 443 to JPS and auxiliary services (
   Okta, WorkDay, etc.)
 - A public DNS entry for the JAWA FQDN
+
+### Health check
+
+`GET /healthz` needs no sign-in and writes nothing to disk or the log, so any uptime monitor can
+poll it. It returns `200` with `{"status": "ok"}` when `data/webhooks.json` and `data/cron.json`
+parse and the `scripts` directory exists. Otherwise it returns `503` and names the failing check,
+for example `{"status": "fail", "check": "webhooks.json"}`.
 
 ### Certificate Requirements:
 
@@ -94,11 +125,17 @@ Refer to the "JAWA Administrators Guide" in the [current release](https://github
 3. Ensure you are in the same directory as your `jawa.crt` and `jawa.key`.
 4. Download and run the JAWA installer:
 
-      ```bash 
+      ```bash
       curl -O https://raw.githubusercontent.com/jamf/JAWA/main/bin/installer.sh && sudo bash ./installer.sh
-      ``` 
+      ```
+
+   The installer clones `main` from jamf/JAWA by default. To install from another repository or
+   branch, add `repo <git url>` and `branch <name>` (for example
+   `repo https://github.com/<you>/JAWA.git branch develop`).
 
 5. After the installation is complete, go to your FQDN (e.g., https://jawa.company.com) in your web browser to continue with the web-based setup.
+
+JAWA listens on `127.0.0.1:8000` behind the nginx proxy. Set the `JAWA_BIND` environment variable (for example `JAWA_BIND=0.0.0.0`) only for setups without nginx.
 
 ### Configuration Steps:
 
@@ -157,7 +194,86 @@ import sys
 event_data = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
 ```
 
-Timed automations run under the system's cron, so a script's output and exit status are handled by cron (for example, in the host's mail/syslog), not captured in the JAWA log.
+Timed automations run under the system's cron. Cron calls `bin/run_cron.py <name>`, which runs your script, writes each line of its output to the JAWA log as `<name> - <line>`, and logs a non-zero exit as an error. A non-zero exit also sends the chat failure alert if one is set on Setup, the same message a failing webhook run sends, at most once per automation every 15 minutes (the last alert time per automation is kept in `data/cron_alerts.json`, because each timed run is a new process). The runner exits with your script's exit code; the alert never changes it. When JAWA starts, it updates timed automations made by older versions to use the runner.
+
+### Tap action automations (web clip)
+
+A Tap Action automation is a fifth trigger type. A person taps a web clip on their own managed
+iOS or iPadOS device; JAWA shows a confirmation page describing what will happen, and only when
+they tap the confirm button does JAWA run the script — synchronously, against that device — and
+show a success or failure page.
+
+**The URL contract**
+
+The web clip's URL points at JAWA:
+
+```
+https://<jawa>/tap/<service-name>?token=<service token>;id=$JSSID;udid=$UDID;DEVICENAME=$DEVICENAME;SERIALNUMBER=$SERIALNUMBER
+```
+
+Parameters are separated with `;` rather than `&` on purpose: Jamf Pro refuses to save a web clip
+profile whose URL contains an ampersand in any encoding (it answers `409 Unable to update the
+database`). JAWA accepts either separator on `/tap/`, so a hand-built profile may use `;` too.
+
+`token`, `id`, and `udid` are reserved and required. `token` is the automation's per-service
+token; `id` and `udid` are Jamf Pro payload variables (`$JSSID`, `$UDID`), substituted per device
+when the profile installs. JAWA adds `DEVICENAME` and `SERIALNUMBER` to the URL by default; any
+other Jamf Pro payload variable can be appended the same way. Any query parameter beyond `token`,
+`id`, and `udid` passes through to the script and can be shown on the confirmation or result page
+with a `{NAME}` placeholder.
+
+**Security**
+
+The token is the same for every device carrying the profile, so treat it as a gate, not a
+per-device credential. The script itself must fetch the device by `id` from Jamf Pro and refuse
+if the UDID does not match — the two bundled templates do this. Nothing runs on the GET request
+that loads the confirmation page, only the confirmation form's POST runs the script, and
+`/hooks/<name>` refuses Tap Action automations, which can only be triggered through
+`/tap/<name>`.
+
+**The payload contract**
+
+The script receives the same JSON-on-`sys.argv[1]` contract as a webhook automation, built from
+the query string:
+
+```json
+{
+  "webhook": {
+    "webhookEvent": "TapAction",
+    "name": "<service-name>",
+    "eventTimestamp": <int ms>
+  },
+  "event": {
+    "jssID": <int>,
+    "udid": "<str>",
+    "deviceType": "mobile" | "computer",
+    "params": {"<every query/form field except token, id, udid>": "..."},
+    "remoteAddress": "<str>"
+  }
+}
+```
+
+`deviceType` comes from the automation's device family.
+
+**Jamf Pro side**
+
+Creating a Tap Action automation — or enabling one of the bundled Tap Action templates — can
+create the web clip configuration profile for you, unscoped; scope it to the right devices in
+Jamf Pro afterward. If Jamf Pro refuses to create the profile, the automation's detail page shows
+the web clip URL so you can build the profile by hand.
+
+**Bundled templates**
+
+- **Return to Service (Tap Action).** Lets the person holding a shared iPad or iPhone erase it
+  and re-enroll it themselves, with no IT touch. The Wi-Fi the device rejoins comes from an
+  existing Wi-Fi configuration profile in Jamf Pro, named when you enable the template.
+- **Brander (Tap Action).** Lets the person holding an iPad or iPhone apply a branded wallpaper
+  showing the device's name, serial, location, and a QR code of its Jamf Pro id; it needs Pillow
+  and qrcode, which the installer installs from `requirements.txt`.
+- **Brander (Asset Tag Watch).** Not Tap Action: a timed template (every 15 minutes by default)
+  that runs the Brander above for any device whose asset tag or Brander extension attribute
+  changed, so a re-tagged device's wallpaper keeps up. See
+  `data/workflows/assets/brander/README.md`.
 
 ### Complete example
 
@@ -220,20 +336,84 @@ if __name__ == "__main__":
 - **Don't assume JAWA provides a Jamf Pro token** — your script authenticates itself.
 - **On the timed path there is no `sys.argv[1]`** — guard for it if a script serves both.
 
+## Development
+
+### Run JAWA locally
+
+JAWA needs Python 3.9 or later. These commands create a virtual environment and start the app from a checkout. Everything it writes (logs, `data/server.json`, `data/.secret_key`) stays under `data/` in the checkout.
+
+```bash
+python3 -m venv .venv
+```
+
+```bash
+.venv/bin/pip install -r requirements-dev.txt
+```
+
+```bash
+JAWA_INSECURE_COOKIES=1 JAWA_ALLOW_UNPINNED_LOGIN=1 .venv/bin/python app.py
+```
+
+Browse to `http://127.0.0.1:8000`. Waitress serves plain HTTP, so without nginx in front you need `JAWA_INSECURE_COOKIES=1` for the session cookie to work, and `JAWA_ALLOW_UNPINNED_LOGIN=1` lets you sign in before a Jamf Pro URL is saved. Sign-in still goes to a real Jamf Pro server. Timed automations write to the running user's crontab, so use a throwaway account if you test them. `/healthz` returns `503` until `data/webhooks.json` and a `scripts/` directory exist; this is expected on a fresh checkout.
+
+### Environment variables
+
+| Variable | Effect |
+|---|---|
+| `JAWA_SECRET_KEY` | Session signing key. If unset, `data/.secret_key` is created and used. |
+| `JAWA_BIND` | Address Waitress binds to. Default `127.0.0.1`. |
+| `JAWA_INSECURE_COOKIES` | Set to `1` to allow session cookies over plain HTTP (local development only). |
+| `JAWA_ALLOW_UNPINNED_LOGIN` | Set to `1` to allow sign-in before a Jamf Pro URL is saved (local development only). |
+| `JAWA_SCRIPT_TIMEOUT` | Seconds a webhook script may run before it is stopped. |
+| `JAWA_ALLOW_UNPATCHED_WERKZEUG` | Installer only: allow installation on Python 3.8 (see above). |
+
+### Tests and lint
+
+The suite needs no Jamf Pro server, network access, or root. See [tests/README.md](tests/README.md) for how the fixtures work.
+
+```bash
+.venv/bin/python -m pytest -q
+```
+
+```bash
+.venv/bin/ruff check .
+```
+
+`ruff.toml` sets a 79-column line length. `ruff check` passes; `ruff format --check` currently reports unformatted files, so formatting is not enforced.
+
+### How the code is organised
+
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes the components, data files, request flows, and the reasons behind the main design choices.
+
+## Operating a JAWA server
+
+On a standard install JAWA lives in `/usr/local/jawa`, runs as the `jawa` user under systemd, and sits behind nginx.
+
+```bash
+sudo systemctl status jawa
+```
+
+```bash
+sudo systemctl restart jawa
+```
+
+```bash
+journalctl -u jawa.service -n 50 --no-pager
+```
+
+The application log is `data/jawa.log` (rotated at 100 MB, ten backups) and the failed-login log is `data/jawa-auth.log`. The installer log is `/var/log/jawaInstall.log`. The Log page in the console shows `jawa.log`.
+
+To back up a server, copy `data/`, `scripts/`, and `resources/` from the install directory. To upgrade, re-run the installer on the server and choose the upgrade option; it backs up your configuration and scripts into a `jawabackup-<timestamp>` directory first. If the console is unreachable but `systemctl status jawa` shows the service running, check nginx with `sudo nginx -t` and `sudo systemctl status nginx`.
+
 ## Planned for future releases
 
 Intended direction, not commitments to a date. Listed here so you can plan around the ones that
 change existing behaviour.
 
-- **Authenticated-by-default template automations.** Template webhooks currently run without
-  authentication unless you add it in the automation's edit screen. A future release will require
-  an authentication choice when enabling a template, and the **"None" option is deprecated and will
-  be removed** — so if you rely on unauthenticated template webhooks today, plan to add
-  authentication to them.
-- **Brute-force protection for the console login.** The console authenticates against Jamf Pro, so
-  repeated failed logins are attempts against a Jamf Pro account. A future release will rate-limit
-  or ban repeated failures. `fail2ban` is installed by the installer today but is not yet wired to
-  JAWA's login — it does not currently protect the console.
+- **Removing the "None" authentication option for templates.** Enabling or importing a template
+  now preselects an API key (generated by JAWA, shown on the success page), but "No authentication"
+  is still selectable. A future release may remove it, so plan to add authentication to any
+  unauthenticated template webhooks.
 - **More webhook authentication types.** Jamf Pro offers Mutual TLS and Hash Signature (HMAC) for
   outbound webhooks; JAWA currently validates None, Basic, and a single API-key header. Support for
   the remaining two is planned. If you select Mutual TLS or Hash Signature in Jamf Pro today, JAWA
@@ -284,6 +464,27 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
   `data/` directory across an upgrade, which protects your automations and settings, but it also
   means the bundled template scripts and the webhook event catalog stay at the version you first
   installed. A fresh install gets the current copies.
+- JAWA now installs Pillow and qrcode (for the Brander template). Re-run the installer, or
+  `venv/bin/python -m pip install -r requirements.txt`, when upgrading in place.
+- **Okta automations stop running until you re-create them.** Okta event hooks were registered
+  without a working secret, so anyone could trigger them and real Okta deliveries were rejected.
+  New Okta automations get a secret that JAWA checks on every delivery. Automations made before
+  this have no secret, so they fail closed; delete and re-create each one. Its detail page says so.
+- **Sign-in needs a pinned Jamf Pro URL.** The console refuses sign-in until `data/server.json`
+  has a `jps_url`. The installer asks for it on a new install and keeps a saved one on upgrade.
+- **Idle admins sign in again after the Jamf Pro token expires** (30 minutes by default), even when
+  the console session timeout is longer. JAWA no longer keeps your Jamf Pro password in the
+  session cookie, so it cannot renew an expired token. Restarting JAWA no longer signs everyone
+  out: the cookie key is kept in `data/.secret_key` or taken from `JAWA_SECRET_KEY`.
+- **JAWA listens on `127.0.0.1:8000` only**, behind nginx. Anything that reached port 8000 directly
+  must go through nginx, or set `JAWA_BIND`.
+- **Scripts are stopped after 120 seconds** (`JAWA_SCRIPT_TIMEOUT`). The run is logged and the
+  caller gets a 504.
+- **The first start rewrites JAWA's lines in the service user's crontab** so timed automations run
+  through JAWA and log to the JAWA log. Crontab lines that do not match a timed automation are
+  left alone.
+- **A corrupt automation store now shows an error page** instead of looking empty, so a save can
+  no longer overwrite automations that are still on disk.
 
 - New features
     - **Bundled templates now work as shipped.** Every bundled template runs when triggered; two
@@ -307,6 +508,34 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
     - Script Preview and Download Script now show the real substitution tokens rather than
       generic placeholder text, so a downloaded script is self-documenting.
     - Resource Files listing gained Size and Type columns.
+    - **Tap action automations.** A web clip on a managed iOS/iPadOS device can trigger a JAWA
+      automation against that device, with a confirmation page, a per-service token and a UDID
+      cross-check. Two templates ship on it: Return to Service (Tap Action) and Brander
+      (Tap Action). See "Tap action automations (web clip)".
+    - Tap action pages of their own for device users: organisation name instead of the console's
+      chrome, clear in-progress, done and error states, a back-to-start button, and a per-device
+      cooldown that admins can reset. Admins can preview the page, rotate a leaked token, give
+      each web clip its own label and icon, and re-create a web clip profile Jamf Pro rejected.
+    - **Brander template store**: upload wallrender templates, see them as cards with a preview,
+      pick one per kind of device, check fit, and preview on a real device before sending.
+      Delivery checks the device first, rate-limits, and only shows personal fields when both
+      the template and the admin allow them. Adds Brander (Asset Tag Watch), a timed template.
+    - Each automation's page shows what it does, when it runs, when it last ran and how that run
+      went, and the script it runs. Send a sample event to a Jamf Pro automation from its page,
+      choosing the device it names (Jamf Pro ID, serial number, UDID, device name) or editing the
+      whole payload. The sample's own ids are made up, and a script that calls Jamf Pro acts on
+      the real device with that id, so set a test device first. JAWA remembers it per automation.
+    - **Failure alerts**: post a chat message when an automation's script fails, including timed
+      automations (`failure_alert_url` in Setup).
+    - **Admin allow-list** in Setup limits console sign-in to named Jamf Pro accounts. An empty
+      list keeps the old behaviour and Setup warns about it.
+    - Failed sign-ins are logged with the client address to `data/jawa-auth.log`, and the
+      installer sets up a matching fail2ban jail.
+    - A `/healthz` endpoint for uptime monitors.
+    - Console: a Create automation page, a start-here dashboard for new installs, scannable
+      automation cards, a log page that opens at the newest line and can filter to one
+      automation, copy buttons for URLs and keys, visible keyboard focus, phone layout fixes,
+      and a dark mode.
 - Bugfixes
     - Template webhooks now fire (see upgrade notes).
     - Configuration values containing `&`, quotes, or angle brackets — Microsoft Teams and Power
@@ -340,6 +569,19 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
     - Fixed resource file deletion, added 403/405/500 error pages, and hardened receiver edge
       cases including malformed form payloads.
     - The "Setup Required" error page links directly to Setup.
+    - Saving Setup no longer drops settings the form does not post, such as the Tap Action
+      brand, and a first save keeps the admin list and failure alert URL.
+    - Imported templates get authentication choices, preselecting an API key, instead of always
+      running without authentication.
+    - Renaming an automation applies the name rules and the duplicate check, and an import can
+      no longer reuse an existing automation's name or overwrite its script.
+    - The Tap Action rate limit uses the real client address instead of `X-Forwarded-For`.
+    - Creating, editing or deleting a Jamf Pro automation after the token expires no longer sends
+      the expired token. A delete that Jamf Pro refuses keeps the JAWA record.
+    - Sign-in to an unresponsive Jamf Pro server times out after 30 seconds.
+    - `credentials.json` and `webhooks.json` are written owner-only (0600).
+    - Removed the unlinked live-log pages, which could pin a CPU and leak `tail` processes.
+    - A Smart Group automation that is switched off in Jamf Pro now says so on its page.
 - Removed
     - The *Enrollment Pipeline* template, which shipped as an incomplete outline and needs a
       device-assignment CSV contract that will be designed properly in a future release.

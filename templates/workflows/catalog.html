@@ -28,7 +28,7 @@
                     <h5 class="card-title">{{ wf.title }}</h5>
                     <p class="card-text">{{ wf.description }}</p>
                     <div style="font-size: 0.75rem; color: var(--color-text-muted);">
-                        {{ wf.trigger_event or "Any Event" }}
+                        {% if wf.trigger_type == 'tap' %}Tap action (web clip){% elif wf.trigger_type == 'cron' %}Schedule ({{ wf.default_schedule }}){% else %}{{ wf.trigger_event or "Any Event" }}{% endif %}
                     </div>
                 </div>
             </a>

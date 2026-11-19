@@ -1,0 +1,149 @@
+/* Brander store and preview pages. Layout and the rb-* parts come from
+   the vendored roster files (vendor/roster-web.css and
+   vendor/roster-html.css), loaded first. Roster is the shared component
+   library, not the colour scheme: the block below points the roster
+   tokens the parts read at the console's own variables in main.css, so
+   these pages keep the console's look and follow its dark mode. */
+
+.brander-page {
+    --roster-font-ui: var(--font-sans);
+    --roster-font-mono: var(--font-mono);
+    --rb-text: var(--color-text);
+    --rb-text-soft: var(--color-text-secondary);
+    --rb-radius-sm: var(--radius-sm);
+    --rb-radius-md: var(--radius-md);
+    --rb-radius-lg: var(--radius-lg);
+    --rb-radius-xl: var(--radius-lg);
+
+    --roster-primary-50: var(--color-primary-light);
+    --roster-primary-200: var(--color-border);
+    --roster-primary-500: var(--color-primary);
+    --roster-primary-600: var(--color-primary);
+    --roster-primary-700: var(--color-primary-hover);
+    --roster-ring: var(--color-primary);
+    --roster-ring-offset: var(--color-card-bg);
+
+    /* Neutrals: roster's stone greys become the console's surfaces and text. */
+    --roster-gray-50: var(--color-surface-raised);
+    --roster-gray-100: var(--color-surface-raised);
+    --roster-gray-200: var(--color-border);
+    --roster-gray-300: var(--color-border);
+    --roster-gray-400: var(--color-text-muted);
+    --roster-gray-500: var(--color-text-muted);
+    --roster-gray-600: var(--color-text-secondary);
+    --roster-gray-700: var(--color-text);
+    --roster-gray-800: var(--color-text);
+    --roster-gray-900: var(--color-text);
+
+    --roster-card-bg: var(--color-surface);
+    --roster-card-border: var(--color-border);
+    --roster-card-text: var(--color-text);
+    --roster-elevation-raised: none;
+    --roster-control-border: var(--color-border);
+    --roster-control-bg: var(--color-input-bg);
+    --roster-control-text: var(--color-text);
+    --roster-control-border-focus: var(--color-primary);
+
+    /* Status colours are the Bootstrap 5.3 alert colours the console uses.
+       rb-alert reads 500 (edge), 50 (fill) and 800/900 (text);
+       rb-badge reads 50, 200 and 700. */
+    --roster-success-50: #d1e7dd;
+    --roster-success-200: #a3cfbb;
+    --roster-success-500: #198754;
+    --roster-success-700: #0a3622;
+    --roster-success-800: #0a3622;
+    --roster-error-50: #f8d7da;
+    --roster-error-200: #f1aeb5;
+    --roster-error-500: #dc3545;
+    --roster-error-700: #58151c;
+    --roster-error-800: #58151c;
+    --roster-info-50: #cff4fc;
+    --roster-info-200: #9eeaf9;
+    --roster-info-500: #0dcaf0;
+    --roster-info-700: #055160;
+    --roster-info-800: #055160;
+    --roster-amber-50: #fff3cd;
+    --roster-amber-200: #ffe69c;
+    --roster-amber-500: #ffc107;
+    --roster-amber-800: #664d03;
+    --roster-amber-900: #664d03;
+}
+
+/* main.css switches dark mode on prefers-color-scheme, not roster's .dark
+   class. The neutrals above already follow it; these are the dark alert
+   colours from main.css (success has none there, so it matches them). */
+@media (prefers-color-scheme: dark) {
+    .brander-page {
+        --roster-success-50: #1f3a2b;
+        --roster-success-200: #2f6b48;
+        --roster-success-500: #3f9a66;
+        --roster-success-700: #d4f2df;
+        --roster-success-800: #d4f2df;
+        --roster-error-50: #3a1f22;
+        --roster-error-200: #6b3338;
+        --roster-error-500: #b04a52;
+        --roster-error-700: #ffd9d4;
+        --roster-error-800: #ffd9d4;
+        --roster-info-50: #1f3350;
+        --roster-info-200: #34517a;
+        --roster-info-500: #4a78b5;
+        --roster-info-700: #d6e6fa;
+        --roster-info-800: #d6e6fa;
+        --roster-amber-50: #3a3020;
+        --roster-amber-200: #6b5a33;
+        --roster-amber-500: #c9a04a;
+        --roster-amber-800: #f5e6c4;
+        --roster-amber-900: #f5e6c4;
+        --roster-primary-600: #3f6ba6;
+        --roster-primary-700: #4a78b5;
+    }
+}
+
+/* roster-html.css paints tables on --roster-white, which also colours
+   button text, so the table background is set here instead. */
+.brander-page .rb-table { background: var(--color-card-bg); }
+
+.brander-page { max-width: 980px; margin: 2rem auto; font-family: var(--roster-font-ui); }
+.brander-page h1 { margin-bottom: var(--rb-space-2); }
+.brander-page .lead { color: var(--rb-text-soft); }
+.brander-page h2 { text-align: left; }
+.brander-page .rb-alert { margin-bottom: var(--rb-space-4); }
+.brander-page .rb-alert ul { margin: 0; padding-left: var(--rb-space-5); }
+
+.brander-upload { display: flex; gap: var(--rb-space-2); align-items: center; }
+.brander-upload .rb-input { flex: 1; padding-top: calc(var(--rb-space-1) * 2); }
+
+.brander-upload-form { margin-bottom: var(--rb-space-6); text-align: left; }
+.rb-empty .brander-upload-form { margin-bottom: 0; }
+
+.brander-template { margin-bottom: var(--rb-space-5); display: flex; gap: var(--rb-space-6); align-items: flex-start; }
+.brander-template__body { flex: 1; min-width: 0; }
+.brander-thumb {
+    flex: none; width: 120px; height: auto; max-height: 240px; object-fit: contain;
+    border: 1px solid var(--roster-card-border); border-radius: var(--rb-radius-md);
+    background: var(--roster-gray-100);
+}
+.brander-template .rb-card__title { text-align: left; }
+.brander-template .rb-table { margin-bottom: var(--rb-space-3); }
+.brander-template .rb-table td, .brander-template .rb-table th { padding: var(--rb-space-2) var(--rb-space-3); height: auto; }
+.brander-setting {
+    font-family: var(--roster-font-mono); background: var(--roster-gray-100);
+    padding: 0 var(--rb-space-1); border-radius: var(--rb-radius-sm);
+}
+.brander-problems li::before { content: "Error: "; font-weight: 600; }
+.brander-warnings li::before { content: "\26A0  Warning: "; font-weight: 600; }
+.brander-fit { padding-left: 1.1rem; margin-bottom: .75rem; }
+.brander-fit ul { padding-left: 1.1rem; margin: .15rem 0 .35rem; }
+
+.brander-preview-form { display: grid; grid-template-columns: 2fr 1fr auto; gap: var(--rb-space-3); align-items: end; }
+.brander-preview-form .rb-field { margin-bottom: 0; }
+.brander-preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--rb-space-6); align-items: start; }
+.brander-preview-image img {
+    max-width: 100%; max-height: 70vh;
+    border: 1px solid var(--roster-card-border); border-radius: var(--rb-radius-md);
+}
+
+@media (max-width: 800px) {
+    .brander-preview-grid, .brander-preview-form { grid-template-columns: 1fr; }
+    .brander-template { flex-direction: column; }
+}

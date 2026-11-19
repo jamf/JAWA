@@ -57,9 +57,7 @@ def test_delete_asks_for_confirmation_through_the_shared_card(
     logged_in_client, jawa_env
 ):
     _write(jawa_env, "thing.txt")
-    resp = logged_in_client.get(
-        "/resources/delete.html?target_file=thing.txt"
-    )
+    resp = logged_in_client.get("/resources/delete.html?target_file=thing.txt")
     body = resp.data.decode()
     # The shared delete_confirmation markup, not a hand-rolled copy.
     assert 'class="delete-card"' in body
@@ -267,7 +265,7 @@ def test_a_hostile_filename_is_escaped_in_the_table(
     not, so the template is the only thing standing between a crafted
     name and the DOM.
     """
-    hostile = '<img src=x onerror=alert(1)>.txt'
+    hostile = "<img src=x onerror=alert(1)>.txt"
     _write(jawa_env, hostile)
     body = logged_in_client.get("/resources/files").data.decode()
     assert "<img src=x onerror=alert(1)>" not in body

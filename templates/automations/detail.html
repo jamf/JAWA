@@ -1,5 +1,5 @@
 {% extends "shared/_layout.html" %}
-{% from "shared/_macros.html" import hero_section, detail_field %}
+{% from "shared/_macros.html" import hero_section, detail_field, copy_field %}
 
 {% block title %}{{ automation.name }} | JAWA{% endblock %}
 
@@ -24,17 +24,175 @@
             <h4 class="mb-0">{{ automation.name }}</h4>
         </div>
 
+        {% if auto_type == 'okta' and not automation.okta_secret %}
+        <div class="alert alert-warning" role="alert">
+            This automation was created before Okta secrets were added, so JAWA
+            refuses every request for it. Delete it and create it again.
+        </div>
+        {% endif %}
+
+        {% if webclip %}
+        <div class="detail-field d-flex align-items-center gap-3">
+            <img src="{{ webclip.icon }}" width="60" height="60" alt="Web clip icon"
+                 style="border-radius: 13px">
+            <span><b>Home screen label</b>: {{ webclip.label }}</span>
+        </div>
+        {% endif %}
+
         {% for label, value in detail_fields %}
-            {{ detail_field(label, value) }}
+            {% if label in copyable_labels and value %}
+                {{ copy_field(label, value) }}
+            {% else %}
+                {{ detail_field(label, value) }}
+            {% endif %}
         {% endfor %}
 
+        {% if auto_type == 'custom' and not jawa_address %}
+        <div class="detail-field"><a href="/setup">Open Setup</a> to set the JAWA server address.</div>
+        {% endif %}
+
+        {% if jamf_state %}
+        <div class="detail-field" id="jamf-status">
+            <b>Jamf Pro status</b>:
+            {% if jamf_state.state == 'enabled' %}
+                <span class="status-text"><span aria-hidden="true">✓</span> Enabled</span>
+            {% elif jamf_state.state == 'disabled' %}
+                <span class="status-text"><span aria-hidden="true">!</span> Not enabled in Jamf Pro</span>
+                {% if automation.event in smart_group_events and not jamf_state.smart_group_id %}
+                    Choose a Smart Group and enable it in Jamf Pro.
+                {% else %}
+                    Enable it in Jamf Pro.
+                {% endif %}
+                {% if automation.jamf_id %}
+                <a href="{{ session_url }}/webhooks.html?id={{ automation.jamf_id }}" target="_blank" rel="noopener">Open in Jamf Pro</a>
+                {% endif %}
+            {% else %}
+                <span class="status-text"><span aria-hidden="true">ⓘ</span> Could not check Jamf Pro{% if jamf_state.reason %} ({{ jamf_state.reason }}){% endif %}</span>
+            {% endif %}
+        </div>
+        {% endif %}
+
         {% if automation.jamf_id and auto_type == 'jamfpro' %}
-        <div class="overflow-auto text-break" style="max-height: 10vh">
+        <div class="detail-field text-break">
             <b>View in Jamf</b>: <a href="{{ session_url }}/webhooks.html?id={{ automation.jamf_id }}" target="_blank">Open in Jamf Pro</a>
         </div>
         {% endif %}
 
-        <div class="d-flex justify-content-center mt-4 gap-2">
+        {% if automation.jamf_id and auto_type == 'tap' %}
+        <div class="overflow-auto text-break" style="max-height: 10vh">
+            <b>View in Jamf</b>: <a href="{{ session_url }}/mobileDeviceConfigurationProfiles.html?id={{ automation.jamf_id }}" target="_blank">Open the web clip profile in Jamf Pro</a>
+        </div>
+        {% endif %}
+
+        {% if auto_type == 'tap' %}
+        <div class="text-center mt-3">
+            <a href="/automations/tap/{{ automation.name }}/preview"
+               class="btn btn-outline-secondary btn-sm">Preview device pages</a>
+        </div>
+        {% endif %}
+
+        {% if auto_type == 'tap' and automation.cooldown_minutes %}
+        <form method="POST" action="/automations/tap/{{ automation.name }}/reset-cooldowns"
+              class="text-center mt-3">
+            <button type="submit" class="btn btn-outline-secondary btn-sm"
+                    title="Let every device run this service again now">
+                Reset cooldowns
+            </button>
+        </form>
+        {% endif %}
+
+        {% if auto_type == 'custom' %}
+        {% set hook = (jawa_address.rstrip('/') if jawa_address else '<JAWA server address>') ~ '/hooks/' ~ automation.name %}
+        {% set has_key = automation.api_key not in (none, '', 'null') %}
+        {% set has_basic = automation.webhook_username not in (none, '', 'null') %}
+        <h5 class="mt-3">Try it</h5>
+        <div class="script-preview code-wrapper">
+            <button type="button" class="copy-btn" aria-label="Copy the curl command">Copy</button>
+            <pre><code class="nohighlight">curl -X POST {{ hook }} \
+  -H 'Content-Type: application/json' \
+{% if has_key %}  -H 'x-api-key: <your key>' \
+{% endif %}{% if has_basic %}  -u '{{ automation.webhook_username }}:<your password>' \
+{% endif %}  -d '{"test": true}'</code></pre>
+        </div>
+        {% endif %}
+
+        {% if script.status == 'ok' %}
+        <details class="script-details mt-3">
+            <summary>Show script ({{ script.filename }}, {{ script.lines }} line{{ '' if script.lines == 1 else 's' }})</summary>
+            <div class="script-preview code-wrapper">
+                <button type="button" class="copy-btn" aria-label="Copy the script">Copy</button>
+                <pre><code class="language-{{ script.language }}">{{ script.content }}</code></pre>
+            </div>
+            <p class="script-note">Secrets are hidden.{% if script.truncated %} Only the first 200 KB is shown.{% endif %}</p>
+        </details>
+        {% elif script.status == 'missing' %}
+        <p class="mt-3"><span class="status-text"><span aria-hidden="true">✕</span> Script file not found</span> at {{ script.path }}</p>
+        {% elif script.status == 'outside' %}
+        <p class="mt-3 script-note"><span aria-hidden="true">ⓘ</span> The script is outside the scripts folder, so it is not shown.</p>
+        {% endif %}
+
+        {# Timed jobs are started by cron, not the receiver, so they have no run history. #}
+        {% if auto_type != 'cron' and (auto_type != 'okta' or runs) %}
+        <h5 class="mt-4">Recent runs</h5>
+        {% if runs %}
+        <table class="run-table">
+            <thead><tr><th>Started</th><th>Result</th><th>Duration</th><th>Output</th></tr></thead>
+            <tbody>
+            {% for run in runs %}
+                <tr>
+                    <td>{{ run.started }}</td>
+                    <td>
+                        {% if run.exit_code == 0 %}<span class="status-text"><span aria-hidden="true">✓</span> Succeeded</span>
+                        {% else %}<span class="status-text"><span aria-hidden="true">✕</span> Failed</span>{% if run.exit_code is not none %} (exit {{ run.exit_code }}){% endif %}{% endif %}
+                    </td>
+                    <td>{{ run.duration_s }} s</td>
+                    <td><pre class="run-output">{{ run.output_head }}</pre></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="script-note">No runs recorded yet.</p>
+        {% endif %}
+        {% endif %}
+
+        <p class="mt-3">
+            <a href="/log/home.html?q={{ automation.name|urlencode }}">View log lines for {{ automation.name }}</a>
+        </p>
+
+        {% if auto_type in ('jamfpro', 'custom') %}
+        <h5 class="mt-4">Send a sample event</h5>
+        <form method="POST" action="/automations/{{ auto_type }}/{{ automation.name }}/test"
+              data-confirm-run="{{ automation.name }}">
+            {% if auto_type == 'custom' %}
+            <label for="sample-payload" class="script-note">Sample JSON body (optional)</label>
+            <textarea id="sample-payload" name="payload" rows="3" class="form-control" placeholder='{"test": true}'></textarea>
+            {% elif sample %}
+            {% if sample.fields %}
+            <fieldset class="sample-device">
+                <legend class="script-note">Device in the sample event. A script that calls Jamf Pro acts on the real device with these values.</legend>
+                {% for field in sample.fields %}
+                <div class="sample-device-field sample-device-{{ field.key }}">
+                    <label for="sample-{{ field.key }}" class="form-label">{{ field.label }}</label>
+                    <input id="sample-{{ field.key }}" name="device_{{ field.key }}" class="form-control"
+                           value="{{ field.value }}"{% if field.key == 'jssID' %} inputmode="numeric" pattern="[0-9]+"{% endif %}>
+                </div>
+                {% endfor %}
+            </fieldset>
+            {% endif %}
+            <details class="script-details">
+                <summary>Edit full payload (JSON)</summary>
+                <textarea id="sample-payload" name="payload" rows="12" class="form-control sample-payload"
+                          spellcheck="false" aria-describedby="sample-payload-note">{{ sample.json }}</textarea>
+                <p id="sample-payload-note" class="script-note">{% if sample.fields %}The device fields above replace the same keys in this JSON.{% else %}Sent as written.{% endif %}</p>
+            </details>
+            {% endif %}
+            <button type="submit" class="btn btn-secondary mt-2">Send sample event</button>
+            <span class="script-note">Runs the script for real.</span>
+        </form>
+        {% endif %}
+
+        <div class="action-row mt-4">
             <a href="/automations/{{ auto_type }}" class="btn btn-secondary btn-action">Back</a>
             {% if handler.supports_edit %}
             <a href="/automations/{{ auto_type }}/{{ automation.name }}/edit" class="btn btn-jawa btn-action">Edit</a>

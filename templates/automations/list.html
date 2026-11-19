@@ -1,5 +1,5 @@
 {% extends "shared/_layout.html" %}
-{% from "shared/_macros.html" import hero_section, automation_card, empty_state %}
+{% from "shared/_macros.html" import hero_section, automation_row, empty_state with context %}
 
 {% block title %}{{ handler.display_name }} | JAWA{% endblock %}
 
@@ -19,6 +19,7 @@
         <a href="/automations/jamfpro" class="filter-btn {% if auto_type == 'jamfpro' %}active{% endif %}">Jamf Pro</a>
         <a href="/automations/okta" class="filter-btn {% if auto_type == 'okta' %}active{% endif %}">Okta</a>
         <a href="/automations/custom" class="filter-btn {% if auto_type == 'custom' %}active{% endif %}">Custom</a>
+        <a href="/automations/tap" class="filter-btn {% if auto_type == 'tap' %}active{% endif %}">Tap Action</a>
         <a href="/automations/cron" class="filter-btn {% if auto_type == 'cron' %}active{% endif %}">Cron</a>
     </div>
 
@@ -28,11 +29,11 @@
             create_url="/automations/" ~ auto_type ~ "/new"
         ) }}
     {% else %}
-    <div class="row dash-list justify-content-center" style="margin-right: 0; margin-left: 0">
+    <ul class="automation-list">
         {% for item in items %}
-            {{ automation_card(item, handler, loop.index, auto_type) }}
+            {{ automation_row(item, handler, auto_type) }}
         {% endfor %}
-    </div>
+    </ul>
     {% endif %}
 </div>
 {% endblock %}

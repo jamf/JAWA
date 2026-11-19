@@ -1,0 +1,32 @@
+{% extends "tap/_layout.html" %}
+{% import "vendor/roster-macros.html" as rb %}
+
+{% block title %}{{ strings.page_title }}{% endblock %}
+
+{% block card %}
+<h1>{{ strings.page_title }}</h1>
+{% if cooldown %}
+{{ rb.alert("warn", body=cooldown, icons_url="") }}
+{% elif succeeded %}
+{{ rb.alert("ok", body=strings.success_message, icons_url="") }}
+{% else %}
+{{ rb.alert("danger", body=strings.failure_message, icons_url="") }}
+{% endif %}
+{# A full-screen web clip has no reload or back button of its own,
+   so offer the way back to the start page. #}
+<form method="GET"{% if not preview %} action="/tap/{{ service_name }}"{% endif %}
+      class="ss-actions">
+    {% if not preview %}
+    <input type="hidden" name="token" value="{{ token }}">
+    <input type="hidden" name="id" value="{{ jss_id }}">
+    <input type="hidden" name="udid" value="{{ udid }}">
+    {% for key, value in params.items() %}
+    <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endfor %}
+    {% endif %}
+    <button type="submit" class="rb-btn rb-btn--lg rb-btn--outline"
+            {% if preview %}disabled{% endif %}>
+        Back to start
+    </button>
+</form>
+{% endblock %}

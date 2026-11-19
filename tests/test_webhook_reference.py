@@ -4,6 +4,7 @@ Namespaced under /reference/ on purpose: /webhooks* is already taken by
 the legacy automation redirects in app.py.
 """
 
+import os
 import json
 import re
 
@@ -168,7 +169,15 @@ def test_detail_offers_a_copy_button(logged_in_client, jawa_env):
         "/reference/webhooks/ComputerAdded"
     ).data.decode()
     assert 'class="copy-btn"' in body
-    assert "clipboard.writeText" in body
+    # The shared script, loaded by the layout, does the copying.
+    assert "js/copy.js" in body
+    with open(
+        os.path.join(
+            os.path.dirname(__file__), "..", "static", "js", "copy.js"
+        ),
+        encoding="utf-8",
+    ) as handle:
+        assert "clipboard.writeText" in handle.read()
 
 
 def test_pending_event_says_so_instead_of_showing_empty_fields(

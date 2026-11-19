@@ -9,18 +9,20 @@ def test_resolve_defaults_to_15_when_missing():
 
 def test_resolve_accepts_ladder_values():
     for v in (15, 60, 240, 480):
-        assert jawa_app._resolve_session_timeout(
-            {"session_timeout_minutes": v}
-        ) == v
+        assert (
+            jawa_app._resolve_session_timeout({"session_timeout_minutes": v})
+            == v
+        )
 
 
 def test_resolve_rejects_off_ladder_values():
     # Off-ladder, wrong type, and absurd values all fail safe to 15.
     # Bools and ladder-equal floats must also be rejected (strict int).
     for bad in (0, 5, 999999, -10, "60", None, 61, True, False, 60.0):
-        assert jawa_app._resolve_session_timeout(
-            {"session_timeout_minutes": bad}
-        ) == 15
+        assert (
+            jawa_app._resolve_session_timeout({"session_timeout_minutes": bad})
+            == 15
+        )
 
 
 def test_cookie_flags_are_hardened():
@@ -45,9 +47,9 @@ def test_insecure_cookies_opt_out_expression(monkeypatch):
 
         return os.environ.get("JAWA_INSECURE_COOKIES") != "1"
 
-    assert secure_for(None) is True        # unset -> secure (prod)
-    assert secure_for("0") is True         # anything but "1" -> secure
-    assert secure_for("1") is False        # explicit opt-out -> insecure
+    assert secure_for(None) is True  # unset -> secure (prod)
+    assert secure_for("0") is True  # anything but "1" -> secure
+    assert secure_for("1") is False  # explicit opt-out -> insecure
 
 
 def test_login_makes_session_permanent(logged_in_client):
@@ -57,6 +59,7 @@ def test_login_makes_session_permanent(logged_in_client):
 
 def test_before_request_applies_configured_timeout(logged_in_client, jawa_env):
     import json
+
     # Configure an extended (4h) timeout.
     data = json.loads(jawa_env.server_file.read_text())
     data["session_timeout_minutes"] = 240
@@ -64,21 +67,25 @@ def test_before_request_applies_configured_timeout(logged_in_client, jawa_env):
     # Any authed request runs before_request, which sets the lifetime.
     logged_in_client.get("/dashboard")
     from datetime import timedelta
+
     assert jawa_app.app.permanent_session_lifetime == timedelta(minutes=240)
 
 
 def test_before_request_failsafe_on_bad_config(logged_in_client, jawa_env):
     import json
+
     data = json.loads(jawa_env.server_file.read_text())
     data["session_timeout_minutes"] = 999999
     jawa_env.server_file.write_text(json.dumps(data))
     logged_in_client.get("/dashboard")
     from datetime import timedelta
+
     assert jawa_app.app.permanent_session_lifetime == timedelta(minutes=15)
 
 
 def test_setup_persists_valid_timeout(logged_in_client, jawa_env):
     import json
+
     logged_in_client.post(
         "/setup",
         data={
@@ -94,6 +101,7 @@ def test_setup_persists_valid_timeout(logged_in_client, jawa_env):
 
 def test_setup_rejects_off_ladder_timeout(logged_in_client, jawa_env):
     import json
+
     logged_in_client.post(
         "/setup",
         data={
@@ -124,6 +132,7 @@ def test_setup_post_redirects_to_success(logged_in_client, jawa_env):
 
 def test_setup_form_shows_timeout_control(logged_in_client, jawa_env):
     import json
+
     data = json.loads(jawa_env.server_file.read_text())
     data["session_timeout_minutes"] = 240
     jawa_env.server_file.write_text(json.dumps(data))
@@ -139,6 +148,7 @@ def test_setup_form_shows_timeout_control(logged_in_client, jawa_env):
 
 def test_layout_injects_effective_timeout(logged_in_client, jawa_env):
     import json
+
     data = json.loads(jawa_env.server_file.read_text())
     data["session_timeout_minutes"] = 60
     jawa_env.server_file.write_text(json.dumps(data))
@@ -173,10 +183,12 @@ def test_non_dict_server_config_fails_safe(logged_in_client, jawa_env):
     resp = logged_in_client.get("/dashboard")
     assert resp.status_code == 200
     from datetime import timedelta
+
     assert jawa_app.app.permanent_session_lifetime == timedelta(minutes=15)
 
 
 def test_get_server_config_returns_dict_for_non_object(jawa_env):
     from bin import data_store
+
     jawa_env.server_file.write_text("42")
     assert data_store.get_server_config() == {}

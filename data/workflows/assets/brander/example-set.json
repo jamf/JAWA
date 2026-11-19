@@ -1,0 +1,7 @@
+{
+  "templates": {
+    "iphone": "example-template.json",
+    "ipad": "example-ipad-template.json",
+    "default": "example-ipad-template.json"
+  }
+}

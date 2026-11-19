@@ -1,0 +1,27 @@
+{% extends "shared/_layout.html" %}
+{% from "shared/_macros.html" import hero_section with context %}
+
+{% block title %}Create Automation | JAWA{% endblock %}
+
+{% block content %}
+{{ hero_section(
+    title="Create automation",
+    subtitle="Choose what starts your script.",
+    secondary_url="/templates",
+    secondary_label="Browse Templates"
+) }}
+<div class="container">
+    <div class="row g-3">
+        {% for tag, handler in handlers.items() %}
+        <div class="col-md-6 col-lg-4">
+            <a href="/automations/{{ tag }}/new" style="text-decoration: none;">
+                <div class="workflow-card">
+                    <h5 class="card-title">{{ handler.display_name }}</h5>
+                    <p class="card-text">{{ handler.summary }}</p>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

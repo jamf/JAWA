@@ -35,7 +35,7 @@
             </div>
 
             <h6 class="enable-section-heading">Webhook Authentication</h6>
-            {{ jamf_auth_fields(default_api_key=generated_api_key) }}
+            {{ jamf_auth_fields(default_api_key=generated_api_key, allow_none=false) }}
 
             <button type="submit" class="btn btn-jawa mt-2">Import</button>
         </form>

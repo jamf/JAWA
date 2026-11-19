@@ -894,6 +894,23 @@ def _enable_cron(workflow: Dict[str, Any], credentials: list):
     )
 
 
+TEMPLATE_AUTH_REQUIRED = (
+    "Templates need authentication. Choose Basic with a username and "
+    "password, or Custom with an x-api-key value."
+)
+
+
+def _template_auth_missing(form: Any) -> bool:
+    """A template webhook must authenticate: its name is public in the
+    template catalog, so without auth anyone can trigger it."""
+    choice = form.get("choice")
+    if choice == "basic":
+        return not (form.get("basic_username") and form.get("basic_password"))
+    if choice == "custom":
+        return not form.get("api_key")
+    return True
+
+
 @blueprint.route("/templates/<slug>/enable", methods=["GET", "POST"])
 def enable_template(slug: str) -> Union[Response, str]:
     """Enable a template: configure and install as a webhook."""
@@ -964,6 +981,8 @@ def enable_template(slug: str) -> Union[Response, str]:
             raise AutomationError(
                 "Error", "Choose the Jamf Pro event to listen for."
             )
+        if _template_auth_missing(request.form):
+            raise AutomationError("Error", TEMPLATE_AUTH_REQUIRED)
 
         server_address = get_jawa_address()
         if not server_address:
@@ -1129,6 +1148,15 @@ def import_template() -> Union[Response, Dict[str, Any]]:
                 error_message=(
                     f'The name "{package["name"]}" is already in use.'
                 ),
+            )
+        )
+
+    if _template_auth_missing(request.form):
+        return redirect(
+            url_for(
+                "error",
+                error="Error",
+                error_message=TEMPLATE_AUTH_REQUIRED,
             )
         )
 

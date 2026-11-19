@@ -289,7 +289,7 @@
 {% endif %}
 {% endmacro %}
 
-{% macro jamf_auth_fields(webhook_info=none, default_api_key=none) %}
+{% macro jamf_auth_fields(webhook_info=none, default_api_key=none, allow_none=true) %}
 {# These are RADIOS, so they need hide-all-then-show-one. The shared
    toggleAuthField() FLIPS one div, which is right for the checkboxes in
    auth_fields() above but wrong here: a radio's change event fires only
@@ -301,6 +301,7 @@
    gives the operator a way back, which two radios alone did not. #}
 {% set has_basic = webhook_info and webhook_info[0].webhook_username not in (none, '', 'null') %}
 {% set has_custom = (webhook_info and webhook_info[0].api_key not in (none, '', 'null')) or (not webhook_info and default_api_key) %}
+{% if allow_none %}
 <div class="auth-row">
     <label>
         <input type="radio" name="choice" value="none"
@@ -309,6 +310,7 @@
         <b>&nbsp;No authentication</b>
     </label>
 </div>
+{% endif %}
 <div class="auth-row">
     <label>
         <input type="radio" name="choice" value="basic"

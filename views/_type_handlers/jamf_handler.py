@@ -126,17 +126,19 @@ def _build_auth_xml(form: Any) -> str:
 
 def _build_webhook_xml(
     name: str,
-    enabled: str,
+    enabled: Optional[str],
     server_address: str,
     event: str,
     auth_xml: str,
     extra_xml: str,
 ) -> str:
     safe_name = xml_escape(name)
+    # None leaves Jamf Pro's current enabled state alone (edit path).
+    enabled_xml = "" if enabled is None else f"<enabled>{enabled}</enabled>"
     return (
         f"<webhook>"
         f"<name>{safe_name}</name>"
-        f"<enabled>{enabled}</enabled>"
+        f"{enabled_xml}"
         f"<url>{server_address}/hooks/{safe_name}</url>"
         f"<content_type>application/json</content_type>"
         f"<event>{xml_escape(event)}</event>"
@@ -478,7 +480,7 @@ class JamfHandler(AutomationHandler):
         server_address = get_jawa_address()
         xml_data = _build_webhook_xml(
             new_name,
-            enablement,
+            None,
             server_address,
             new_event,
             auth_xml,

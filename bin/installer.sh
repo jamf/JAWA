@@ -893,6 +893,23 @@ User=jawa
 WorkingDirectory=$installDir
 ExecStart="$installDir/jawa/venv/bin/python3" $(pwd)/app.py
 Restart=always
+# Hardening (security audit: plaintext-secrets-data-dir). The app stores
+# credential material under data/ (webhooks.json, .secret_key); the app itself
+# tightens those files to 0600 at startup, and the umask here keeps anything
+# the app creates from being group/world-readable in the first place.
+UMask=0077
+# The app only needs to write inside its own tree; /tmp is a private
+# per-service tmpfs so other local users cannot race files the app writes
+# there.
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=$installDir
+PrivateTmp=true
+# The receiver runs user-supplied automation scripts via subprocess; a fresh
+# kernel keyring and no new privileges keep a compromised script from
+# escalating to other root-owned units.
+NoNewPrivileges=true
+PrivateDevices=true
 
 
 [Install]

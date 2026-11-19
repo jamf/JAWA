@@ -95,7 +95,10 @@ def _decode_asset(
             fmt, width, height = img.format, img.width, img.height
             img.verify()
     except UnidentifiedImageError:
-        return None, f"asset {asset_id!r} is not a readable image; it must be PNG or JPEG"
+        return (
+            None,
+            f"asset {asset_id!r} is not a readable image; it must be PNG or JPEG",
+        )
     except (OSError, Image.DecompressionBombError):
         return None, f"asset {asset_id!r} is not a readable image"
     if fmt not in FORMATS:

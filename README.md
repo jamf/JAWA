@@ -269,7 +269,8 @@ the web clip URL so you can build the profile by hand.
   existing Wi-Fi configuration profile in Jamf Pro, named when you enable the template.
 - **Brander (Tap Action).** Lets the person holding an iPad or iPhone apply a branded wallpaper
   showing the device's name, serial, location, and a QR code of its Jamf Pro id; it needs Pillow
-  and qrcode, which the installer installs from `requirements.txt`.
+  and qrcode, which the installer installs from `requirements.txt`. Setup, testing and design changes are in the
+  [Brander guide](docs/BRANDER.md).
 - **Brander (Asset Tag Watch).** Not Tap Action: a timed template (every 15 minutes by default)
   that runs the Brander above for any device whose asset tag or Brander extension attribute
   changed, so a re-tagged device's wallpaper keeps up. See

@@ -294,7 +294,6 @@ Please make sure you:
 *  have a full-chain server certificate and private key in $currentDir
 *  Certificate must be named jawa.crt
 *  Private key file must be named jawa.key
-*  Note: if upgrading from v2, choose the upgrade path /usr/local
 "
 }
 
@@ -1173,21 +1172,17 @@ displayMenu() {
     read -r -p "Please select from the following options:
 
 1. Install
-2. Upgrade from V2
-3. Cancel
+2. Cancel
  " opt
     case "$opt" in
     1)
       install
       ;;
     2)
-      upgradeFromV2
-      ;;
-    3)
       exit
       ;;
     *)
-      /bin/echo "Please choose an option:[ 1 | 2 | 3 ]:"
+      /bin/echo "Please choose an option:[ 1 | 2 ]:"
       continue
       ;;
     esac
@@ -1221,49 +1216,9 @@ selfsigned() {
   /usr/bin/openssl req -x509 -nodes -days 365 -newkey rsa:2048 -subj "/C=US/ST=MN/L=Minneapolis/CN=jawa" -keyout "$currentDir/jawa.key" -out "$currentDir/jawa.crt" >>/var/log/jawaInstall.log 2>&1
   install
 }
-upgradeFromV2() {
-  if [ ! -d "/usr/local/jawa/data" ]; then
-    /bin/mkdir /usr/local/jawa/data
-  fi
-  /bin/echo "Disabling webhook.service..."
-  /bin/sleep 1
-  /bin/systemctl disable webhook.service
-  /bin/systemctl stop webhook.service
-  if [ ! -d "$currentDir/jawabackup-$timenow/v2" ]; then
-    mkdir -p "$currentDir/jawabackup-$timenow/v2"
-  fi
-  if [ -e /usr/local/jawa/cron.json ]; then
-    /bin/cp /usr/local/jawa/cron.json "$currentDir/jawabackup-$timenow/v2/"
-  fi
-  if [ -e /usr/local/jawa/jp_webhooks.json ]; then
-    /bin/cp /usr/local/jawa/jp_webhooks.json "$currentDir/jawabackup-$timenow/v2/"
-  fi
-  if [ -e /usr/local/jawa/webapp/server.json ]; then
-    /bin/cp /usr/local/jawa/webapp/server.json "$currentDir/jawabackup-$timenow/v2/"
-  fi
-  if [ -e /etc/webhook.conf ]; then
-    /bin/cp /etc/webhook.conf "$currentDir/jawabackup-$timenow/v2/"
-  fi
-  /bin/echo "To complete the upgrade enter /usr/local when prompted for JAWA's installation directory..."
-  installDir=/usr/local
-  sleep 3
-  install
-
-}
-
 restoreBackup() {
           local currentDir=$1
           local installDir=$2
-          if [ -d "$currentDir/jawabackup-$timenow/v2/" ]; then
-            if [ -e "$currentDir/jawabackup-$timenow/v2/cron.json" ]; then
-              /bin/echo "Migrating cron..."
-              /bin/cp "$currentDir/jawabackup-$timenow/v2/cron.json" "$currentDir/jawabackup-$timenow/data/"
-            fi
-            if [ -e "$currentDir/jawabackup-$timenow/v2/webhook.conf" ] || [ -e "$currentDir/jawabackup-$timenow/v2/jp_webhooks.json" ]; then
-              /bin/echo "Migrating webhooks..."
-              /usr/bin/python3 "$installDir/jawa/bin/v2_upgrade.py" "$currentDir/jawabackup-$timenow" >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
-            fi
-          fi
         # Guarded and logged, to match the backup half above. These four
         # copies previously ran bare: an upgrade from an install that
         # never had a scripts/ or resources/ directory -- the common
@@ -1509,6 +1464,11 @@ if ! tput clear >/dev/null 2>&1; then
   export TERM=xterm
 fi
 
+# JAWA 4 cannot migrate a v2 install (webhook.service + /etc/webhook.conf).
+if [ -e /etc/webhook.conf ] || [ -d /usr/local/jawa/webapp ]; then
+  /bin/echo "This host has JAWA v2. Upgrade it to JAWA 3.1.1 first, then run this installer."
+  exit 1
+fi
 readme
 displayMenu
 

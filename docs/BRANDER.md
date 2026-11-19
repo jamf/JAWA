@@ -157,7 +157,27 @@ the copy of `wallrender` that Brander itself uses. Then check the result with a 
 
 **Extras → Brander templates** keeps uploaded templates (`.brander.json` packages, which bundle a
 template with its images) as cards with a preview, and keeps their earlier versions. To use a
-stored template, set **Wallpaper template** to `store:<name>`. Brander always uses the active
+stored template, set **Wallpaper template** to `store:<name>`.
+
+A package is one JSON file:
+
+```json
+{"kind": "brander-template", "format": 1, "name": "Ward iPads",
+ "template": {"...": "the wallpaper template"},
+ "assets": {"jawa-logo": "<base64 PNG or JPEG>"}}
+```
+
+To build one from a template and its images in the current folder:
+
+```sh
+python3 -c 'import base64,json,sys; t=json.load(open(sys.argv[1])); \
+print(json.dumps({"kind":"brander-template","format":1,"name":sys.argv[2], \
+"template":t,"assets":{a[:-4]:base64.b64encode(open(a,"rb").read()).decode() \
+for a in sys.argv[3:]}}))' my-template.json "Ward iPads" jawa-logo.png \
+  > ward-ipads.brander.json
+```
+
+The upload checks the package and lists anything to fix. Brander always uses the active
 version, so a newly activated version applies from the next tap.
 
 ## Keep asset tags current (optional)

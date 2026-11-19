@@ -27,7 +27,7 @@
 
 {% macro upload_form() %}
 <form method="POST" action="/brander/templates" enctype="multipart/form-data" class="brander-upload-form">
-    <label for="package" class="rb-label">Upload a template (.brander.json from EWOK)</label>
+    <label for="package" class="rb-label">Upload a template (.brander.json)</label>
     <div class="brander-upload">
         <input type="file" class="rb-input" id="package" name="package" accept=".json,application/json" required>
         <button type="submit" class="rb-btn">Upload</button>
@@ -39,7 +39,7 @@
 {% set icons_url = url_for('static', filename='css/vendor/icons.svg') %}
 <div class="container brander-page">
     <h1 class="h3">Brander templates</h1>
-    <p class="lead">Wallpaper templates designed in EWOK, for this Jamf Pro tenant. Each upload is a new version; Brander sends the active one.</p>
+    <p class="lead">Wallpaper templates for this Jamf Pro tenant. Each upload is a new version; Brander sends the active one.</p>
 
     {% if uploaded %}
     <div class="rb-alert rb-alert--ok" role="status">{{ rb.icon("circle-check", icons_url=icons_url) }}<div class="rb-alert__content">
@@ -117,7 +117,7 @@
     </section>
     {% endif %}
     {% else %}
-    {% call rb.empty("No templates yet", description="Design one in EWOK, choose \"Download for JAWA's template store\", and upload the .brander.json here.", icon_name="plus", heading_level=2, icons_url=icons_url) %}
+    {% call rb.empty("No templates yet", description="Package a template with its images as a .brander.json file (see the Brander guide in docs/BRANDER.md) and upload it here.", icon_name="plus", heading_level=2, icons_url=icons_url) %}
     {{ upload_form() }}
     {% endcall %}
     {% endfor %}

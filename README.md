@@ -5,7 +5,7 @@
 
 JAWA allows an IT Administrator to focus on providing the best end user experience through automation.
 
-> **Prefer a hosted option?** JAWA is self-hosted — you run and maintain the server yourself. If you'd rather not operate infrastructure, **[Jamf Routines](https://learn.jamf.com/r/en-US/jamf-routines-documentation/jamf_workflow_automation)** is a Jamf-hosted, Jamf-supported automation service. You can run both — see [JAWA vs. Jamf Routines](#jawa-vs-jamf-routines) below.
+> **Prefer a hosted option?** JAWA is self-hosted — you run and maintain the server yourself. If you'd rather not operate infrastructure, **[Jamf Routines](https://learn.jamf.com/r/en-US/prerelease-routines-beta/Routines)** is a Jamf-hosted, Jamf-supported automation service. You can run both — see [JAWA vs. Jamf Routines](#jawa-vs-jamf-routines) below.
 
 ***[!]** NOTE: Always test automations in a dev/eval environment before deploying to production.*
 
@@ -20,7 +20,7 @@ JAWA, the Jamf Automation and Webhook Assistant, is a web server designed to str
 
 ## JAWA vs. Jamf Routines
 
-JAWA and [Jamf Routines](https://learn.jamf.com/r/en-US/jamf-routines-documentation/jamf_workflow_automation) both automate Jamf Pro workflows, in different ways.
+JAWA and [Jamf Routines](https://learn.jamf.com/r/en-US/prerelease-routines-beta/Routines) both automate Jamf Pro workflows, in different ways.
 
 | | **JAWA** | **Jamf Routines** |
 |---|---|---|
@@ -30,47 +30,38 @@ JAWA and [Jamf Routines](https://learn.jamf.com/r/en-US/jamf-routines-documentat
 | **Automation model** | Your own scripts, triggered by webhooks or a schedule | Template-based workflows that connect tools to Jamf Pro |
 | **Setup effort** | Provision a server, certificate, and DNS | Sign in and go |
 
-**Choose JAWA** if you want full control, custom scripting, and don't mind running a server. **Choose Jamf Routines** if you'd rather not manage infrastructure and want a Jamf-supported, hosted experience. You can run both — they complement each other. For Jamf Routines availability and pricing, see the [Jamf Routines documentation](https://learn.jamf.com/r/en-US/jamf-routines-documentation/jamf_workflow_automation).
+**Choose JAWA** if you want full control, custom scripting, and don't mind running a server. **Choose Jamf Routines** if you'd rather not manage infrastructure and want a Jamf-supported, hosted experience. You can run both — they complement each other. For Jamf Routines availability and pricing, see the [Jamf Routines documentation](https://learn.jamf.com/r/en-US/prerelease-routines-beta/Routines).
 
 ## Server Requirements
 
 ### General Server Requirements:
 
-- Ubuntu 22.04+ or RHEL / Rocky 9.x+
+- Ubuntu 24.04+ or RHEL / Rocky 9.4+
 - Minimum: 8GB RAM (16GB recommended)
   - On RHEL 9, do not go below 2GB even for a trial: `dnf` is memory-hungry enough that package
     installs get OOM-killed on a 1GB instance. Ubuntu completes on 1GB.
 - Minimum: 128GB Storage (512GB recommended)
 - Minimum: 2 CPU Core (4 Cores recommended)
-- Python 3.9+ (with pip)
+- Python 3.12+ (with pip)
 
-> The installer uses the distribution's default `python3` to build JAWA's virtual environment, so
-> the OS version is what determines the Python version. Ubuntu 20.04 ships Python 3.8 and
-> RHEL/Rocky 8 ships Python 3.6, neither of which satisfies JAWA's dependencies — use Ubuntu 22.04
-> or later, or RHEL/Rocky 9 or later.
+> The installer builds JAWA's virtual environment from the distribution's Python 3.12, so the OS
+> version is what determines the Python version. Ubuntu 24.04+ ships `python3` = 3.12. On
+> RHEL/Rocky 9.4+ the default `python3` is still 3.9, so the installer installs the supported
+> `python3.12` AppStream package and builds the venv with it — this needs no manual steps.
+> Ubuntu 22.04 (Python 3.10) and RHEL/Rocky 9.0–9.3 are below the floor and not supported:
+> JAWA's dependencies publish security fixes only for Python 3.10+, and Python 3.9 and 3.10
+> themselves no longer receive upstream security updates (EOL 2025-10-31 and 2026-10-01).
 >
-> **Upgrading the OS of an existing JAWA server.** If your JAWA host is on Ubuntu 20.04, reaching a
-> supported platform means an in-place distribution upgrade (`do-release-upgrade`). That upgrade can
-> leave nginx no longer serving JAWA — the console becomes unreachable even though the `jawa`
-> service is running. **Re-run the JAWA installer after the distribution upgrade completes** and
-> choose the upgrade option; it rewrites and re-enables JAWA's nginx site, which restores the
-> console. Take a snapshot of the server before starting, as with any distribution upgrade.
+> **Upgrading the OS of an existing JAWA server.** If your JAWA host is below Ubuntu 24.04,
+> reaching a supported platform means an in-place distribution upgrade (`do-release-upgrade`).
+> That upgrade can leave nginx no longer serving JAWA — the console becomes unreachable even
+> though the `jawa` service is running. **Re-run the JAWA installer after the distribution
+> upgrade completes** and choose the upgrade option; it rewrites and re-enables JAWA's nginx
+> site, which restores the console. Take a snapshot of the server before starting, as with any
+> distribution upgrade.
 >
-> The installer checks this **before it touches an existing install** and stops with the detected
-> version if the host is below Python 3.9. The specific blocker is Werkzeug: its patched releases
-> require Python 3.9 or later, and no patched Werkzeug exists for 3.8, so a 3.8 host cannot run
-> JAWA without a known security advisory.
->
-> If you accept that advisory and need to install on Python 3.8 anyway, set
-> `JAWA_ALLOW_UNPATCHED_WERKZEUG=1`:
->
-> ```bash
-> sudo JAWA_ALLOW_UNPATCHED_WERKZEUG=1 bash ./installer.sh
-> ```
->
-> This holds Werkzeug at 3.0.6 — the newest release available to Python 3.8 — and prints the
-> advisory you are accepting. It is a stopgap for hosts that cannot be upgraded yet, not a
-> supported configuration.
+> The installer checks the Python version **before it touches an existing install** and stops
+> with the detected version if the host is below Python 3.12.
 
 ### Sign-in and the Jamf Pro URL
 
@@ -454,19 +445,21 @@ Find JAWA releases [here.](https://github.com/jamf/JAWA/releases)
 - **New webhook names are validated more strictly.** `#` and `%` are no longer accepted in a new
   webhook name, because Jamf Pro cannot call a URL containing them. Existing automations are
   unaffected.
-- **Minimum platform is now Ubuntu 22.04 or RHEL/Rocky 9, and Python 3.9.** The installer builds
-  JAWA's virtual environment from the distribution's default `python3`, and JAWA's dependencies no
-  longer support Python 3.8. Ubuntu 20.04 (Python 3.8) and RHEL/Rocky 8 (Python 3.6) can no longer
-  run JAWA — RHEL/Rocky 8 in fact stopped being able to when JAWA moved to Flask 3, which the
-  stated requirements had not caught up with. Check `python3 --version` on the host before
-  upgrading. The installer now enforces this itself: it verifies the Python version **before**
-  backing up or removing anything, so an unsupported host is refused with its existing install
-  intact rather than left with a dead service. If you must install on Python 3.8 and accept an
-  unpatched Werkzeug, see `JAWA_ALLOW_UNPATCHED_WERKZEUG` under Server Requirements.
-  **If you get to a supported platform by running `do-release-upgrade` on an existing JAWA server,
-  re-run the JAWA installer afterwards** — a distribution upgrade can leave nginx no longer serving
-  JAWA, so the console goes unreachable while the `jawa` service itself is fine. Re-running the
-  installer rewrites and re-enables the nginx site and restores the console.
+- **Minimum platform is now Ubuntu 24.04 or RHEL/Rocky 9.4+, and Python 3.12.** The installer
+  builds JAWA's virtual environment from Python 3.12: the distribution default on Ubuntu 24.04+,
+  and the `python3.12` AppStream package (installed automatically) on RHEL/Rocky 9.4+. This bump
+  is driven by security support, not features: Python 3.9 and 3.10 have reached upstream
+  end-of-life (October 2025 and October 2026), and the patched releases of JAWA's dependencies
+  (requests, urllib3, pip, setuptools) now require Python 3.10+ at minimum — so a 3.9/3.10 host
+  cannot run JAWA without known, unpatchable security advisories. Ubuntu 20.04/22.04 and
+  RHEL/Rocky 8 and early 9 minors can no longer run a fully patched JAWA. Check
+  `python3 --version` on the host before upgrading. The installer enforces this itself: it
+  verifies the Python version **before** backing up or removing anything, so an unsupported host
+  is refused with its existing install intact rather than left with a dead service. If you get
+  to a supported platform by running `do-release-upgrade` on an existing JAWA server, re-run the
+  JAWA installer afterwards — a distribution upgrade can leave nginx no longer serving JAWA, so
+  the console goes unreachable while the `jawa` service itself is fine. Re-running the installer
+  rewrites and re-enables the nginx site and restores the console.
 - **Content JAWA ships inside `data/` is not upgraded in place.** The installer preserves your
   `data/` directory across an upgrade, which protects your automations and settings, but it also
   means the bundled template scripts and the webhook event catalog stay at the version you first

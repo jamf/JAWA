@@ -298,13 +298,55 @@ Please make sure you:
 "
 }
 
-# Minimum Python minor version. Werkzeug's patched releases (3.1.4+) require
-# Python >= 3.9, and there is no patched Werkzeug for 3.8 -- PyPI serves
-# nothing above 3.0.6 to a 3.8 interpreter. So "runs on 3.8" and "ships
-# without the open Werkzeug advisory" are mutually exclusive.
-jawaMinPyMinor=9
-werkzeugPy38Fallback="3.0.6"
-holdWerkzeug="no"
+# Minimum Python minor version. JAWA's pinned dependency floor (requests 2.33,
+# urllib3 2.8, Flask 3.1 toolchain, patched pip/setuptools) publishes security
+# fixes only for Python >= 3.10, and upstream Python 3.9 and 3.10 themselves
+# are end-of-life (2025-10-31 and 2026-10-01) with no further security
+# releases. 3.12 is the oldest series still receiving upstream security
+# patches (until 2028-10) that ships as the DEFAULT python3 on a supported
+# platform: Ubuntu 24.04+ ships 3.12 as python3, and RHEL/Rocky 9.4+ provide
+# it as the python3.12 AppStream package (the installer installs and prefers
+# it automatically on RHEL-family hosts).
+jawaMinPyMinor=12
+# Interpreter the venv is built from. Empty until ensurePythonInterpreter()
+# resolves it; only set on RHEL-family hosts where the default python3 (3.9)
+# is below the floor and python3.12 must be used instead.
+jawaPythonBin=""
+
+# Resolves the interpreter the venv will be built from. On RHEL/Rocky the
+# unversioned python3 is 3.9 -- below JAWA's floor -- but python3.12 has been
+# a supported AppStream package since RHEL 9.4, so install it and use it
+# explicitly. Ubuntu 24.04+ already has python3 = 3.12, so nothing to do.
+# Runs inside install(), after installPackages(), before the venv is created.
+ensurePythonInterpreter() {
+  local pyVer
+  pyVer=$(/usr/bin/python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)
+  local pyMajor=${pyVer%%.*} pyMinor=${pyVer##*.}
+  if [ "$pyMajor" -eq 3 ] && [ "$pyMinor" -ge "$jawaMinPyMinor" ] 2>/dev/null; then
+    jawaPythonBin="python3"
+    return 0
+  fi
+  case $(detect_os) in
+    rocky|redhat)
+      /bin/echo -ne '[########                ](41%) Installing python3.12 from AppStream... '
+      /bin/echo 'python3 is below the JAWA floor; installing python3.12 AppStream package' >>/var/log/jawaInstall.log 2>&1
+      /usr/bin/dnf install -y python3.12 python3.12-pip python3.12-devel >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+      if ! /usr/bin/rpm -q python3.12 >/dev/null 2>&1; then
+        /bin/echo ""
+        /bin/echo "python3.12 could not be installed from the AppStream repo."
+        /bin/echo "JAWA requires Python 3.${jawaMinPyMinor} or later. RHEL/Rocky 9.4+ provides it as: dnf install python3.12"
+        /bin/echo "Your existing JAWA install, if any, has NOT been modified. Exiting..."
+        /bin/echo "Refusing to install: python3.12 AppStream package unavailable." >>/var/log/jawaInstall.log 2>&1
+        exit 2
+      fi
+      jawaPythonBin="python3.12"
+      ;;
+    *)
+      # checkPythonFloor refuses this host if python3 is below the floor.
+      jawaPythonBin="python3"
+      ;;
+  esac
+}
 
 # Colour, as raw ANSI rather than tput: a server's terminfo frequently does not
 # know a modern $TERM forwarded over SSH (see the TERM fallback at the bottom),
@@ -357,18 +399,18 @@ checkPythonFloor() {
   # the 85% mark -- after cleaninstall had already removed the operator's
   # working install -- so a 3.8 host was left with a dead service behind a
   # "[########################](100%) Installation complete!" message.
-  if [ ! -x /usr/bin/python3 ]; then
-    /bin/echo "Python 3 is not present at /usr/bin/python3."
+  if ! command -v "$jawaPythonBin" >/dev/null 2>&1; then
+    /bin/echo "$jawaPythonBin is not present."
     /bin/echo "JAWA requires Python 3.${jawaMinPyMinor} or later. Install it and run this installer again."
     /bin/echo "Your existing JAWA install, if any, has NOT been modified. Exiting..."
     exit 2
   fi
   local pyMajor pyMinor pyVer
-  pyVer=$(/usr/bin/python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)
+  pyVer=$("$jawaPythonBin" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)
   pyMajor=${pyVer%%.*}
   pyMinor=${pyVer##*.}
   if [ -z "$pyMajor" ] || [ -z "$pyMinor" ]; then
-    /bin/echo "Could not determine the Python version reported by /usr/bin/python3."
+    /bin/echo "Could not determine the Python version reported by $jawaPythonBin."
     /bin/echo "Your existing JAWA install, if any, has NOT been modified. Exiting..."
     exit 2
   fi
@@ -379,31 +421,17 @@ checkPythonFloor() {
   if [ "$pyMajor" -eq 3 ] && [ "$pyMinor" -ge "$jawaMinPyMinor" ]; then
     return 0
   fi
-  if [ "${JAWA_ALLOW_UNPATCHED_WERKZEUG:-0}" = "1" ]; then
-    holdWerkzeug="yes"
-    /bin/echo ""
-    /bin/echo "WARNING: Python $pyVer is below JAWA's 3.${jawaMinPyMinor} floor, and"
-    /bin/echo "JAWA_ALLOW_UNPATCHED_WERKZEUG=1 is set. Werkzeug will be held at"
-    /bin/echo "$werkzeugPy38Fallback, which is the newest release available to Python $pyVer and"
-    /bin/echo "carries an OPEN, UNPATCHED security advisory. You are accepting that."
-    /bin/echo "The supported fix is Ubuntu 22.04+ / RHEL-Rocky 9+ (Python 3.${jawaMinPyMinor}+)."
-    /bin/echo ""
-    /bin/echo "Holding Werkzeug at $werkzeugPy38Fallback for Python $pyVer per JAWA_ALLOW_UNPATCHED_WERKZEUG=1" >>/var/log/jawaInstall.log 2>&1
-    /bin/sleep 5
-    return 0
-  fi
   /bin/echo ""
-  /bin/echo "JAWA 3.2 requires Python 3.${jawaMinPyMinor} or later. This host has Python $pyVer."
+  /bin/echo "JAWA requires Python 3.${jawaMinPyMinor} or later. This host has Python $pyVer."
   /bin/echo ""
-  /bin/echo "  Ubuntu 20.04 ships Python 3.8 and RHEL/Rocky 8 ships 3.6; neither is supported."
-  /bin/echo "  Supported: Ubuntu 22.04+ or RHEL/Rocky 9+."
+  /bin/echo "  Supported: Ubuntu 24.04+ (python3 = 3.12) or RHEL/Rocky 9.4+."
+  /bin/echo "  On RHEL/Rocky 9 the default python3 is 3.9; the installer will use the"
+  /bin/echo "  python3.12 AppStream package, which 9.4+ provides."
   /bin/echo ""
-  /bin/echo "  Reason: JAWA's Werkzeug security fix is only published for Python 3.${jawaMinPyMinor}+."
-  /bin/echo "  There is no patched Werkzeug for Python $pyVer."
-  /bin/echo ""
-  /bin/echo "  To install anyway with an UNPATCHED Werkzeug ($werkzeugPy38Fallback), re-run with"
-  /bin/echo "  JAWA_ALLOW_UNPATCHED_WERKZEUG=1 set, e.g.:"
-  /bin/echo "      sudo JAWA_ALLOW_UNPATCHED_WERKZEUG=1 bash ./installer.sh"
+  /bin/echo "  Reason: JAWA's dependencies publish security fixes only for Python 3.10+,"
+  /bin/echo "  and Python 3.9 and 3.10 no longer receive security updates at all."
+  /bin/echo "  3.12 is the oldest series that is both upstream-supported and default on"
+  /bin/echo "  a supported distribution."
   /bin/echo ""
   /bin/echo "Your existing JAWA install, if any, has NOT been modified. Exiting..."
   /bin/echo "Refusing to install: Python $pyVer is below the 3.${jawaMinPyMinor} floor." >>/var/log/jawaInstall.log 2>&1
@@ -458,6 +486,9 @@ warnIfCertStale() {
 }
 
 install() {
+  # Resolve the interpreter first so the floor check sees python3.12 on
+  # RHEL-family hosts. Installing it does not touch an existing JAWA install.
+  ensurePythonInterpreter
   checkPythonFloor
   /usr/bin/clear
   # Variables
@@ -746,13 +777,13 @@ if [ -d "$currentDir/jawabackup-$timenow" ]; then
   /usr/bin/clear
   /bin/echo -ne '[##############          ](70%) Creating venv... '
   /bin/echo '[##############          ](70%) Creating venv... ' >>/var/log/jawaInstall.log 2>&1
-  python3 -m venv venv & spinner $! ""
+  "$jawaPythonBin" -m venv venv & spinner $! ""
   chown -R jawa "$installDir/jawa/venv"
   source "$installDir/jawa/venv/bin/activate"
   /usr/bin/clear
-  /bin/echo -ne '[###############         ](75%) Upgrading pip and setuptools in venv... '
-  /bin/echo '[###############         ](75%) Upgrading pip and setuptools in venv... ' >>/var/log/jawaInstall.log 2>&1
-  "$installDir/jawa/venv/bin/python" -m pip install --upgrade pip setuptools >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /bin/echo -ne '[###############         ](75%) Upgrading pip in venv... '
+  /bin/echo '[###############         ](75%) Upgrading pip in venv... ' >>/var/log/jawaInstall.log 2>&1
+  "$installDir/jawa/venv/bin/python" -m pip install --upgrade pip >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   /usr/bin/clear
   /bin/echo -ne '[################        ](80%) pip installing support modules (httpie and glances) in venv... '
   /bin/echo '[################        ](80%) pip installing support modules (httpie and glances) in venv... ' >>/var/log/jawaInstall.log 2>&1
@@ -761,10 +792,6 @@ if [ -d "$currentDir/jawabackup-$timenow" ]; then
   /usr/bin/clear
   /bin/echo -ne '[#################       ](85%) pip installing jawa requirements.txt file in venv... '
   /bin/echo '[#################       ](85%) pip installing jawa requirements.txt file in venv... ' >>/var/log/jawaInstall.log 2>&1
-  if [ "$holdWerkzeug" = "yes" ]; then
-    /bin/sed -i "s/^Werkzeug~=.*/Werkzeug~=$werkzeugPy38Fallback/" "$installDir/jawa/requirements.txt" >>/var/log/jawaInstall.log 2>&1
-    /bin/echo "Held Werkzeug at $werkzeugPy38Fallback in requirements.txt" >>/var/log/jawaInstall.log 2>&1
-  fi
   "$installDir/jawa/venv/bin/python" -m pip install -r "$installDir/jawa/requirements.txt" >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   # spinner propagates the background job's exit code (see the clone step).
   # Unchecked, a failed resolve here marched on to "100% Installation

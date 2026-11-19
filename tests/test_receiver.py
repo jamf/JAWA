@@ -323,22 +323,20 @@ def test_script_that_cannot_start_is_not_reported_as_success(
     assert "valid webhook received" not in resp.get_data(as_text=True)
 
 
-def test_disabled_template_webhook_is_refused(client, jawa_env, fake_popen):
-    """`enabled: False` must mean the JAWA endpoint is not live.
-
-    template_view stores enabled=False for triggers Jamf Pro creates in
-    the disabled state, and the enable screen tells the operator the
-    webhook "is not yet enabled". The receiver never read the field, so
-    that notice was false and the endpoint was open from that moment.
-    """
+def test_template_created_disabled_still_runs_once_jamf_sends(
+    client, jawa_env, fake_popen
+):
+    """A Smart Group template is stored enabled=False because Jamf Pro
+    creates it off; the admin then enables it in Jamf Pro, which JAWA
+    never sees. Jamf Pro is the gate, so the receiver must not be."""
     _make_webhook(jawa_env, enabled=False)
     resp = client.post(
         "/hooks/testhook",
         json=PAYLOAD,
         headers=_basic_auth("hookuser", "hookpass"),
     )
-    assert resp.status_code == 401
-    assert fake_popen.calls == [], "a disabled automation executed its script"
+    assert resp.status_code != 401
+    assert len(fake_popen.calls) == 1
 
 
 def test_absent_enabled_key_still_runs(client, jawa_env, fake_popen):

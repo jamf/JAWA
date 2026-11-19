@@ -787,3 +787,21 @@ def test_edit_rename_rejects_taken_and_invalid_names(
     assert message in resp.get_data(as_text=True)
     assert jawa_env.webhooks_file.read_text() == webhooks_before
     assert jawa_env.cron_file.read_text() == cron_before
+
+
+def test_auth_xml_sends_the_api_key_as_header_auth():
+    """An API-key automation must tell Jamf Pro to send x-api-key, or the
+    receiver rejects every delivery with 401."""
+    import json
+    from views._type_handlers.jamf_handler import _build_auth_xml
+
+    xml = _build_auth_xml({"choice": "custom", "api_key": 'k"<&'})
+    assert "<authentication_type>HEADER</authentication_type>" in xml
+    header = xml.split("<header>")[1].split("</header>")[0]
+    unescaped = (
+        header.replace("&quot;", '"')
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&amp;", "&")
+    )
+    assert json.loads(unescaped) == {"x-api-key": 'k"<&'}

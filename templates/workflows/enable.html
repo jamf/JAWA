@@ -148,7 +148,7 @@
 
             {% if workflow.trigger_type not in ('tap', 'cron') %}
             <h6 class="enable-section-heading">Webhook Authentication</h6>
-            {{ jamf_auth_fields(default_api_key=generated_api_key) }}
+            {{ jamf_auth_fields(default_api_key=generated_api_key, allow_none=false) }}
             {% endif %}
 
             <div class="d-flex justify-content-center mt-4">

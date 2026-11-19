@@ -298,7 +298,8 @@ def _build_enable_form(slug, **overrides):
         catalog = json.load(handle)
     workflow = next(wf for wf in catalog if wf["slug"] == slug)
 
-    form = {"webhook_name": slug}
+    # Templates refuse to enable without authentication.
+    form = {"webhook_name": slug, "choice": "custom", "api_key": "test-key"}
     # Tap action and timed templates have no Jamf event to pick.
     no_event = workflow.get("trigger_type") in ("tap", "cron")
     if not workflow.get("trigger_event") and not no_event:

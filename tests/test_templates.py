@@ -29,89 +29,35 @@ def fake_popen(monkeypatch):
     return RecordingPopen
 
 
-def test_enabled_template_writes_canonical_auth_shape(
-    logged_in_client, jawa_env, enable_form
-):
-    resp = logged_in_client.post(
-        "/templates/device-naming/enable",
-        data=enable_form("device-naming", webhook_name="dn-hook"),
-    )
-    assert resp.status_code in (200, 302)
-    entry = data_store.get_webhook_by_name("dn-hook")
-    assert entry is not None
-    # Canonical shape: all three auth keys present, defaulting to "null".
-    # The form now offers Basic/header auth, so "open" is the
-    # unauthenticated branch of an explicit choice rather than the only
-    # thing enable could write: with no "choice" field submitted,
-    # _extract_auth_fields returns "null" for all three.
-    assert entry["webhook_username"] == "null"
-    assert entry["webhook_password"] == "null"
-    assert entry["api_key"] == "null"
-
-
-# The auth fields are labelled optional, so picking a radio and leaving
-# the boxes blank is an expected action -- and the form makes that branch
-# reachable for the first time from the enable path.
-BLANK_AUTH_SUBMISSIONS = [
-    ({"choice": "basic", "basic_username": "", "basic_password": ""}),
-    ({"choice": "basic", "basic_username": "", "basic_password": "pw"}),
-    ({"choice": "custom", "api_key": ""}),
+NO_AUTH_SUBMISSIONS = [
+    {"choice": "none"},
+    {"choice": "basic", "basic_username": "", "basic_password": ""},
+    {"choice": "basic", "basic_username": "", "basic_password": "pw"},
+    {"choice": "custom", "api_key": ""},
 ]
 
 
-@pytest.mark.parametrize("auth_fields", BLANK_AUTH_SUBMISSIONS)
-def test_blank_auth_field_does_not_lock_the_webhook_out(
+@pytest.mark.parametrize("auth_fields", NO_AUTH_SUBMISSIONS)
+def test_enable_refuses_a_template_without_authentication(
     logged_in_client, jawa_env, enable_form, auth_fields
 ):
-    """A submitted-but-empty auth input posts "", which the get()
-    default never replaced. _build_auth_xml then told Jamf NONE while
-    the stored value stayed "", and the receiver defaults an
-    unauthenticated request to "null" -- so "null" != "" made
-    validate_webhook reject EVERY inbound event, permanently, behind a
-    success page that said "Enabled".
-    """
-    from webhook import jawa_receiver
-
-    form = enable_form("device-naming", webhook_name="blank-auth-hook")
+    form = enable_form("device-naming", webhook_name="no-auth-hook")
     form.update(auth_fields)
     logged_in_client.post("/templates/device-naming/enable", data=form)
+    assert data_store.get_webhook_by_name("no-auth-hook") is None
 
-    entry = data_store.get_webhook_by_name("blank-auth-hook")
-    assert entry is not None
-    # No stored auth credential may ever be the empty string: the
-    # receiver's no-auth sentinel is the string "null".
-    for key in ("webhook_username", "webhook_password", "api_key"):
-        assert entry[key] != "", f"{key} stored as an empty string"
 
-    # The assertion with the teeth: an unauthenticated inbound request
-    # (the receiver's "null" x3 default) must still validate for any
-    # field the user left blank.
-    expected = {
-        "webhook_username": "null",
-        "webhook_password": "null",
-        "api_key": "null",
-    }
-    for key, value in expected.items():
-        if entry[key] != value:
-            # A field the user actually filled in: auth is genuinely on,
-            # so an unauthenticated request SHOULD be refused.
-            break
-    else:
-        assert jawa_receiver.validate_webhook(
-            "blank-auth-hook", "null", "null", "null"
-        ), "an all-blank auth choice locked the webhook out"
-        resp = logged_in_client.post(
-            "/hooks/blank-auth-hook",
-            json={"webhook": {"webhookEvent": "MobileDeviceEnrolled"}},
-        )
-        # The regression this guards is a permanent 401 lockout, so 401
-        # is the status that matters. Asserting 200 instead used to pass
-        # only because the receiver swallowed a non-zero script exit and
-        # answered 200 anyway; the stub script here genuinely fails on
-        # this payload, and that is a separate concern from auth.
-        assert resp.status_code != 401, (
-            "inbound event rejected 401; the webhook is permanently locked out"
-        )
+@pytest.mark.parametrize("auth_fields", NO_AUTH_SUBMISSIONS)
+def test_import_refuses_a_template_without_authentication(
+    logged_in_client, jawa_env, auth_fields
+):
+    resp = _upload(
+        logged_in_client,
+        _package("#!/usr/bin/env python3\nprint('hi')\n"),
+        **auth_fields,
+    )
+    assert "/error" in resp.headers["Location"]
+    assert data_store.get_webhook_by_name("imported-hook") is None
 
 
 def test_enabled_template_webhook_fires(
@@ -124,6 +70,7 @@ def test_enabled_template_webhook_fires(
     resp = logged_in_client.post(
         "/hooks/dn-hook",
         json={"webhook": {"webhookEvent": "ComputerCheckIn"}},
+        headers={"x-api-key": "test-key"},
     )
     assert resp.status_code == 200
     assert len(fake_popen.calls) == 1
@@ -225,7 +172,11 @@ def _package(content, name="imported-hook"):
 
 def _upload(client, package, **fields):
     payload = json.dumps(package).encode()
-    data = {"package": (io.BytesIO(payload), "thing.jawa.json")}
+    data = {
+        "package": (io.BytesIO(payload), "thing.jawa.json"),
+        "choice": "custom",
+        "api_key": "test-key",
+    }
     data.update(fields)
     return client.post(
         "/templates/import",
@@ -337,6 +288,7 @@ def test_a_jamf_registered_import_actually_fires(
     resp = logged_in_client.post(
         "/hooks/imported-hook",
         json={"webhook": {"webhookEvent": "ComputerCheckIn"}},
+        headers={"x-api-key": "test-key"},
     )
     assert resp.status_code == 200
     assert len(fake_popen.calls) == 1
@@ -465,6 +417,8 @@ def test_enable_files_the_automation_under_jamfpro(logged_in_client, jawa_env):
             "server_url": "https://prod.jamfcloud.com",
             "client_id": "abc",
             "client_secret": "shh",
+            "choice": "custom",
+            "api_key": "test-key",
         },
     )
     assert resp.status_code in (200, 302)
@@ -887,9 +841,8 @@ def test_import_and_enable_pages_preselect_a_generated_api_key(
 ):
     body = logged_in_client.get(path).get_data(as_text=True)
     custom = re.search(r'<input[^>]*value="custom"[^>]*>', body, re.S)
-    none = re.search(r'<input[^>]*value="none"[^>]*>', body, re.S)
     assert custom and "checked" in custom.group(0)
-    assert none and "checked" not in none.group(0)
+    assert 'value="none"' not in body
     key = re.search(r'name="api_key"[^>]*value="([^"]+)"', body, re.S)
     assert key and len(key.group(1)) >= 24
 

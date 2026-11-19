@@ -805,3 +805,44 @@ def test_auth_xml_sends_the_api_key_as_header_auth():
         .replace("&amp;", "&")
     )
     assert json.loads(unescaped) == {"x-api-key": 'k"<&'}
+
+
+def test_edit_keeps_a_smart_group_webhook_enabled_and_sends_header_auth(
+    monkeypatch,
+):
+    """Editing must not switch off a Smart Group webhook the admin has
+    enabled in Jamf Pro, and must send the chosen API key."""
+    import requests
+
+    from views._type_handlers import jamf_handler
+
+    sent = {}
+
+    class _Ok:
+        status_code = 201
+        text = ""
+
+    def _put(url, **kwargs):
+        sent["xml"] = kwargs["data"]
+        return _Ok()
+
+    monkeypatch.setattr(jamf_handler, "fresh_token", lambda *_: None)
+    monkeypatch.setattr(
+        jamf_handler, "get_jawa_address", lambda: "https://jawa.example"
+    )
+    monkeypatch.setattr(requests, "put", _put)
+    existing = {
+        "name": "sg-hook",
+        "event": "SmartGroupComputerMembershipChange",
+        "jamf_id": "42",
+        "script": "",
+    }
+    jamf_handler.JamfHandler().process_edit(
+        {"choice": "custom", "api_key": "k1"},
+        {},
+        {"url": "https://jamf.example", "token": "t", "username": "a"},
+        existing,
+        [existing],
+    )
+    assert "<enabled>" not in sent["xml"]
+    assert "<authentication_type>HEADER</authentication_type>" in sent["xml"]

@@ -249,7 +249,9 @@ def compose_legacy(assets_dir, basename, role, device):
         f"{general.get('os_version', '')}".strip(),
         role_line,
     ]
-    img = Image.open(os.path.join(assets_dir, f"{basename}.png")).convert(
+    img = Image.open(
+        os.path.join(assets_dir, f"{basename}.png"), formats=["PNG"]
+    ).convert(
         "RGB"
     )
     img_w, img_h = img.size

@@ -201,7 +201,7 @@ def _read_icon(files: Any) -> Optional[bytes]:
     if not upload or not upload.filename:
         return None
     try:
-        with Image.open(upload.stream) as source:
+        with Image.open(upload.stream, formats=["PNG", "JPEG"]) as source:
             source.load()
             image = source.convert("RGBA")
     except (UnidentifiedImageError, OSError, ValueError) as err:

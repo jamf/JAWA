@@ -91,10 +91,12 @@ def _decode_asset(
     except (binascii.Error, TypeError, ValueError):
         return None, f"asset {asset_id!r} is not valid base64"
     try:
-        with Image.open(io.BytesIO(raw)) as img:
+        with Image.open(io.BytesIO(raw), formats=sorted(FORMATS)) as img:
             fmt, width, height = img.format, img.width, img.height
             img.verify()
-    except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+    except UnidentifiedImageError:
+        return None, f"asset {asset_id!r} is not a readable image; it must be PNG or JPEG"
+    except (OSError, Image.DecompressionBombError):
         return None, f"asset {asset_id!r} is not a readable image"
     if fmt not in FORMATS:
         return None, f"asset {asset_id!r} must be PNG or JPEG"

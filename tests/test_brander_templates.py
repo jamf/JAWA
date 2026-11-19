@@ -526,7 +526,7 @@ def test_edited_renderer_copy_exits_31(jamf, tmp_path):
     assert run(module) == 31
 
 
-@pytest.mark.parametrize("version", ["9.5.0", "12.0.0", "13.1.0"])
+@pytest.mark.parametrize("version", ["9.5.0", "12.3.0", "14.0.0"])
 def test_unsupported_pillow_exits_31(jamf, tmp_path, monkeypatch, version):
     import PIL
 

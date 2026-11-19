@@ -11,7 +11,7 @@ requests~=2.33.0
 urllib3~=2.8.0
 waitress~=3.0.2
 python-crontab~=3.4.0
-Pillow>=11.3,<12
+Pillow>=13.0,<14
 croniter~=6.0
 python-dateutil
 qrcode[pil]~=8.0

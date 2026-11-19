@@ -29,10 +29,10 @@ LICENSE_SOURCE = "wallrender/LICENSE"
 
 # Pillow versions the deployed Brander accepts: JAWA's requirements.txt
 # range. EWOK pins the same range, because text pixels differ between
-# Pillow releases (11.3 vs 12.3 measured 2026-10-01), and the preview must
+# Pillow releases between minor releases, and the preview must
 # be what a device gets. Change both repos together.
-PILLOW_MIN = [11, 3]
-PILLOW_BELOW = [12, 0]
+PILLOW_MIN = [13, 0]
+PILLOW_BELOW = [14, 0]
 
 
 def git(ewok, *args):

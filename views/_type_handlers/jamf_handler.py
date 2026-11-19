@@ -47,7 +47,7 @@ from views._type_handlers.base import (
     validate_webhook_name,
 )
 
-USER_AGENT_STRING = "JAWA%20v3.2.0"
+USER_AGENT_STRING = "JAWA%20v4.0.0"
 
 XML = "application/xml"
 

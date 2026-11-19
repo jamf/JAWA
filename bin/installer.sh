@@ -903,12 +903,13 @@ UMask=0077
 # there.
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=$installDir
+# Timed automations are written to the jawa user's crontab, so the spool
+# must stay writable (crontabs/ on Ubuntu, the directory itself on RHEL).
+# "-" skips it where cron is not installed instead of failing the unit.
+ReadWritePaths=$installDir -/var/spool/cron
 PrivateTmp=true
-# The receiver runs user-supplied automation scripts via subprocess; a fresh
-# kernel keyring and no new privileges keep a compromised script from
-# escalating to other root-owned units.
-NoNewPrivileges=true
+# No NoNewPrivileges: crontab is setgid (Ubuntu) or setuid (RHEL), and that
+# setting stops it reaching the spool, so timed automations cannot be saved.
 PrivateDevices=true
 
 

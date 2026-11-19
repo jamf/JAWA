@@ -777,7 +777,6 @@ if [ -d "$currentDir/jawabackup-$timenow" ]; then
   /bin/echo -ne '[##############          ](70%) Creating venv... '
   /bin/echo '[##############          ](70%) Creating venv... ' >>/var/log/jawaInstall.log 2>&1
   "$jawaPythonBin" -m venv venv & spinner $! ""
-  chown -R jawa "$installDir/jawa/venv"
   source "$installDir/jawa/venv/bin/activate"
   /usr/bin/clear
   /bin/echo -ne '[###############         ](75%) Upgrading pip in venv... '
@@ -797,7 +796,10 @@ if [ -d "$currentDir/jawabackup-$timenow" ]; then
   # complete!" and enabled a systemd unit that crash-looped on
   # ModuleNotFoundError -- the dependency failure was only visible in the log.
   requirementsStatus=$?
-  if [ "$requirementsStatus" -ne 0 ] || ! "$installDir/jawa/venv/bin/python" -c 'import flask' >/dev/null 2>&1; then
+  # pip runs as root, so a hardened umask (077) leaves the packages unreadable
+  # to the service user; take ownership after installing and test as jawa.
+  chown -R jawa "$installDir/jawa/venv"
+  if [ "$requirementsStatus" -ne 0 ] || ! /usr/sbin/runuser -u jawa -- "$installDir/jawa/venv/bin/python" -c 'import flask' >/dev/null 2>&1; then
     /usr/bin/clear
     /bin/echo ""
     /bin/echo "JAWA's Python dependencies failed to install, so the service cannot start."

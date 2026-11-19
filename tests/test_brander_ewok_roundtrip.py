@@ -3,7 +3,7 @@ pixels EWOK previewed.
 
 tests/fixtures/ewok-bundle is EWOK's "Download for Brander (.zip)" of the
 square iPad example, unzipped, plus expected.png: EWOK's own render of it
-(wallrender 0.3.0, Pillow 11.3) for the values Brander builds from this
+(the vendored wallrender, Pillow 13, rendered on Linux) for the values Brander builds from this
 device record. If this fails, EWOK's preview and the devices disagree:
 check that both repos pin the same wallrender and Pillow.
 """

@@ -183,6 +183,8 @@ def environment_setup(project_dir: str) -> None:
         os.path.join(project_dir, "data", "server.json")
     )
     scripts_directory = os.path.abspath(os.path.join(project_dir, "scripts"))
+    # The installer does not create scripts/; /healthz needs it to exist.
+    os.makedirs(scripts_directory, exist_ok=True)
     logthis.info(
         f"Detecting JAWA environment:\n"
         f"Webhooks configuration file: {webhooks_file}\n"

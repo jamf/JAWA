@@ -144,6 +144,14 @@ def test_healthz_ok_on_fresh_install_without_stores(client, jawa_env):
     assert not jawa_env.webhooks_file.exists()
 
 
+def test_startup_creates_scripts_dir_for_healthz(client, jawa_env):
+    import app as jawa_app
+
+    jawa_env.scripts_dir.rmdir()
+    jawa_app.environment_setup(str(jawa_env.root))
+    assert client.get("/healthz").status_code == 200
+
+
 def test_healthz_reports_missing_scripts_dir(client, jawa_env):
     jawa_env.scripts_dir.rmdir()
     resp = client.get("/healthz")

@@ -1,0 +1,455 @@
+{
+ "note": "Approximate areas, as fractions of the screen in each orientation, that iOS covers on the lock screen (clock, date, widgets, controls) and the home screen (status bar, dock). iOS scales a wallpaper to fill the screen and crops the rest. Measured from current iOS; check new devices on hardware.",
+ "profiles": [
+  {
+   "id": "iphone-6.7",
+   "name": "iPhone 6.7-inch (Plus, Pro Max)",
+   "family": "iphone",
+   "screen": [
+    1290,
+    2796
+   ],
+   "rotates": false,
+   "zones": {
+    "portrait": {
+     "lock": [
+      {
+       "label": "Clock",
+       "box": [
+        0,
+        0,
+        1,
+        0.3
+       ]
+      },
+      {
+       "label": "Controls",
+       "box": [
+        0,
+        0.86,
+        1,
+        1
+       ]
+      }
+     ],
+     "home": [
+      {
+       "label": "Status bar",
+       "box": [
+        0,
+        0,
+        1,
+        0.07
+       ]
+      },
+      {
+       "label": "Dock",
+       "box": [
+        0,
+        0.86,
+        1,
+        1
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "iphone-6.1",
+   "name": "iPhone 6.1-inch",
+   "family": "iphone",
+   "screen": [
+    1179,
+    2556
+   ],
+   "rotates": false,
+   "zones": {
+    "portrait": {
+     "lock": [
+      {
+       "label": "Clock",
+       "box": [
+        0,
+        0,
+        1,
+        0.3
+       ]
+      },
+      {
+       "label": "Controls",
+       "box": [
+        0,
+        0.86,
+        1,
+        1
+       ]
+      }
+     ],
+     "home": [
+      {
+       "label": "Status bar",
+       "box": [
+        0,
+        0,
+        1,
+        0.07
+       ]
+      },
+      {
+       "label": "Dock",
+       "box": [
+        0,
+        0.86,
+        1,
+        1
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "iphone-se",
+   "name": "iPhone SE",
+   "family": "iphone",
+   "screen": [
+    750,
+    1334
+   ],
+   "rotates": false,
+   "zones": {
+    "portrait": {
+     "lock": [
+      {
+       "label": "Clock",
+       "box": [
+        0,
+        0,
+        1,
+        0.28
+       ]
+      },
+      {
+       "label": "Controls",
+       "box": [
+        0,
+        0.9,
+        1,
+        1
+       ]
+      }
+     ],
+     "home": [
+      {
+       "label": "Status bar",
+       "box": [
+        0,
+        0,
+        1,
+        0.04
+       ]
+      },
+      {
+       "label": "Dock",
+       "box": [
+        0,
+        0.85,
+        1,
+        1
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "ipad-12.9",
+   "name": "iPad Pro 12.9-inch",
+   "family": "ipad",
+   "screen": [
+    2048,
+    2732
+   ],
+   "rotates": true,
+   "zones": {
+    "portrait": {
+     "lock": [
+      {
+       "label": "Clock",
+       "box": [
+        0,
+        0,
+        1,
+        0.22
+       ]
+      },
+      {
+       "label": "Controls",
+       "box": [
+        0,
+        0.95,
+        1,
+        1
+       ]
+      }
+     ],
+     "home": [
+      {
+       "label": "Status bar",
+       "box": [
+        0,
+        0,
+        1,
+        0.03
+       ]
+      },
+      {
+       "label": "Dock",
+       "box": [
+        0.1,
+        0.88,
+        0.9,
+        1
+       ]
+      }
+     ]
+    },
+    "landscape": {
+     "lock": [
+      {
+       "label": "Clock",
+       "box": [
+        0,
+        0,
+        1,
+        0.3
+       ]
+      },
+      {
+       "label": "Controls",
+       "box": [
+        0,
+        0.93,
+        1,
+        1
+       ]
+      }
+     ],
+     "home": [
+      {
+       "label": "Status bar",
+       "box": [
+        0,
+        0,
+        1,
+        0.04
+       ]
+      },
+      {
+       "label": "Dock",
+       "box": [
+        0.15,
+        0.85,
+        0.85,
+        1
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "ipad-11",
+   "name": "iPad Pro 11-inch",
+   "family": "ipad",
+   "screen": [
+    1668,
+    2388
+   ],
+   "rotates": true,
+   "zones": {
+    "portrait": {
+     "lock": [
+      {
+       "label": "Clock",
+       "box": [
+        0,
+        0,
+        1,
+        0.22
+       ]
+      },
+      {
+       "label": "Controls",
+       "box": [
+        0,
+        0.95,
+        1,
+        1
+       ]
+      }
+     ],
+     "home": [
+      {
+       "label": "Status bar",
+       "box": [
+        0,
+        0,
+        1,
+        0.03
+       ]
+      },
+      {
+       "label": "Dock",
+       "box": [
+        0.1,
+        0.88,
+        0.9,
+        1
+       ]
+      }
+     ]
+    },
+    "landscape": {
+     "lock": [
+      {
+       "label": "Clock",
+       "box": [
+        0,
+        0,
+        1,
+        0.3
+       ]
+      },
+      {
+       "label": "Controls",
+       "box": [
+        0,
+        0.93,
+        1,
+        1
+       ]
+      }
+     ],
+     "home": [
+      {
+       "label": "Status bar",
+       "box": [
+        0,
+        0,
+        1,
+        0.04
+       ]
+      },
+      {
+       "label": "Dock",
+       "box": [
+        0.15,
+        0.85,
+        0.85,
+        1
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "ipad-10.9",
+   "name": "iPad / iPad Air 10.9-inch",
+   "family": "ipad",
+   "screen": [
+    1640,
+    2360
+   ],
+   "rotates": true,
+   "zones": {
+    "portrait": {
+     "lock": [
+      {
+       "label": "Clock",
+       "box": [
+        0,
+        0,
+        1,
+        0.22
+       ]
+      },
+      {
+       "label": "Controls",
+       "box": [
+        0,
+        0.95,
+        1,
+        1
+       ]
+      }
+     ],
+     "home": [
+      {
+       "label": "Status bar",
+       "box": [
+        0,
+        0,
+        1,
+        0.03
+       ]
+      },
+      {
+       "label": "Dock",
+       "box": [
+        0.1,
+        0.88,
+        0.9,
+        1
+       ]
+      }
+     ]
+    },
+    "landscape": {
+     "lock": [
+      {
+       "label": "Clock",
+       "box": [
+        0,
+        0,
+        1,
+        0.3
+       ]
+      },
+      {
+       "label": "Controls",
+       "box": [
+        0,
+        0.93,
+        1,
+        1
+       ]
+      }
+     ],
+     "home": [
+      {
+       "label": "Status bar",
+       "box": [
+        0,
+        0,
+        1,
+        0.04
+       ]
+      },
+      {
+       "label": "Dock",
+       "box": [
+        0.15,
+        0.85,
+        0.85,
+        1
+       ]
+      }
+     ]
+    }
+   }
+  }
+ ]
+}

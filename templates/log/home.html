@@ -1,6 +1,6 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {###}
-{## Copyright (c) 2022 Jamf.  All rights reserved.#}
+{## Copyright (c) 2026 Jamf.  All rights reserved.#}
 {###}
 {##       Redistribution and use in source and binary forms, with or without#}
 {##       modification, are permitted provided that the following conditions are met:#}
@@ -26,36 +26,458 @@
 {###}
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {% extends "shared/_layout.html" %}
+{% from "shared/_macros.html" import empty_state %}
 {% block title %}JAWA Log{% endblock %}
+
+{% block additional_css %}
+<style>
+    .btn-hero-debug {
+        padding: 0.55rem 1.1rem;
+        border: 1.5px solid rgba(138,149,163,0.3);
+        background: rgba(138,149,163,0.08);
+        color: #8a95a3;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        border-radius: var(--radius-pill);
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .btn-hero-debug:hover {
+        border-color: #8a95a3;
+        background: rgba(138,149,163,0.15);
+        transform: translateY(-1px);
+    }
+    .btn-hero-debug.btn-debug-active {
+        border-color: #89d185;
+        background: rgba(137,209,133,0.12);
+        color: #89d185;
+        box-shadow: 0 0 12px rgba(137,209,133,0.3);
+    }
+    .btn-hero-debug.btn-debug-active:hover {
+        background: rgba(137,209,133,0.2);
+        box-shadow: 0 0 16px rgba(137,209,133,0.4);
+    }
+    .debug-indicator {
+        display: inline-block;
+        animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .log-toolbar {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+    .log-toolbar .log-search {
+        flex: 1;
+        min-width: 180px;
+        padding: 0.35rem 0.75rem;
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: var(--radius-pill);
+        background: rgba(255,255,255,0.06);
+        color: var(--color-code-text);
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+    }
+    .log-toolbar .log-search::placeholder {
+        color: rgba(255,255,255,0.3);
+    }
+    .log-toolbar .log-search:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px rgba(60,106,167,0.25);
+    }
+    .level-filter {
+        padding: 0.25rem 0.6rem;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: var(--radius-pill);
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        background: transparent;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .level-filter.active { border-color: currentColor; }
+    /* The active level carries a check mark as well as its colour. */
+    .level-filter .level-check { display: none; }
+    .level-filter[aria-pressed="true"] .level-check { display: inline; }
+    .follow-toggle {
+        padding: 0.25rem 0.6rem;
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: var(--radius-pill);
+        font-size: 0.7rem;
+        font-weight: 600;
+        background: transparent;
+        color: var(--color-code-text);
+        cursor: pointer;
+    }
+    .follow-toggle[aria-pressed="true"] { background: rgba(255,255,255,0.12); }
+    .level-filter[data-level="all"]      { color: var(--color-code-text); }
+    .level-filter[data-level="all"].active { background: rgba(255,255,255,0.1); }
+    .level-filter[data-level="debug"]    { color: #8a95a3; }
+    .level-filter[data-level="debug"].active { background: rgba(138,149,163,0.15); }
+    .level-filter[data-level="info"]     { color: #89d185; }
+    .level-filter[data-level="info"].active  { background: rgba(137,209,133,0.15); }
+    .level-filter[data-level="warning"]  { color: #e5c07b; }
+    .level-filter[data-level="warning"].active { background: rgba(229,192,123,0.15); }
+    .level-filter[data-level="error"]    { color: #f97583; }
+    .level-filter[data-level="error"].active { background: rgba(249,117,131,0.15); }
+    .level-filter[data-level="critical"] { color: #ff5370; }
+    .level-filter[data-level="critical"].active { background: rgba(255,83,112,0.15); }
+
+    .log-lines {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        counter-reset: logline;
+    }
+    .log-line {
+        display: flex;
+        padding: 1px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+        transition: background-color 0.1s ease;
+    }
+    .log-line:hover {
+        background: rgba(255,255,255,0.04);
+    }
+    .log-line.highlight {
+        background: rgba(60,106,167,0.2);
+    }
+    .log-gutter {
+        flex-shrink: 0;
+        width: 3.5rem;
+        text-align: right;
+        padding-right: 0.75rem;
+        color: rgba(255,255,255,0.18);
+        user-select: none;
+        border-right: 1px solid rgba(255,255,255,0.06);
+        margin-right: 0.75rem;
+    }
+    .log-content {
+        flex: 1;
+        min-width: 0;
+        white-space: pre-wrap;
+        /* Break at spaces; split a long token only when it can't fit. */
+        overflow-wrap: anywhere;
+    }
+    /* Rainbow token colors */
+    .log-ts     { color: #78c8e6; }
+    .log-name   { color: #c792ea; }
+    .log-sep    { color: #5a6978; }
+    .log-msg    { color: var(--color-code-text); }
+    .log-level-debug    { color: #8a95a3; }
+    .log-level-info     { color: #89d185; font-weight: 600; }
+    .log-level-warning  { color: #e5c07b; font-weight: 600; }
+    .log-level-error    { color: #f97583; font-weight: 600; }
+    .log-level-critical { color: #ff5370; font-weight: 700; text-shadow: 0 0 6px rgba(255,83,112,0.4); }
+
+    .log-line-error   { border-left: 2px solid #f97583; padding-left: 0.5rem; }
+    .log-line-warning { border-left: 2px solid #e5c07b; padding-left: 0.5rem; }
+    .log-line-critical { border-left: 2px solid #ff5370; padding-left: 0.5rem; background: rgba(255,83,112,0.06); }
+
+    .log-count {
+        font-size: 0.72rem;
+        color: rgba(255,255,255,0.4);
+        margin-left: auto;
+        padding-left: 1rem;
+        white-space: nowrap;
+    }
+    .level-select {
+        display: none;
+        padding: 0.3rem 0.6rem;
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: var(--radius-pill);
+        background: rgba(255,255,255,0.06);
+        color: var(--color-code-text);
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+    }
+    .level-select option { background: var(--color-code-bg); }
+
+    /* Phones: search, a level menu and Follow on one row; no line numbers. */
+    @media (max-width: 600px) {
+        .log-toolbar .level-filter { display: none; }
+        .level-select { display: block; }
+        .log-toolbar .log-search { min-width: 0; flex-basis: 100%; }
+        .log-count { margin-left: auto; padding-left: 0; }
+        .log-gutter { display: none; }
+        .log-content { font-size: 0.72rem; }
+    }
+</style>
+{% endblock %}
+
+{% block body_class %}page-fill{% endblock %}
+
 {% block content %}
-    <div>
-        <div class="test-links sub_links sticky-top" style="min-width: 100vw">
-        <div class="stat"><a href="{{ url_for('resources_view.files') }}">Files</a></div>
-        <div class="stat"><a href="{{ url_for('log_view.log_home') }}">Log</a></div>
+<div class="hero-section">
+    <div class="container">
+        <h2>Application Log</h2>
+        <p>View, search, and filter JAWA log entries.</p>
+        <div class="hero-cta">
+            <a href="/log/download" class="btn btn-hero-primary">Download Log</a>
+            <a href="{{ url_for('resources_view.files') }}" class="btn btn-hero-secondary">Files</a>
+            <form method="POST" action="{{ url_for('log_view.toggle_debug') }}" style="display: inline;">
+                <button type="submit" class="btn btn-hero-debug {% if debug_enabled %}btn-debug-active{% endif %}">
+                    {% if debug_enabled %}
+                    <span class="debug-indicator">●</span> DEBUG ON
+                    {% else %}
+                    DEBUG OFF
+                    {% endif %}
+                </button>
+            </form>
+        </div>
     </div>
+</div>
+<div class="container-fluid log-page" style="max-width: 1800px;">
+
 
     <div class="log-container">
-
         <div class="log-view">
-            <div class="alert-warning overflow-auto log-frame success-wrap flex-column-reverse d-flex">
+            <div class="log-toolbar">
+                <input type="text" class="log-search" id="logSearch" placeholder="Search logs..." aria-label="Search logs">
+                <select class="level-select" id="levelSelect" aria-label="Log level">
+                    <option value="all">All levels</option>
+                    <option value="debug">Debug</option>
+                    <option value="info">Info</option>
+                    <option value="warning">Warning</option>
+                    <option value="error">Error</option>
+                    <option value="critical">Critical</option>
+                </select>
+                <button type="button" class="level-filter active" data-level="all" aria-pressed="true" onclick="filterLevel('all', this)"><span class="level-check" aria-hidden="true">✓ </span>ALL</button>
+                <button type="button" class="level-filter" data-level="debug" aria-pressed="false" onclick="filterLevel('debug', this)"><span class="level-check" aria-hidden="true">✓ </span>DEBUG</button>
+                <button type="button" class="level-filter" data-level="info" aria-pressed="false" onclick="filterLevel('info', this)"><span class="level-check" aria-hidden="true">✓ </span>INFO</button>
+                <button type="button" class="level-filter" data-level="warning" aria-pressed="false" onclick="filterLevel('warning', this)"><span class="level-check" aria-hidden="true">✓ </span>WARNING</button>
+                <button type="button" class="level-filter" data-level="error" aria-pressed="false" onclick="filterLevel('error', this)"><span class="level-check" aria-hidden="true">✓ </span>ERROR</button>
+                <button type="button" class="level-filter" data-level="critical" aria-pressed="false" onclick="filterLevel('critical', this)"><span class="level-check" aria-hidden="true">✓ </span>CRITICAL</button>
+                <button type="button" class="follow-toggle" id="followToggle" aria-pressed="false">Follow</button>
+                <span class="log-count" id="logCount"></span>
+            </div>
+            <div class="overflow-auto log-frame">
+                <ul class="log-lines" id="logLines">
                 {% if log %}
                     {% for line in log %}
-                        <div class="inner">{{ line }}</div><br>
+                    <li class="log-line" data-raw="{{ line }}">
+                        <span class="log-gutter">{{ loop.index }}</span>
+                        <span class="log-content">{{ line }}</span>
+                    </li>
                     {% endfor %}
                 {% endif %}
-            </div>
-            <div class="download-button">
-                <div class="btn-group-sm">
-                    <button class="btn btn-light" onClick="window.location.reload();"><span
-                            class="glyphicon glyphicon-refresh"></span> Refresh
-                    </button>
-
-
-                    <a href="/log/download" button type=submit class="btn btn-jawa button-align">Download
-                        &raquo;</a>
+                </ul>
+                <div id="logEmpty"{% if log %} hidden{% endif %}>
+                {{ empty_state("No log entries yet. JAWA adds them here as it runs.", icon="log") }}
                 </div>
             </div>
         </div>
     </div>
+</div>
+{% endblock %}
 
+{% block additional_js %}
+<script>
+(function() {
+    var LOG_RE = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d+)( - )([\w.]+)( - )(DEBUG|INFO|WARNING|ERROR|CRITICAL)( - )([\s\S]*)$/;
+    var list = document.getElementById('logLines');
+    var lines = list.querySelectorAll('.log-line');
+    var activeLevel = 'all';
+    var searchTerm = '';
+
+    lines.forEach(decorate);
+
+    function decorate(li) {
+        var raw = li.getAttribute('data-raw') || li.querySelector('.log-content').textContent;
+        var m = raw.match(LOG_RE);
+        if (m) {
+            var levelLower = m[5].toLowerCase();
+            li.setAttribute('data-level', levelLower);
+            var levelClass = 'log-level-' + levelLower;
+            var lineClass = '';
+            if (levelLower === 'error' || levelLower === 'warning' || levelLower === 'critical') {
+                lineClass = ' log-line-' + levelLower;
+            }
+            if (lineClass) li.className = 'log-line' + lineClass;
+            li.querySelector('.log-content').innerHTML =
+                '<span class="log-ts">' + esc(m[1]) + '</span>' +
+                '<span class="log-sep">' + esc(m[2]) + '</span>' +
+                '<span class="log-name">' + esc(m[3]) + '</span>' +
+                '<span class="log-sep">' + esc(m[4]) + '</span>' +
+                '<span class="' + levelClass + '">' + esc(m[5]) + '</span>' +
+                '<span class="log-sep">' + esc(m[6]) + '</span>' +
+                '<span class="log-msg">' + esc(m[7]) + '</span>';
+        } else {
+            li.setAttribute('data-level', 'info');
+        }
+    }
+
+    function buildLine(raw, n) {
+        var li = document.createElement('li');
+        li.className = 'log-line';
+        li.setAttribute('data-raw', raw);
+        var gutter = document.createElement('span');
+        gutter.className = 'log-gutter';
+        gutter.textContent = n;
+        var content = document.createElement('span');
+        content.className = 'log-content';
+        content.textContent = raw;
+        li.appendChild(gutter);
+        li.appendChild(content);
+        decorate(li);
+        return li;
+    }
+
+    function esc(s) {
+        var d = document.createElement('div');
+        d.appendChild(document.createTextNode(s));
+        return d.innerHTML;
+    }
+
+    function applyFilters() {
+        var visible = 0;
+        var total = lines.length;
+        lines.forEach(function(li) {
+            var levelMatch = (activeLevel === 'all' || li.getAttribute('data-level') === activeLevel);
+            var raw = (li.getAttribute('data-raw') || '').toLowerCase();
+            var searchMatch = (!searchTerm || raw.indexOf(searchTerm) !== -1);
+            if (levelMatch && searchMatch) {
+                li.style.display = '';
+                visible++;
+                if (searchTerm) {
+                    li.classList.add('highlight');
+                } else {
+                    li.classList.remove('highlight');
+                }
+            } else {
+                li.style.display = 'none';
+                li.classList.remove('highlight');
+            }
+        });
+        document.getElementById('logCount').textContent = visible + ' / ' + total + ' lines';
+    }
+
+    window.filterLevel = function(level, btn) {
+        activeLevel = level;
+        setActiveButton(btn);
+        applyFilters();
+        syncUrl();
+    };
+
+    function setActiveButton(btn) {
+        document.querySelectorAll('.level-filter').forEach(function(b) {
+            b.classList.remove('active');
+            b.setAttribute('aria-pressed', 'false');
+        });
+        btn.classList.add('active');
+        btn.setAttribute('aria-pressed', 'true');
+        // Keep the phone toolbar's level menu in step with the buttons.
+        var select = document.getElementById('levelSelect');
+        if (select) select.value = btn.dataset.level;
+    }
+
+    document.getElementById('levelSelect').addEventListener('change', function() {
+        var btn = document.querySelector('.level-filter[data-level="' + this.value + '"]');
+        if (btn) window.filterLevel(this.value, btn);
+    });
+
+    // ?q=, ?level= and ?follow=1 make a filtered view bookmarkable and
+    // let other pages link to it. replaceState keeps the address bar in
+    // step without adding history entries.
+    var FOLLOW_MS = 10000;
+    var LEVELS = ['all', 'debug', 'info', 'warning', 'error', 'critical'];
+    var searchBox = document.getElementById('logSearch');
+    var followBtn = document.getElementById('followToggle');
+    var logFrame = document.querySelector('.log-frame');
+    var following = false;
+    var followTimer = null;
+
+    function syncUrl() {
+        var params = new URLSearchParams();
+        if (searchBox.value) params.set('q', searchBox.value);
+        if (activeLevel !== 'all') params.set('level', activeLevel);
+        if (following) params.set('follow', '1');
+        var qs = params.toString();
+        history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
+    }
+
+    function scrollToEnd() {
+        logFrame.scrollTop = logFrame.scrollHeight;
+    }
+
+    function setFollow(on) {
+        following = on;
+        followBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        followBtn.textContent = on ? 'Following: updates every 10 s' : 'Follow';
+        clearTimeout(followTimer);
+        if (on) scheduleFollow();
+        syncUrl();
+    }
+
+    // Follow fetches the newest lines and swaps them into the list in
+    // place: no page reload, so the header, filters and scroll position
+    // stay put. It only jumps to the end if you were already there.
+    function scheduleFollow() {
+        followTimer = setTimeout(pollLines, FOLLOW_MS);
+    }
+
+    function lastRaw() {
+        var last = list.lastElementChild;
+        return last ? last.getAttribute('data-raw') : null;
+    }
+
+    function pollLines() {
+        if (!following) return;
+        if (document.hidden) { scheduleFollow(); return; }
+        fetch('/log/lines', {credentials: 'same-origin', headers: {'Accept': 'application/json'}})
+            .then(function(res) {
+                if (res.status === 401) { location.reload(); return null; }
+                return res.ok ? res.json() : null;
+            })
+            .then(function(data) { if (data) renderLines(data.lines || []); })
+            .catch(function() { /* keep the current lines; try again next tick */ })
+            .then(function() { if (following) scheduleFollow(); });
+    }
+
+    function renderLines(raws) {
+        var newest = raws.length ? raws[raws.length - 1] : null;
+        if (raws.length === lines.length && newest === lastRaw()) return;
+        var atEnd = logFrame.scrollHeight - logFrame.scrollTop - logFrame.clientHeight < 24;
+        var frag = document.createDocumentFragment();
+        raws.forEach(function(raw, i) { frag.appendChild(buildLine(raw, i + 1)); });
+        list.replaceChildren(frag);
+        lines = list.querySelectorAll('.log-line');
+        document.getElementById('logEmpty').hidden = lines.length > 0;
+        applyFilters();
+        if (atEnd) scrollToEnd();
+    }
+
+    followBtn.addEventListener('click', function() { setFollow(!following); });
+
+    searchBox.addEventListener('input', function() {
+        searchTerm = this.value.toLowerCase();
+        applyFilters();
+        syncUrl();
+    });
+
+    var initial = new URLSearchParams(location.search);
+    var initialLevel = (initial.get('level') || 'all').toLowerCase();
+    if (LEVELS.indexOf(initialLevel) !== -1) {
+        activeLevel = initialLevel;
+        setActiveButton(document.querySelector('.level-filter[data-level="' + initialLevel + '"]'));
+    }
+    if (initial.get('q')) {
+        searchBox.value = initial.get('q');
+        searchTerm = searchBox.value.toLowerCase();
+    }
+    applyFilters();
+    scrollToEnd();
+    if (initial.get('follow') === '1') {
+        setFollow(true);
+    }
+})();
+</script>
 {% endblock %}

@@ -1,0 +1,94 @@
+{
+  "background": {
+    "color": "#0B2545"
+  },
+  "canvas": {
+    "height": 2732,
+    "width": 2732
+  },
+  "layers": [
+    {
+      "asset": "jawa-logo",
+      "box": {
+        "h": 0.14,
+        "w": 0.16,
+        "x": 0.42,
+        "y": 0.3
+      },
+      "type": "image"
+    },
+    {
+      "align": "center",
+      "box": {
+        "h": 0.06,
+        "w": 0.72,
+        "x": 0.14,
+        "y": 0.47
+      },
+      "color": "#FFFFFF",
+      "min_size": 0.026,
+      "overflow": "ellipsis",
+      "size": 0.04,
+      "text": "{{device_name}}",
+      "type": "text"
+    },
+    {
+      "align": "center",
+      "box": {
+        "h": 0.04,
+        "w": 0.72,
+        "x": 0.14,
+        "y": 0.535
+      },
+      "color": "#D6E2F0",
+      "hide_if_empty": true,
+      "overflow": "ellipsis",
+      "size": 0.025,
+      "text": "Serial {{serial_number}}",
+      "type": "text"
+    },
+    {
+      "align": "center",
+      "box": {
+        "h": 0.04,
+        "w": 0.72,
+        "x": 0.14,
+        "y": 0.575
+      },
+      "color": "#D6E2F0",
+      "hide_if_empty": true,
+      "overflow": "ellipsis",
+      "size": 0.025,
+      "text": "Asset {{asset_tag}}",
+      "type": "text"
+    },
+    {
+      "align": "center",
+      "box": {
+        "h": 0.04,
+        "w": 0.72,
+        "x": 0.14,
+        "y": 0.615
+      },
+      "color": "#D6E2F0",
+      "hide_if_empty": true,
+      "overflow": "ellipsis",
+      "size": 0.025,
+      "text": "{{location.building}}",
+      "type": "text"
+    },
+    {
+      "box": {
+        "h": 0.16,
+        "w": 0.16,
+        "x": 0.42,
+        "y": 0.67
+      },
+      "data": "jamf-device:{{jss_id}}",
+      "hide_if_empty": true,
+      "type": "qr"
+    }
+  ],
+  "name": "Brander iPad (portrait and landscape)",
+  "schema_version": 1
+}

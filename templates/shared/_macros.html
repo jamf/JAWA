@@ -1,0 +1,348 @@
+{# Shared Jinja2 macros for JAWA automation templates #}
+
+{% macro hero_section(title, subtitle="", create_url="", create_label="Create", secondary_url="", secondary_label="", subtitle_link_url="", subtitle_link_text="") %}
+<div class="hero-section">
+    <div class="container">
+        <h2>{{ title }}</h2>
+        {% if subtitle or subtitle_link_url %}
+        <p>{{ subtitle|safe }}{% if subtitle_link_url %}<a href="{{ subtitle_link_url }}" target="_blank" rel="noopener">{{ subtitle_link_text or subtitle_link_url }}</a>{% endif %}</p>
+        {% endif %}
+        {% if create_url or secondary_url %}
+        <div class="hero-cta">
+            {% if create_url %}
+            <a href="{{ create_url }}" class="btn btn-hero-primary">{{ create_label }}</a>
+            {% endif %}
+            {% if secondary_url %}
+            <a href="{{ secondary_url }}" class="btn btn-hero-secondary">{{ secondary_label }}</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{# Text that says what starts an automation: the Jamf Pro or Okta event,
+   the hook path for a custom webhook, or the schedule for a timed job. #}
+{% macro trigger_label(item, auto_type) -%}
+{%- if auto_type == 'jamfpro' -%}{{ item.event or 'Jamf Pro event' }}
+{%- elif auto_type == 'okta' -%}{{ item.okta_event or 'Okta event' }}
+{%- elif auto_type == 'tap' -%}Web clip
+{%- elif auto_type == 'custom' -%}/hooks/{{ item.name }}
+{%- elif auto_type == 'cron' -%}
+  {%- set presets = {'everyhour': 'Every hour', 'everyday': 'Every day', 'everyweek': 'Every week', 'everymonth': 'Every month', 'custom': 'Custom schedule'} -%}
+  {{ presets.get(item.frequency, item.frequency) or 'Not scheduled' }}
+{%- endif -%}
+{%- endmacro %}
+
+{# One automation as a single link row: type, name, trigger, description. #}
+{% macro automation_row(item, handler, auto_type) %}
+<li class="automation-row">
+    <a class="automation-link" href="/automations/{{ auto_type }}/{{ item.name }}">
+        <span class="badge {{ handler.badge_class }} automation-type">{{ handler.display_name }}</span>
+        <span class="automation-main">
+            <span class="automation-name">{{ item.name }}</span>
+            {% if item.description %}<span class="automation-desc">{{ item.description }}</span>{% endif %}
+        </span>
+        <span class="automation-trigger">{{ trigger_label(item, auto_type) }}</span>
+        <span class="automation-flags">
+            {% if last_run_failed(item.name) %}<span class="flag-text"><span aria-hidden="true">✕</span> Last run failed</span>{% endif %}
+            {% if auto_type == 'jamfpro' and item.jamf_enabled is sameas false %}<span class="flag-text"><span aria-hidden="true">!</span> Off in Jamf Pro</span>{% endif %}
+        </span>
+    </a>
+</li>
+{% endmacro %}
+
+{# One field on a detail page. Long values wrap; nothing is clipped. #}
+{% macro detail_field(label, value) %}
+<div class="detail-field text-break">
+    <b>{{ label }}</b>: {{ value }}
+</div>
+{% endmacro %}
+
+{# A value an admin will paste somewhere else (a URL, a header, a path).
+   The full value wraps inside a monospace box with a Copy button; the
+   button is handled by static/js/copy.js. #}
+{% macro copy_field(label, value) %}
+<div class="copy-field">
+    <b>{{ label }}</b>:
+    <div class="code-wrapper copy-field-box">
+        <code>{{ value }}</code>
+        <button type="button" class="copy-btn" aria-label="Copy {{ label }}">Copy</button>
+    </div>
+</div>
+{% endmacro %}
+
+{# icon: optional; "log" draws a page of lines above the message. #}
+{% macro empty_state(message, create_url="", create_label="Create one now", icon="") %}
+<div class="empty-state">
+    {% if icon == "log" %}
+    <svg class="empty-state-icon" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.75h8.5L19.25 7.5v13.75H6z"/><path d="M14.25 2.75V7.75h5"/><path d="M9 12h7M9 15.5h7M9 19h4"/></svg>
+    {% endif %}
+    <p class="empty-state-message">{{ message }}</p>
+    {% if create_url %}
+    <a href="{{ create_url }}" class="btn btn-jawa btn-action">{{ create_label }}</a>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# cancel_url: where Cancel goes. Left empty it falls back to
+   history.back(), which walks to a spent form -- pass an explicit
+   destination on any page that knows where the admin came from.
+   warning_detail: overrides the consequence line. The default speaks of
+   "associated data", which is true of an automation but not of a file. #}
+{% macro delete_confirmation(item_name, item_type, delete_url, cancel_url="", warning_detail="") %}
+<style>
+    .delete-container {
+        min-height: calc(100vh - 300px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+    }
+    .delete-card {
+        background: var(--color-surface-raised);
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        padding: 2.5rem;
+        max-width: 550px;
+        width: 100%;
+        box-shadow: 0 4px 20px rgba(106, 47, 48, 0.08);
+    }
+    .delete-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 1.5rem;
+        background: rgba(229, 192, 123, 0.12);
+        border: 2px solid rgba(229, 192, 123, 0.3);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #c17d11;
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    .delete-title {
+        color: var(--color-text);
+        font-size: 1.5rem;
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    .delete-item-name {
+        background: var(--color-surface-hover);
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin: 1.5rem 0;
+        text-align: center;
+        font-family: var(--font-mono);
+        font-weight: 600;
+        color: var(--color-text);
+        word-break: break-word;
+    }
+    .delete-warning {
+        color: var(--color-text-secondary);
+        font-size: 0.95rem;
+        line-height: 1.5;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .delete-warning strong {
+        color: #c17d11;
+    }
+    .delete-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .btn-delete-cancel {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        color: var(--color-text);
+        padding: 0.6rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .btn-delete-cancel:hover {
+        background: var(--color-surface-hover);
+        border-color: var(--color-text-secondary);
+        color: var(--color-text);
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+    .btn-delete-confirm {
+        background: #d63447;
+        border: 1px solid #d63447;
+        color: white;
+        padding: 0.6rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .btn-delete-confirm:hover {
+        background: #b8293a;
+        border-color: #b8293a;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(214, 52, 71, 0.3);
+    }
+</style>
+<div class="delete-container">
+    <div class="delete-card">
+        <div class="delete-icon">⚠</div>
+        <h1 class="delete-title">Delete {{ item_type }}?</h1>
+
+        <div class="delete-item-name">
+            {{ item_name }}
+        </div>
+
+        <div class="delete-warning">
+            <strong>This action cannot be undone.</strong><br>
+            {% if warning_detail %}{{ warning_detail }}{% else %}This will permanently delete this {{ item_type|lower }} and all associated data.{% endif %}
+        </div>
+
+        <form method="POST" action="{{ delete_url }}">
+            <div class="delete-actions">
+                <a href="{{ cancel_url if cancel_url else 'javascript:history.back()' }}" class="btn-delete-cancel">
+                    Cancel
+                </a>
+                <button type="submit" class="btn-delete-confirm">
+                    Delete {{ item_type }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro description_field(value="", label=none) %}
+{% if label %}<label class="form-label mt-3" for="description">{{ label }}</label>{% endif %}
+<textarea name="description" rows="3" type="text" placeholder="Description (optional)"
+          {% if label %}id="description" {% endif %}class="form-control">{{ value }}</textarea>
+{% endmacro %}
+
+{% macro script_upload(field_name="new_file", required=true) %}
+<div class="custom-file">
+    <input type="file" name="{{ field_name }}" id="{{ field_name }}" pattern="[^' ']+"
+           {% if required %}required{% endif %}
+           class="custom-file-input form-control"
+           title="No Spaces in the filename!"
+           accept=".sh,.py,.rs,.rlib,.swift,.cgi,.pl,.rb"/>
+    <label class="custom-file-label" for="{{ field_name }}">Upload a script</label>
+</div>
+<div class="field-hint">
+    <p>Examples: [<a href="{{ url_for('resources_view.python') }}" class="alert-link">Python</a>,
+    <a href="{{ url_for('resources_view.bash') }}" class="alert-link">Bash</a>]</p>
+</div>
+{% endmacro %}
+
+{% macro auth_fields(show_basic=true, show_custom=true, show_output=false, webhook_info=none) %}
+{% if show_basic %}
+<div class="auth-row">
+    <label>
+        <input type="checkbox" class="form-check-input" name="basic" value="basic"
+               onchange="toggleAuthField('auth-basic-fields')">
+        <b>&nbsp;Basic Authentication (optional):</b>
+    </label>
+</div>
+<div class="auth-row">
+    <div id="auth-basic-fields" style="display:none" class="center_box auth-fields">
+        <div class="auth-row">
+            <input class="form-control-sm" name="basic_username" title="Username (optional)"
+                   autocomplete="off" placeholder="Username (optional)"
+                   {% if webhook_info and webhook_info[0].webhook_username != 'null' %}value="{{ webhook_info[0].webhook_username }}"{% endif %}>
+            <input name="new-password" autocomplete="off" class="form-control-sm" type="password"
+                   title="Password (optional)" placeholder="Password (optional)">
+        </div>
+    </div>
+</div>
+{% endif %}
+{% if show_custom %}
+<div class="auth-row">
+    <label>
+        <input type="checkbox" class="form-check-input" name="custom" value="custom"
+               onchange="toggleAuthField('auth-custom-fields')">
+        <b>&nbsp;Custom Authentication (optional):</b>
+    </label>
+</div>
+<div class="auth-row">
+    <div id="auth-custom-fields" style="display:none" class="auth-fields">
+        <input name="api_key" class="form-control-sm" title="x-api-key (optional)"
+               placeholder="x-api-key value (optional)" autocomplete="off"
+               {% if webhook_info and webhook_info[0].api_key != 'null' %}value="{{ webhook_info[0].api_key }}"{% endif %}>
+    </div>
+</div>
+{% endif %}
+{% if show_output %}
+<div class="auth-row">
+    <label>
+        <input name="output" class="form-check-input" type="checkbox"
+               {% if webhook_info and webhook_info[0].output %}checked{% endif %}>
+        <b>&nbsp;Send script output in response?</b>
+    </label>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro jamf_auth_fields(webhook_info=none, default_api_key=none, allow_none=true) %}
+{# These are RADIOS, so they need hide-all-then-show-one. The shared
+   toggleAuthField() FLIPS one div, which is right for the checkboxes in
+   auth_fields() above but wrong here: a radio's change event fires only
+   on gaining selection, never on losing it. Basic -> Custom -> Basic
+   therefore ended with Basic SELECTED and its fields HIDDEN, and
+   submitting that wrote authentication_type NONE while the screen said
+   Basic -- a silently unauthenticated webhook. An explicit "No
+   authentication" radio also makes the documented default visible and
+   gives the operator a way back, which two radios alone did not. #}
+{% set has_basic = webhook_info and webhook_info[0].webhook_username not in (none, '', 'null') %}
+{% set has_custom = (webhook_info and webhook_info[0].api_key not in (none, '', 'null')) or (not webhook_info and default_api_key) %}
+{% if allow_none %}
+<div class="auth-row">
+    <label>
+        <input type="radio" name="choice" value="none"
+               {% if not has_basic and not has_custom %}checked{% endif %}
+               onchange="selectJamfAuthMode('none')">
+        <b>&nbsp;No authentication</b>
+    </label>
+</div>
+{% endif %}
+<div class="auth-row">
+    <label>
+        <input type="radio" name="choice" value="basic"
+               {% if has_basic %}checked{% endif %}
+               onchange="selectJamfAuthMode('basic')">
+        <b>&nbsp;Basic Authentication (optional):</b>
+    </label>
+</div>
+<div class="auth-row">
+    <div id="jamf-auth-basic-fields" class="center_box auth-fields{% if not has_basic %} is-hidden{% endif %}">
+        <div class="auth-row">
+            <input class="form-control-sm" name="basic_username" title="Username (optional)"
+                   autocomplete="off" placeholder="Username (optional)" style="padding: unset"
+                   {% if webhook_info and webhook_info[0].webhook_username != 'null' %}value="{{ webhook_info[0].webhook_username }}"{% endif %}>
+            <input name="basic_password" autocomplete="off" class="form-control-sm" type="password"
+                   title="Password (optional)" placeholder="Password (optional)" style="padding: unset">
+        </div>
+    </div>
+</div>
+<div class="auth-row">
+    <label>
+        <input type="radio" name="choice" value="custom"
+               {% if has_custom %}checked{% endif %}
+               onchange="selectJamfAuthMode('custom')">
+        <b>&nbsp;Custom Authentication (optional):</b>
+    </label>
+</div>
+<div class="auth-row">
+    <div id="jamf-auth-custom-fields" class="auth-fields{% if not has_custom %} is-hidden{% endif %}">
+        <input name="api_key" class="form-control-sm" title="x-api-key (optional)"
+               placeholder="x-api-key value (optional)" autocomplete="off"
+               {% if webhook_info and webhook_info[0].api_key != 'null' %}value="{{ webhook_info[0].api_key }}"{% elif not webhook_info and default_api_key %}value="{{ default_api_key }}"{% endif %}>
+    </div>
+</div>
+{% endmacro %}

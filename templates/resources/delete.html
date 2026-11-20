@@ -1,6 +1,6 @@
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
 {###}
-{## Copyright (c) 2022 Jamf.  All rights reserved.#}
+{## Copyright (c) 2026 Jamf.  All rights reserved.#}
 {###}
 {##       Redistribution and use in source and binary forms, with or without#}
 {##       modification, are permitted provided that the following conditions are met:#}
@@ -25,38 +25,25 @@
 {##       SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.#}
 {###}
 {## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##}
+
 {% extends "shared/_layout.html" %}
-{% block title %}Confirm Delete{% endblock %}
+{% from "shared/_macros.html" import hero_section, delete_confirmation %}
+
+{% block title %}Delete File | JAWA{% endblock %}
+
 {% block content %}
-    <div>
-        <div class="test-links sub_links sticky-top" style="min-width: 100vw">
-        <div class="stat"><a href="/resources/files">Files</a></div>
-        <div class="stat"><a href="/log/home.html">Log</a></div>
-    </div>
-    <div class="form-container">
-        <form action="#" method="POST" class="table-view"
-              enctype="multipart/form-data">
-            <h1>Confirm Delete:</h1>
-            <div class="font-weight-bold text-center">Resource file -
-            {% if target_file %}{{ target_file }}{% endif %} </div>
-            <div class="d-flex justify-content-center">
-                <div class="confirm-delete-box">
-                    <i>Deleting a file is a permanent action.</i>
-                    <br/>
-                    Are you sure?
-                    {#                Don't you call me a mindless philosopher!     #}
-                    {#                    ~ C-3PO, a Star War                       #}
-                    {#                                                              #}
-                </div>
-                <br/>
-            </div>
-                <div class="d-flex dash-list justify-content-center">
-                    <button type=submit name="button_choice" value="Delete" class="btn btn-danger" style="margin: 5px">
+{{ hero_section(
+    title="Delete Resource File",
+    subtitle="Confirm deletion of file",
+    secondary_url="/resources/files",
+    secondary_label="Back to Files"
+) }}
 
-                        Delete
-
-                    </button>
-                </div>
+{{ delete_confirmation(
+    target_file,
+    "File",
+    url_for('resources_view.delete_file', target_file=target_file),
+    cancel_url="/resources/files",
+    warning_detail="This will permanently delete this file from the resources directory. Any automation script that reads it will start failing."
+) }}
 {% endblock %}
-</div>
-</body>

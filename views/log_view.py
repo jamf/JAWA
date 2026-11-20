@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
-# Copyright (c) 2022 Jamf.  All rights reserved.
+# Copyright (c) 2026 Jamf.  All rights reserved.
 #
 #       Redistribution and use in source and binary forms, with or without
 #       modification, are permitted provided that the following conditions are met:
@@ -27,26 +27,23 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import os
-import re
-import subprocess
+from collections import deque
 from datetime import datetime
-from time import sleep
 from typing import Union
 
 from flask import (
     Blueprint,
-    current_app,
     redirect,
     render_template,
     Response,
     request,
+    jsonify,
     send_file,
     session,
     url_for,
 )
 
 from bin import logger
-from bin.view_modifiers import response
 
 logthis = logger.setup_child_logger("jawa", __name__)
 
@@ -59,26 +56,37 @@ server_json_file = os.path.abspath(
 
 blueprint = Blueprint("log_view", __name__, template_folder="templates")
 
+ERROR_TITLE = "Session Timed Out"
+ERROR_MSG_SIGN_IN = "Please sign in again"
+LOGOUT_ENDPOINT = "home_view.logout"
+LOG_TEMPLATE = "log/home.html"
+LOG_TAIL_LINES = 500
+
+
+def _read_recent_logs() -> list:
+    """Read the last LOG_TAIL_LINES lines from the log file."""
+    with open(log_file, "r") as fin:
+        tail = deque(fin, maxlen=LOG_TAIL_LINES)
+    return [line.replace("\n", "") for line in tail]
+
 
 @blueprint.route("/log/home.html", methods=["GET"])
 def log_home() -> Union[Response, str]:
     if "username" not in session:
         return redirect(
             url_for(
-                "home_view.logout",
-                error_title="Session Timed Out",
-                error_message="Please sign in again",
+                LOGOUT_ENDPOINT,
+                error_title=ERROR_TITLE,
+                error_message=ERROR_MSG_SIGN_IN,
             )
         )
     logthis.debug(
         f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}"
     )
-    with open(log_file, "r") as fin:
-        lines = [re.sub("\n", "", line) for line in fin.readlines()]
-        lines.reverse()
-        view_lines = lines[:500]
     return render_template(
-        "log/home.html", username=session.get("username"), log=view_lines
+        LOG_TEMPLATE,
+        log=_read_recent_logs(),
+        debug_enabled=logger.is_debug_enabled(),
     )
 
 
@@ -87,74 +95,27 @@ def log_view() -> Union[Response, str]:
     if "username" not in session:
         return redirect(
             url_for(
-                "home_view.logout",
-                error_title="Session Timed Out",
-                error_message="Please sign in again",
+                LOGOUT_ENDPOINT,
+                error_title=ERROR_TITLE,
+                error_message=ERROR_MSG_SIGN_IN,
             )
         )
     logthis.debug(
         f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}"
     )
-    with open(log_file, "r") as fin:
-        lines = [re.sub("\n", "", line) for line in fin.readlines()]
-        lines.reverse()
-        view_lines = lines[:500]
     return render_template(
-        "log/home.html", username=session.get("username"), log=view_lines
+        LOG_TEMPLATE,
+        log=_read_recent_logs(),
+        debug_enabled=logger.is_debug_enabled(),
     )
 
 
-@blueprint.route("/log/live.html", methods=["GET"])
-@response(template_file="log/live.html")
-def stream() -> Response:
+@blueprint.route("/log/lines", methods=["GET"])
+def log_lines() -> Union[Response, tuple]:
+    """Recent log lines as JSON, so Follow can update the page in place."""
     if "username" not in session:
-        return redirect(
-            url_for(
-                "home_view.logout",
-                error_title="Session Timed Out",
-                error_message="Please sign in again",
-            )
-        )
-    logthis.debug(
-        f"[{session.get('url')}] {session.get('username').title()} viewed {request.path}"
-    )
-
-    def generate():
-        with open(log_file) as f:
-            while True:
-                yield f.read()
-
-    return current_app.response_class(generate(), mimetype="text/plain")
-
-
-@blueprint.route("/log/yield")
-def yield_log() -> Response:
-    if "username" not in session:
-        return redirect(
-            url_for(
-                "home_view.logout",
-                error_title="Session Timed Out",
-                error_message="Please sign in again",
-            )
-        )
-    logthis.info(
-        f"/log/yield accessed by {session.get('username') or 'nobody'}"
-    )
-
-    def inner():
-        proc = subprocess.Popen(
-            [
-                f"tail -f {log_file}"
-            ],  # call something with a lot of output so we can see it
-            shell=True,
-            stdout=subprocess.PIPE,
-        )
-
-        for line in iter(proc.stdout.readline, ""):
-            sleep(0.1)  # Don't need this just shows the text streaming
-            yield line.rstrip().decode() + "<br/>\n"
-
-    return Response(inner(), mimetype="text/html")
+        return jsonify(error="signed out"), 401
+    return jsonify(lines=_read_recent_logs())
 
 
 @blueprint.route("/log/download")
@@ -162,9 +123,9 @@ def download_logs() -> Response:
     if "username" not in session:
         return redirect(
             url_for(
-                "home_view.logout",
-                error_title="Session Timed Out",
-                error_message="Please sign in again",
+                LOGOUT_ENDPOINT,
+                error_title=ERROR_TITLE,
+                error_message=ERROR_MSG_SIGN_IN,
             )
         )
     logthis.info(
@@ -177,3 +138,25 @@ def download_logs() -> Response:
         as_attachment=True,
         download_name=f"{datetime.now()}-jawa.log",
     )
+
+
+@blueprint.route("/log/toggle-debug", methods=["POST"])
+def toggle_debug() -> Response:
+    """Toggle DEBUG logging on/off."""
+    if "username" not in session:
+        return redirect(
+            url_for(
+                LOGOUT_ENDPOINT,
+                error_title=ERROR_TITLE,
+                error_message=ERROR_MSG_SIGN_IN,
+            )
+        )
+
+    new_level = logger.toggle_debug()
+
+    logthis.info(
+        f"[{session.get('url')}] {session.get('username')} "
+        f"toggled debug logging to {new_level}"
+    )
+
+    return redirect(url_for("log_view.log_home"))

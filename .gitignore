@@ -28,6 +28,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!data/workflows/lib/
 lib64/
 parts/
 sdist/
@@ -151,3 +152,22 @@ dmypy.json
 
 # ruff
 .ruff_cache
+
+# LLM generated files
+.claude/
+CLAUDE.md
+
+# JAWA runtime data
+data/server.json
+data/credentials.json
+data/cron.json
+data/webhooks.json
+data/tap_cooldowns.json
+data/cron_alerts.json
+resources/files/
+/scripts/
+data/brander_templates/
+data/tap_icons/
+
+# ignore the generated session key
+data/.secret_key

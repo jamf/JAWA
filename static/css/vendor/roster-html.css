@@ -1,0 +1,224 @@
+/* roster-bridge 0.1.0 from @blakesteve/roster 5.17.0 roster-html.css sha256:6486d5f3823f */
+/* Plain-CSS primitives for server-rendered pages. Load roster-web.css first; every colour here is one of its
+   variables. Dark mode: .dark on <html> (theme.js). Icons: icons.svg. Recipes ported from roster's
+   button/card/badge/alert/empty-state/table variants. */
+
+.rb-btn, .rb-badge, .rb-status, .rb-alert, .rb-table, .rb-empty { font-family: var(--roster-font-ui); box-sizing: border-box; }
+.rb-btn svg, .rb-badge svg, .rb-status svg, .rb-alert svg, .rb-empty svg { width: 1em; height: 1em; flex-shrink: 0; fill: currentColor; }
+
+/* Button: solid primary by default; --outline, --ghost, --error; --sm, --lg. */
+.rb-btn {
+  --_bg: var(--roster-primary-600);
+  --_bg-hover: var(--roster-primary-700);
+  --_fg: var(--roster-white);
+  --_bd: transparent;
+  --_shadow: 0 1px 3px 0 color-mix(in srgb, var(--roster-black) 10%, transparent), 0 1px 2px -1px color-mix(in srgb, var(--roster-black) 10%, transparent);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--rb-space-2);
+  height: var(--rb-space-10); padding: 0 var(--rb-space-4);
+  border: 1px solid var(--_bd); border-radius: var(--rb-radius-md);
+  background: var(--_bg); color: var(--_fg); box-shadow: var(--_shadow);
+  font-size: var(--rb-text-sm); line-height: var(--rb-leading-sm); font-weight: 500;
+  white-space: nowrap; text-decoration: none; cursor: pointer;
+  transition: color .15s, background-color .15s, border-color .15s;
+}
+.rb-btn:hover { background: var(--_bg-hover); }
+.rb-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--roster-ring-offset), 0 0 0 4px var(--roster-ring); }
+.rb-btn:disabled, .rb-btn[aria-disabled="true"] { pointer-events: none; opacity: .5; }
+.rb-btn--sm { height: calc(var(--rb-space-1) * 9); padding: 0 var(--rb-space-3); }
+.rb-btn--lg { height: calc(var(--rb-space-1) * 11); padding: 0 var(--rb-space-8); }
+.rb-btn--error { --_bg: var(--roster-error-600); --_bg-hover: var(--roster-error-700); }
+.rb-btn--outline {
+  --_bg: transparent; --_bg-hover: var(--roster-primary-50);
+  --_fg: var(--roster-primary-600); --_bd: var(--roster-primary-600);
+}
+.rb-btn--ghost {
+  --_bg: transparent; --_bg-hover: color-mix(in srgb, var(--roster-primary-500) 10%, transparent);
+  --_fg: var(--roster-primary-600); --_shadow: none;
+}
+.dark .rb-btn { --_bg-hover: var(--roster-primary-500); }
+.dark .rb-btn--error { --_bg-hover: var(--roster-error-500); }
+.dark .rb-btn--outline {
+  --_bg-hover: color-mix(in srgb, var(--roster-primary-500) 10%, transparent);
+  --_fg: var(--roster-primary-400); --_bd: var(--roster-primary-500);
+}
+.dark .rb-btn--ghost { --_bg-hover: color-mix(in srgb, var(--roster-primary-400) 15%, transparent); --_fg: var(--roster-primary-400); }
+
+/* Card: roster's default "white" card, driven by --roster-card-*. */
+.rb-card {
+  position: relative; box-sizing: border-box; width: 100%; overflow: hidden;
+  padding: var(--rb-space-6); border: 1px solid var(--roster-card-border); border-radius: var(--rb-radius-xl);
+  background: var(--roster-card-bg); color: var(--roster-card-text); box-shadow: var(--roster-elevation-raised);
+}
+.rb-card--sm { padding: var(--rb-space-4); }
+.rb-card--lg { padding: var(--rb-space-8); }
+.rb-card__title { margin: 0 0 var(--rb-space-2); font-size: var(--rb-text-xl); line-height: var(--rb-leading-xl); font-weight: 700; }
+.rb-card__body { margin: 0; color: var(--roster-gray-700); font-size: var(--rb-text-base); line-height: 1.625; }
+.dark .rb-card__body { color: var(--roster-gray-300); }
+
+/* Badge: soft fill. Neutral by default; --primary, --ok, --warn, --danger, --info. */
+.rb-badge {
+  --_bg: var(--roster-gray-100); --_bd: var(--roster-gray-200); --_fg: var(--roster-gray-700);
+  display: inline-flex; align-items: center; gap: calc(var(--rb-space-1) * 1.5); max-width: 100%;
+  height: var(--rb-space-6); padding: 0 calc(var(--rb-space-1) * 2.5);
+  border: 1px solid var(--_bd); border-radius: var(--rb-radius-md); background: var(--_bg); color: var(--_fg);
+  font-size: var(--rb-text-xs); line-height: var(--rb-leading-xs); font-weight: 500; white-space: nowrap;
+}
+.rb-badge svg { width: .75rem; height: .75rem; opacity: .7; }
+.rb-badge--primary { --_bg: var(--roster-primary-50); --_bd: var(--roster-primary-200); --_fg: var(--roster-primary-700); }
+.rb-badge--ok { --_bg: var(--roster-success-50); --_bd: var(--roster-success-200); --_fg: var(--roster-success-700); }
+.rb-badge--warn { --_bg: var(--roster-amber-50); --_bd: var(--roster-amber-200); --_fg: var(--roster-amber-800); }
+.rb-badge--danger { --_bg: var(--roster-error-50); --_bd: var(--roster-error-200); --_fg: var(--roster-error-700); }
+.rb-badge--info { --_bg: var(--roster-info-50); --_bd: var(--roster-info-200); --_fg: var(--roster-info-700); }
+.dark .rb-badge {
+  --_bg: color-mix(in srgb, var(--roster-gray-800) 50%, transparent);
+  --_bd: color-mix(in srgb, var(--roster-gray-700) 50%, transparent); --_fg: var(--roster-gray-300);
+}
+.dark .rb-badge--primary {
+  --_bg: color-mix(in srgb, var(--roster-primary-900) 30%, transparent);
+  --_bd: color-mix(in srgb, var(--roster-primary-800) 50%, transparent); --_fg: var(--roster-primary-300);
+}
+.dark .rb-badge--ok {
+  --_bg: color-mix(in srgb, var(--roster-success-900) 30%, transparent);
+  --_bd: color-mix(in srgb, var(--roster-success-800) 50%, transparent); --_fg: var(--roster-success-300);
+}
+.dark .rb-badge--warn {
+  --_bg: color-mix(in srgb, var(--roster-amber-900) 30%, transparent);
+  --_bd: color-mix(in srgb, var(--roster-amber-800) 50%, transparent); --_fg: var(--roster-amber-300);
+}
+.dark .rb-badge--danger {
+  --_bg: color-mix(in srgb, var(--roster-error-900) 30%, transparent);
+  --_bd: color-mix(in srgb, var(--roster-error-800) 50%, transparent); --_fg: var(--roster-error-300);
+}
+.dark .rb-badge--info {
+  --_bg: color-mix(in srgb, var(--roster-info-900) 30%, transparent);
+  --_bd: color-mix(in srgb, var(--roster-info-800) 50%, transparent); --_fg: var(--roster-info-300);
+}
+
+/* Status: icon + text, inline. Always both; colour is never the only cue. */
+.rb-status {
+  display: inline-flex; align-items: center; gap: calc(var(--rb-space-1) * 1.5);
+  font-size: var(--rb-text-sm); line-height: var(--rb-leading-sm); font-weight: 500;
+}
+.rb-status--ok { color: var(--rb-status-ok-ink); }
+.rb-status--warn { color: var(--rb-status-warn-ink); }
+.rb-status--danger { color: var(--rb-status-danger-ink); }
+.rb-status--info { color: var(--rb-status-info-ink); }
+.rb-status--ok svg { color: var(--rb-status-ok); }
+.rb-status--warn svg { color: var(--rb-status-warn); }
+.rb-status--danger svg { color: var(--rb-status-danger); }
+.rb-status--info svg { color: var(--rb-status-info); }
+
+/* Alert: icon, title, body. --ok, --warn, --danger (default), --info. */
+.rb-alert {
+  --_bd: var(--roster-error-500); --_bg: var(--roster-error-50); --_fg: var(--roster-error-800);
+  display: flex; align-items: flex-start; gap: calc(var(--rb-space-1) * 2.5);
+  padding: var(--rb-space-3) var(--rb-space-4); border-left: 4px solid var(--_bd); border-radius: var(--rb-radius-lg);
+  background: var(--_bg); color: var(--_fg); font-size: var(--rb-text-sm); line-height: var(--rb-leading-sm);
+}
+.rb-alert > svg { width: 1rem; height: 1rem; margin-top: .125rem; }
+.rb-alert__content { flex: 1; min-width: 0; }
+.rb-alert__title { margin: 0; font-weight: 600; }
+.rb-alert__body { margin: 0; }
+.rb-alert__title + .rb-alert__body { margin-top: .125rem; opacity: .9; }
+.rb-alert--ok { --_bd: var(--roster-success-500); --_bg: var(--roster-success-50); --_fg: var(--roster-success-800); }
+.rb-alert--warn { --_bd: var(--roster-amber-500); --_bg: var(--roster-amber-50); --_fg: var(--roster-amber-900); }
+.rb-alert--info { --_bd: var(--roster-info-500); --_bg: var(--roster-info-50); --_fg: var(--roster-info-800); }
+.dark .rb-alert {
+  --_bd: var(--roster-error-400); --_bg: color-mix(in srgb, var(--roster-error-500) 10%, transparent); --_fg: var(--roster-error-200);
+}
+.dark .rb-alert--ok {
+  --_bd: var(--roster-success-400); --_bg: color-mix(in srgb, var(--roster-success-500) 10%, transparent); --_fg: var(--roster-success-200);
+}
+.dark .rb-alert--warn {
+  --_bd: var(--roster-amber-400); --_bg: color-mix(in srgb, var(--roster-amber-500) 10%, transparent); --_fg: var(--roster-amber-200);
+}
+.dark .rb-alert--info {
+  --_bd: var(--roster-info-400); --_bg: color-mix(in srgb, var(--roster-info-500) 10%, transparent); --_fg: var(--roster-info-200);
+}
+
+/* Table: <div class="rb-table"><table>...</table></div>. --zebra, --hover; .rb-num for numbers. */
+.rb-table {
+  width: 100%; overflow: auto; border: 1px solid var(--roster-gray-200); border-radius: var(--rb-radius-md);
+  background: var(--roster-white);
+}
+.rb-table > table { width: 100%; border-collapse: collapse; caption-side: bottom; font-size: var(--rb-text-sm); line-height: var(--rb-leading-sm); }
+.rb-table thead { background: var(--roster-gray-50); }
+.rb-table tr { border-bottom: 1px solid var(--roster-gray-200); }
+.rb-table tbody tr:last-child { border-bottom: 0; }
+.rb-table th {
+  height: var(--rb-space-12); padding: 0 var(--rb-space-4); text-align: left; vertical-align: middle;
+  font-weight: 600; letter-spacing: .025em; color: var(--roster-gray-600);
+}
+.rb-table td { padding: var(--rb-space-4); vertical-align: middle; color: var(--roster-gray-700); }
+.rb-table caption { padding: var(--rb-space-3); color: var(--roster-gray-500); font-size: var(--rb-text-xs); }
+.rb-table .rb-num { text-align: right; font-variant-numeric: tabular-nums; }
+.rb-table--zebra tbody tr:nth-child(even) { background: var(--roster-gray-50); }
+.rb-table--hover tbody tr:hover { background: color-mix(in srgb, var(--roster-gray-100) 60%, transparent); }
+.dark .rb-table { border-color: var(--roster-gray-800); background: var(--roster-gray-950); }
+.dark .rb-table thead { background: var(--roster-gray-900); }
+.dark .rb-table tr { border-color: var(--roster-gray-800); }
+.dark .rb-table th { color: var(--roster-gray-400); }
+.dark .rb-table td { color: var(--roster-gray-300); }
+.dark .rb-table--zebra tbody tr:nth-child(even) { background: color-mix(in srgb, var(--roster-gray-900) 60%, transparent); }
+.dark .rb-table--hover tbody tr:hover { background: color-mix(in srgb, var(--roster-gray-800) 50%, transparent); }
+
+/* Empty state: icon, title, description, action. */
+.rb-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  padding: var(--rb-space-8); border: 2px dashed var(--roster-gray-300); border-radius: var(--rb-radius-lg);
+  background: var(--roster-gray-50);
+}
+.rb-empty__icon {
+  display: flex; align-items: center; justify-content: center; width: var(--rb-space-12); height: var(--rb-space-12);
+  margin-bottom: var(--rb-space-4); border-radius: 50%; background: var(--roster-gray-100); color: var(--roster-gray-400);
+}
+.rb-empty__icon svg { width: var(--rb-space-6); height: var(--rb-space-6); }
+.rb-empty__title { margin: 0; font-size: var(--rb-text-lg); line-height: var(--rb-leading-lg); font-weight: 600; color: var(--roster-gray-900); }
+.rb-empty__desc { max-width: 24rem; margin: var(--rb-space-1) 0 0; font-size: var(--rb-text-sm); line-height: var(--rb-leading-sm); color: var(--roster-gray-500); }
+.rb-empty__action { margin-top: var(--rb-space-6); }
+.dark .rb-empty { border-color: var(--roster-gray-700); background: color-mix(in srgb, var(--roster-gray-500) 10%, transparent); }
+.dark .rb-empty__icon { background: var(--roster-gray-800); color: var(--roster-gray-500); }
+.dark .rb-empty__title { color: var(--roster-gray-100); }
+.dark .rb-empty__desc { color: var(--roster-gray-400); }
+
+/* Skeleton: block (default), --line, --circle. Shimmer stops under prefers-reduced-motion.
+   Colours and block radius follow roster's --roster-skeleton* tokens (5.11+); the fallbacks are the pre-5.11 values. */
+.rb-skeleton {
+  --_base: var(--roster-skeleton, var(--roster-gray-200)); --_hi: var(--roster-skeleton-highlight, var(--roster-gray-100));
+  display: block; height: calc(var(--rb-space-1) * 24); border-radius: var(--roster-skeleton-radius, var(--rb-radius-lg));
+  background: linear-gradient(90deg, var(--_base) 25%, var(--_hi) 50%, var(--_base) 75%) 0 0 / 200% 100%;
+  animation: rb-shimmer 1.5s linear infinite;
+}
+.rb-skeleton--line { height: var(--rb-space-3); border-radius: var(--rb-radius-sm); }
+.rb-skeleton--line + .rb-skeleton--line { margin-top: var(--rb-space-2); }
+.rb-skeleton--line:last-child:not(:first-child) { width: 60%; }
+.rb-skeleton--circle { width: var(--rb-space-10); height: var(--rb-space-10); border-radius: 50%; }
+.dark .rb-skeleton { --_base: var(--roster-skeleton, var(--roster-gray-800)); --_hi: var(--roster-skeleton-highlight, var(--roster-gray-700)); }
+@keyframes rb-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .rb-skeleton { animation: none; background: var(--_base); }
+}
+
+/* Forms: .rb-field > .rb-label + .rb-input (input, select, textarea) or .rb-check, .rb-field__hint, .rb-field__error. */
+.rb-field { display: block; margin-bottom: var(--rb-space-4); font-family: var(--roster-font-ui); }
+.rb-field--check { display: flex; flex-wrap: wrap; align-items: center; gap: var(--rb-space-2); }
+.rb-label { display: block; margin-bottom: calc(var(--rb-space-1) * 1.5); color: var(--roster-control-text); font-size: var(--rb-text-sm); line-height: 1; font-weight: 500; }
+.rb-field--check .rb-label { margin: 0; }
+.rb-input {
+  display: flex; box-sizing: border-box; width: 100%; height: var(--rb-space-10); padding: 0 var(--rb-space-4);
+  border: 1px solid var(--roster-control-border); border-radius: var(--rb-radius-md);
+  background: var(--roster-control-bg); color: var(--roster-control-text); font: inherit; font-size: var(--rb-text-sm);
+  transition: border-color .15s, box-shadow .15s;
+}
+textarea.rb-input { min-height: 80px; height: auto; padding: calc(var(--rb-space-1) * 2.5) var(--rb-space-4); }
+select.rb-input { cursor: pointer; }
+.rb-input::placeholder { color: color-mix(in srgb, var(--roster-control-text) 55%, transparent); }
+.rb-input:focus-visible, .rb-check:focus-visible { outline: none; border-color: var(--roster-control-border-focus); box-shadow: 0 0 0 2px var(--roster-ring-offset), 0 0 0 4px var(--roster-ring); }
+.rb-input:disabled, .rb-check:disabled { cursor: not-allowed; opacity: .5; }
+.rb-check { width: 1rem; height: 1rem; margin: 0; accent-color: var(--roster-ring); }
+.rb-input[aria-invalid="true"] { border-color: var(--roster-error-500); }
+.rb-field__hint, .rb-field__error { flex-basis: 100%; margin: calc(var(--rb-space-1) * 1.5) 0 0; font-size: var(--rb-text-xs); line-height: var(--rb-leading-xs); color: var(--roster-gray-500); }
+.rb-field__error { display: flex; align-items: center; gap: var(--rb-space-1); font-weight: 500; color: var(--roster-error-600); }
+.rb-field__error svg { width: 1em; height: 1em; flex-shrink: 0; fill: currentColor; }
+.dark .rb-field__hint { color: var(--roster-gray-400); }
+.dark .rb-field__error { color: var(--roster-error-400); }

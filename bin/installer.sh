@@ -102,22 +102,57 @@ installPackagesRedHat() {
 /usr/bin/clear
   echo -ne '[######                  ](34%) Installing epel-release from dnf... '
   echo '[######                  ](34%) Installing epel-release from dnf...' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/dnf install -y epel-release >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  # This is the one place RHEL and Rocky genuinely diverge. Rocky carries
+  # epel-release in its own repos; RHEL does not, so `dnf install epel-release`
+  # exits "No match for argument" and every EPEL-only package after it --
+  # fail2ban, nload -- then fails silently too. Verified on RHEL 9.8. Install
+  # from the Fedora URL there, keyed to the running major version rather than a
+  # hardcoded 9.
+  if [ "$(detect_os)" == "redhat" ]; then
+    rhelMajor=$(/usr/bin/rpm -E %rhel 2>/dev/null)
+    if [ -z "$rhelMajor" ] || [ "$rhelMajor" == "%rhel" ]; then
+      rhelMajor=9
+      /bin/echo "Could not determine the RHEL major version; assuming $rhelMajor for EPEL." >>/var/log/jawaInstall.log 2>&1
+    fi
+    /usr/bin/dnf install -y "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${rhelMajor}.noarch.rpm" >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  else
+    /usr/bin/dnf install -y epel-release >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  fi
+  # EPEL is optional -- JAWA runs without it -- but say so rather than letting
+  # fail2ban and nload vanish without a word.
+  if ! /usr/bin/rpm -q epel-release >/dev/null 2>&1; then
+    /bin/echo "NOTE: EPEL is not available on this host; fail2ban and nload will be skipped." >>/var/log/jawaInstall.log 2>&1
+    epelMissing="yes"
+  fi
 
   /usr/bin/clear
   /bin/echo -ne '[#######                ](35%) Installing nginx from yum... '
   /bin/echo '[#######                ](35%) Installing nginx... ' >>/var/log/jawaInstall.log 2>&1
   /usr/bin/yum install -y nginx >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   /usr/bin/clear
-  echo -ne '[########                ](40%) Installing python from yum... '
-  echo '[########                ](40%) Installing python from yum...' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/yum install -y python3 >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  echo -ne '[########                ](40%) Installing python3, pip and headers from yum... '
+  echo '[########                ](40%) Installing python3, python3-pip, python3-devel...' >>/var/log/jawaInstall.log 2>&1
+  # python3 alone does NOT bring pip on RHEL 9 -- verified on RHEL 9.8, where a
+  # stock run aborted at the pip safety check with exit 2. Ubuntu's step has
+  # always installed python3-pip and python3-dev explicitly; this mirrors it.
+  # python3-devel is the RHEL name for python3-dev, and is needed to build any
+  # dependency without a wheel. venv needs no separate package here, unlike
+  # Debian, where it is split into python3-venv.
+  /usr/bin/yum install -y python3 python3-pip python3-devel >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
 
  # Stop the hackers
   /usr/bin/clear
   /bin/echo -ne '[#########               ](45%) Installing fail2ban from yum... '
-  /bin/echo '[#########               ](45%)) Installing fail2ban from yum... ' >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/dnf install fail2ban -y >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /bin/echo '[#########               ](45%) Installing fail2ban from yum... ' >>/var/log/jawaInstall.log 2>&1
+  # Both live in EPEL, so skip them with a word rather than emitting a
+  # confusing "No match for argument" when EPEL could not be added. nload is
+  # here to match Ubuntu's package set, which has always installed it.
+  if [ "${epelMissing:-no}" == "yes" ]; then
+    /bin/echo "Skipping fail2ban and nload: EPEL unavailable." >>/var/log/jawaInstall.log 2>&1
+    sleep 1 & spinner $! ""
+  else
+    /usr/bin/dnf install fail2ban nload -y >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  fi
 # For the bash inclined
   /usr/bin/clear
   /bin/echo -ne '[##########              ](50%) Installing jq from yum... '
@@ -182,9 +217,35 @@ configure_firewall() {
 
     case $os in
         "rocky" | "redhat")
-            # RedHat | Rocky Firewall
-            /usr/bin/firewall-cmd --zone=public --add-port=443/tcp --permanent
-            /usr/bin/firewall-cmd --zone=public --add-port=22/tcp --permanent
+            # RedHat | Rocky Firewall.
+            #
+            # firewall-cmd was called by absolute path with no existence check,
+            # so on an image without firewalld -- Red Hat's own EC2 AMI, for one
+            # -- the install printed two "No such file or directory" errors and
+            # carried on with no OS firewall and no mention of it. Verified on
+            # RHEL 9.8.
+            #
+            # It also never reloaded. --permanent writes the persistent config
+            # but does not touch the running firewall, so on a host that DOES
+            # run firewalld, 443 stayed closed until something reloaded it and
+            # JAWA was unreachable for reasons nothing reported.
+            firewallTool=$(command -v firewall-cmd 2>/dev/null)
+            if [ -z "$firewallTool" ]; then
+              /bin/echo ""
+              /bin/echo "${cYellow}NOTE${cReset}     firewalld is not installed on this host, so no OS firewall was configured."
+              /bin/echo "         JAWA needs inbound 443 (and 22 for SSH). If a firewall is added later,"
+              /bin/echo "         or if your cloud security group restricts inbound traffic, open them there."
+              /bin/echo ""
+              /bin/echo "NOTE: firewall-cmd absent; no OS firewall configured" >>/var/log/jawaInstall.log 2>&1
+            else
+              "$firewallTool" --zone=public --add-port=443/tcp --permanent >>/var/log/jawaInstall.log 2>&1
+              "$firewallTool" --zone=public --add-port=22/tcp --permanent >>/var/log/jawaInstall.log 2>&1
+              # Apply it now; --permanent alone leaves the running firewall untouched.
+              "$firewallTool" --reload >>/var/log/jawaInstall.log 2>&1
+              if [ $? -ne 0 ]; then
+                /bin/echo "NOTE: firewall-cmd --reload failed; ports 22/443 may not be open until reboot" >>/var/log/jawaInstall.log 2>&1
+              fi
+            fi
             ;;
         "ubuntu")
             # Ubuntu Firewall
@@ -207,22 +268,6 @@ configure_firewall() {
     esac
 }
 
-addToLog(){
-    ## Usage
-    ## addToLog <Text> <Log File>
-    logFile="${$1}"
-    fillerText="${$2}"
-
-    echo "$(date -j)" "$2" >> "$1"
-
-}
-
-timestamp() {
-  /bin/echo ""
-  /bin/echo -n $(date +"%D %T -")
-  /bin/echo -n " "
-}
-
 readme() {
 
   /usr/bin/clear
@@ -239,7 +284,7 @@ readme() {
 |  \`--'  |  /  _____  \  \    /\    / /  _____  \  
  \______/  /__/     \__\  \__/  \__/ /__/     \__\  
 
-                        v3.1.1
+                        v4.0.0
 
 
 Welcome to the Jamf Automation and Webhook Assistant, we hope it provides the solution you are looking for.
@@ -249,39 +294,284 @@ Please make sure you:
 *  have a full-chain server certificate and private key in $currentDir
 *  Certificate must be named jawa.crt
 *  Private key file must be named jawa.key
-*  Note: if upgrading from v2, choose the upgrade path /usr/local
 "
 }
 
-cancel() {
-  /bin/echo "Canceling..."
-  exit 0
+# Minimum Python minor version. JAWA's pinned dependency floor (requests 2.33,
+# urllib3 2.8, Flask 3.1 toolchain, patched pip/setuptools) publishes security
+# fixes only for Python >= 3.10, and upstream Python 3.9 and 3.10 themselves
+# are end-of-life (2025-10-31 and 2026-10-01) with no further security
+# releases. 3.12 is the oldest series still receiving upstream security
+# patches (until 2028-10) that ships as the DEFAULT python3 on a supported
+# platform: Ubuntu 24.04+ ships 3.12 as python3, and RHEL/Rocky 9.4+ provide
+# it as the python3.12 AppStream package (the installer installs and prefers
+# it automatically on RHEL-family hosts).
+jawaMinPyMinor=12
+# Interpreter the venv is built from. Empty until ensurePythonInterpreter()
+# resolves it; only set on RHEL-family hosts where the default python3 (3.9)
+# is below the floor and python3.12 must be used instead.
+jawaPythonBin=""
+
+# Resolves the interpreter the venv will be built from. On RHEL/Rocky the
+# unversioned python3 is 3.9 -- below JAWA's floor -- but python3.12 has been
+# a supported AppStream package since RHEL 9.4, so install it and use it
+# explicitly. Ubuntu 24.04+ already has python3 = 3.12, so nothing to do.
+# Runs inside install(), after installPackages(), before the venv is created.
+ensurePythonInterpreter() {
+  local pyVer
+  pyVer=$(/usr/bin/python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)
+  local pyMajor=${pyVer%%.*} pyMinor=${pyVer##*.}
+  if [ "$pyMajor" -eq 3 ] && [ "$pyMinor" -ge "$jawaMinPyMinor" ] 2>/dev/null; then
+    jawaPythonBin="python3"
+    return 0
+  fi
+  case $(detect_os) in
+    rocky|redhat)
+      /bin/echo -ne '[########                ](41%) Installing python3.12 from AppStream... '
+      /bin/echo 'python3 is below the JAWA floor; installing python3.12 AppStream package' >>/var/log/jawaInstall.log 2>&1
+      /usr/bin/dnf install -y python3.12 python3.12-pip python3.12-devel >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+      if ! /usr/bin/rpm -q python3.12 >/dev/null 2>&1; then
+        /bin/echo ""
+        /bin/echo "python3.12 could not be installed from the AppStream repo."
+        /bin/echo "JAWA requires Python 3.${jawaMinPyMinor} or later. RHEL/Rocky 9.4+ provides it as: dnf install python3.12"
+        /bin/echo "Your existing JAWA install, if any, has NOT been modified. Exiting..."
+        /bin/echo "Refusing to install: python3.12 AppStream package unavailable." >>/var/log/jawaInstall.log 2>&1
+        exit 2
+      fi
+      jawaPythonBin="python3.12"
+      ;;
+    *)
+      # checkPythonFloor refuses this host if python3 is below the floor.
+      jawaPythonBin="python3"
+      ;;
+  esac
+}
+
+# Colour, as raw ANSI rather than tput: a server's terminfo frequently does not
+# know a modern $TERM forwarded over SSH (see the TERM fallback at the bottom),
+# and every tput call then fails. printf puts real ESC bytes into these
+# variables, so a plain `/bin/echo "${cRed}..."` prints them -- this script has
+# never relied on `echo -e`, whose behaviour differs between shells and builds.
+#
+# All six are empty unless stdout is a terminal, so a redirected run stays
+# clean, and the >>jawaInstall.log lines are written uncoloured on purpose: the
+# log must stay greppable. NO_COLOR is honoured (https://no-color.org).
+initColour() {
+  cReset=""
+  cBold=""
+  cRed=""
+  cGreen=""
+  cYellow=""
+  cDate=""
+  if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+    cReset=$(printf '\033[0m')
+    cBold=$(printf '\033[1m')
+    cRed=$(printf '\033[1;31m')
+    cGreen=$(printf '\033[1;32m')
+    cYellow=$(printf '\033[1;33m')
+    cDate=$(printf '\033[36m')
+  fi
+}
+
+# Pads a role label to a fixed width BEFORE it is wrapped in colour. Padding
+# afterwards would count the ESC bytes toward the field width and misalign the
+# column by exactly the length of the escape sequence.
+certLabel() {
+  printf "%-${2:-8}s" "$1"
+}
+
+normalizeInstallDir() {
+  # Strip trailing slashes so "$installDir/jawa" cannot become
+  # "/usr/local//jawa". The paths were inconsistent -- one assignment used
+  # "/usr/local/" while two others used "/usr/local" -- which put a double
+  # slash into the systemd unit's ExecStart, the pip -r argument, and the
+  # final "JAWA installed at" line. Harmless to the kernel, but it makes
+  # the unit file and the logs look broken and defeats string comparison
+  # of paths. Keep "/" itself intact rather than reducing it to "".
+  while [ "$installDir" != "/" ] && [ "${installDir%/}" != "$installDir" ]; do
+    installDir="${installDir%/}"
+  done
+}
+
+checkPythonFloor() {
+  # Runs FIRST, before anything destructive. This used to be discovered at
+  # the 85% mark -- after cleaninstall had already removed the operator's
+  # working install -- so a 3.8 host was left with a dead service behind a
+  # "[########################](100%) Installation complete!" message.
+  if ! command -v "$jawaPythonBin" >/dev/null 2>&1; then
+    /bin/echo "$jawaPythonBin is not present."
+    /bin/echo "JAWA requires Python 3.${jawaMinPyMinor} or later. Install it and run this installer again."
+    /bin/echo "Your existing JAWA install, if any, has NOT been modified. Exiting..."
+    exit 2
+  fi
+  local pyMajor pyMinor pyVer
+  pyVer=$("$jawaPythonBin" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)
+  pyMajor=${pyVer%%.*}
+  pyMinor=${pyVer##*.}
+  if [ -z "$pyMajor" ] || [ -z "$pyMinor" ]; then
+    /bin/echo "Could not determine the Python version reported by $jawaPythonBin."
+    /bin/echo "Your existing JAWA install, if any, has NOT been modified. Exiting..."
+    exit 2
+  fi
+  /bin/echo "Detected Python $pyVer" >>/var/log/jawaInstall.log 2>&1
+  if [ "$pyMajor" -gt 3 ]; then
+    return 0
+  fi
+  if [ "$pyMajor" -eq 3 ] && [ "$pyMinor" -ge "$jawaMinPyMinor" ]; then
+    return 0
+  fi
+  /bin/echo ""
+  /bin/echo "JAWA requires Python 3.${jawaMinPyMinor} or later. This host has Python $pyVer."
+  /bin/echo ""
+  /bin/echo "  Supported: Ubuntu 24.04+ (python3 = 3.12) or RHEL/Rocky 9.4+."
+  /bin/echo "  On RHEL/Rocky 9 the default python3 is 3.9; the installer will use the"
+  /bin/echo "  python3.12 AppStream package, which 9.4+ provides."
+  /bin/echo ""
+  /bin/echo "  Reason: JAWA's dependencies publish security fixes only for Python 3.10+,"
+  /bin/echo "  and Python 3.9 and 3.10 no longer receive security updates at all."
+  /bin/echo "  3.12 is the oldest series that is both upstream-supported and default on"
+  /bin/echo "  a supported distribution."
+  /bin/echo ""
+  /bin/echo "Your existing JAWA install, if any, has NOT been modified. Exiting..."
+  /bin/echo "Refusing to install: Python $pyVer is below the 3.${jawaMinPyMinor} floor." >>/var/log/jawaInstall.log 2>&1
+  exit 2
+}
+
+# Prints a certificate's expiry date, or "unreadable" if it will not parse.
+certExpiry() {
+  local enddate
+  enddate=$(/usr/bin/openssl x509 -enddate -noout -in "$1" 2>/dev/null) || {
+    /bin/echo "unreadable"
+    return
+  }
+  /bin/echo "${enddate#notAfter=}"
+}
+
+# 0 when the certificate is already expired. An unparseable file returns 1: a
+# file we cannot read is not a file we can call expired.
+certIsExpired() {
+  /usr/bin/openssl x509 -noout -in "$1" >/dev/null 2>&1 || return 1
+  ! /usr/bin/openssl x509 -checkend 0 -noout -in "$1" >/dev/null 2>&1
+}
+
+# 0 when the certificate both parses and has not expired -- i.e. nginx can
+# actually serve it. `-checkend 0` already fails on an unreadable file, which
+# is the behaviour we want here: garbage is not usable either.
+certIsUsable() {
+  /usr/bin/openssl x509 -checkend 0 -noout -in "$1" >/dev/null 2>&1
+}
+
+# Say so when the certificate JAWA will actually serve is expired or close to
+# it. An expired cert makes the console unreachable in a browser while every
+# service check still passes, so silence here reads as an installer bug.
+warnIfCertStale() {
+  if certIsExpired "$1"; then
+    /bin/echo ""
+    /bin/echo "${cRed}WARNING${cReset}  the certificate JAWA will serve is ${cRed}EXPIRED${cReset}."
+    /bin/echo "         $1"
+    /bin/echo "         expired ${cDate}$(certExpiry "$1")${cReset}"
+    /bin/echo "         Browsers will refuse the JAWA console until it is replaced."
+    /bin/echo ""
+    /bin/echo "WARNING: serving expired cert $1" >>/var/log/jawaInstall.log 2>&1
+  elif /usr/bin/openssl x509 -noout -in "$1" >/dev/null 2>&1 &&
+    ! /usr/bin/openssl x509 -checkend 2592000 -noout -in "$1" >/dev/null 2>&1; then
+    /bin/echo ""
+    /bin/echo "${cYellow}NOTE${cReset}     the certificate JAWA will serve expires within 30 days."
+    /bin/echo "         $1"
+    /bin/echo "         expires ${cDate}$(certExpiry "$1")${cReset}"
+    /bin/echo ""
+    /bin/echo "NOTE: cert $1 expires within 30 days" >>/var/log/jawaInstall.log 2>&1
+  fi
 }
 
 install() {
+  # Resolve the interpreter first so the floor check sees python3.12 on
+  # RHEL-family hosts. Installing it does not touch an existing JAWA install.
+  ensurePythonInterpreter
+  checkPythonFloor
   /usr/bin/clear
   # Variables
 
 
-  x=0
-
-  if [ ! -f ./jawa.crt ] >/dev/null 2>&1; then
-    /bin/echo "Unable to locate jawa.crt in $currentDir" >>/var/log/jawaInstall.log 2>&1
-    x=$(($x + 1))
+  # Certificates. nginx reads /etc/ssl/certs/jawa.{crt,key}, so a host that
+  # already runs JAWA has a working pair there and the copy sitting in the
+  # current directory is often a stale leftover from the first install. This
+  # used to `cp` over the installed pair unconditionally, which is how a valid
+  # certificate gets replaced by an expired one -- a downgrade the operator
+  # only discovers later, as a browser error on a console the installer just
+  # reported as a success. Never trade a valid certificate for an expired one,
+  # and never make an upgrade re-supply certificates it already has.
+  certsDir="/etc/ssl/certs"
+  haveLocalCerts="no"
+  haveInstalledCerts="no"
+  if [ -f ./jawa.crt ] && [ -e ./jawa.key ]; then
+    haveLocalCerts="yes"
+  else
+    if [ ! -f ./jawa.crt ]; then
+      /bin/echo "Unable to locate jawa.crt in $currentDir" >>/var/log/jawaInstall.log 2>&1
+    fi
+    if [ ! -e ./jawa.key ]; then
+      /bin/echo "Unable to locate jawa.key in $currentDir" >>/var/log/jawaInstall.log 2>&1
+    fi
   fi
-  if [ ! -e ./jawa.key ] >/dev/null 2>&1; then
-    /bin/echo "Unable to locate jawa.key in $currentDir" >>/var/log/jawaInstall.log 2>&1
-    x=$(($x + 1))
+  if [ -f "$certsDir/jawa.crt" ] && [ -e "$certsDir/jawa.key" ]; then
+    haveInstalledCerts="yes"
   fi
 
-  if [[ $x -ne 0 ]]; then
+  if [ "$haveLocalCerts" == "no" ] && [ "$haveInstalledCerts" == "yes" ]; then
+    # Upgrading a host that already has certificates. Demanding them in the
+    # current directory again would push a working install into the
+    # self-signed menu for no reason.
+    /bin/echo ""
+    /bin/echo "${cBold}Certificate: no jawa.crt/jawa.key here, so the installed one is kept.${cReset}"
+    /bin/echo ""
+    /bin/echo "  ${cBold}$(certLabel "IN USE")${cReset}  $certsDir/jawa.crt"
+    /bin/echo "            ${cGreen}$(certLabel "VALID" 10)${cReset}  expires ${cDate}$(certExpiry "$certsDir/jawa.crt")${cReset}"
+    /bin/echo ""
+    /bin/echo "Keeping installed cert $certsDir/jawa.crt" >>/var/log/jawaInstall.log 2>&1
+    warnIfCertStale "$certsDir/jawa.crt"
+  elif [ "$haveLocalCerts" == "no" ]; then
     /bin/echo "Security requirements are not satisfied.
         Missing items are identified above--please provide the items in the installer directory before installing.
 
         Consult the admin guide for more information concerning certificates."
     certsMenu
+  elif [ "$haveInstalledCerts" == "yes" ] && certIsUsable "$certsDir/jawa.crt" && ! certIsUsable ./jawa.crt; then
+    # The copy in the current directory is expired or unreadable and the
+    # installed one still works. Installing the bad copy would take the
+    # console offline, so keep what works and say why.
+    # Roles first, paths second. The operator reading this at a progress bar
+    # needs to know which certificate is which and what it means before they
+    # need to know where either one lives.
+    if /usr/bin/openssl x509 -noout -in ./jawa.crt >/dev/null 2>&1; then
+      certRejectState="EXPIRED"
+      certRejectDetail="expired ${cDate}$(certExpiry ./jawa.crt)${cReset}"
+      certRejectReason="has expired ($(certExpiry ./jawa.crt))"
+    else
+      certRejectState="UNREADABLE"
+      certRejectDetail="not a valid certificate file"
+      certRejectReason="is not a readable certificate"
+    fi
+    /bin/echo ""
+    /bin/echo "${cBold}Certificate: keeping the one already in use. Nothing was replaced.${cReset}"
+    /bin/echo ""
+    /bin/echo "  ${cBold}$(certLabel "IN USE")${cReset}  $certsDir/jawa.crt"
+    /bin/echo "            ${cGreen}$(certLabel "VALID" 10)${cReset}  expires ${cDate}$(certExpiry "$certsDir/jawa.crt")${cReset}"
+    /bin/echo ""
+    /bin/echo "  ${cBold}$(certLabel "OFFERED")${cReset}  $currentDir/jawa.crt"
+    /bin/echo "            ${cRed}$(certLabel "$certRejectState" 10)${cReset}  $certRejectDetail"
+    /bin/echo ""
+    /bin/echo "  ${cBold}Impact:${cReset} none. JAWA keeps serving the certificate marked IN USE,"
+    /bin/echo "  so the console stays reachable. The OFFERED file was left untouched."
+    /bin/echo ""
+    /bin/echo "  To install a new certificate, replace jawa.crt and jawa.key in"
+    /bin/echo "  $currentDir and run this installer again."
+    /bin/echo ""
+    /bin/echo "Refused to overwrite valid $certsDir/jawa.crt with unusable ./jawa.crt (offered cert $certRejectReason)" >>/var/log/jawaInstall.log 2>&1
+  else
+    /bin/cp ./{jawa.crt,jawa.key} "$certsDir/"
+    warnIfCertStale "$certsDir/jawa.crt"
   fi
-  /bin/cp ./{jawa.crt,jawa.key} /etc/ssl/certs/
   # checking for service
   if [ -e /etc/systemd/system/jawa.service ]; then
     status=$(/bin/systemctl is-active --quiet jawa && echo Service is running)
@@ -292,9 +582,29 @@ install() {
       projectDir=$(systemctl status jawa.service | grep -i /jawa/app.py | awk '{ print $3 }' | rev | cut -c 7- | rev)
     fi
     installDir=$(dirname "$projectDir")
-    if [[ $installDir != "" ]]; then
-      installDir="/usr/local/"
+    # Trust the detected directory only after checking it, and fall back only
+    # when the check fails.
+    #
+    # This used to read `if [[ $installDir != "" ]]; then installDir=/usr/local`,
+    # which threw the detection away precisely when it had SUCCEEDED. That is
+    # not cosmetic: the backup below reads "$installDir/jawa/{scripts,resources,
+    # data}", so an operator who installed anywhere but /usr/local had their
+    # real install left untouched and unreferenced -- nothing backed up, a
+    # fresh install written to /usr/local, and every automation orphaned in the
+    # old directory.
+    #
+    # The fallback still has to exist, because the parse above is brittle: it
+    # slices a fixed number of characters off a `systemctl status` line, with a
+    # *different* width depending on whether the service is running. A garbage
+    # parse must never become the install target. Requiring app.py to actually
+    # be there is what separates the two cases -- it confirms the parse landed
+    # on a real JAWA install rather than merely producing a plausible string.
+    if [ -z "$installDir" ] || [ "${installDir:0:1}" != "/" ] ||
+      [ ! -f "$installDir/jawa/app.py" ]; then
+      /bin/echo "Detected install dir '$installDir' is not a JAWA install (no jawa/app.py); falling back to /usr/local" >>/var/log/jawaInstall.log 2>&1
+      installDir="/usr/local"
     fi
+    normalizeInstallDir
     echo "JAWA directory detected at $installDir" >> /var/log/jawaInstall.log 2>&1
     read -r -p "Existing JAWA detected - would you like to upgrade? [y/n]:  " yn
     case $yn in
@@ -306,10 +616,9 @@ install() {
     *) echo "Please answer yes or no." ;;
     esac
   fi
-  if [ "$upgradeOption" == "yes" ]; then
-    continue
-  else
-    # prompting for install directory
+  if [ "$upgradeOption" != "yes" ]; then
+    # prompting for install directory (upgrades reuse the detected installDir,
+    # which is now validated above rather than overwritten)
     read -r -p "Where would you like to install JAWA? [Press RETURN for $installDir]:  " new_dir
     while true; do
       if [ "$new_dir" != "" ]; then
@@ -319,6 +628,8 @@ install() {
         else
           installDir="/usr/local/$new_dir"
         fi
+        # An operator answering "/opt/jawa/" must not produce "/opt/jawa//jawa".
+        normalizeInstallDir
       fi
       read -p "The jawa project directory will be created in $installDir
          Please confirm [y|n]: " yn
@@ -391,7 +702,11 @@ install() {
     /bin/echo "Exiting..."
     exit 2
   fi
-  /usr/bin/python3 -m pip
+  # `python3 -m pip` with no subcommand dumps 30 lines of usage onto the
+  # operator's terminal, and its exit code is version-dependent -- newer
+  # pip exits 1 for no-args, which made this abort with "python3-pip was
+  # not installed successfully" while pip was in fact installed.
+  /usr/bin/python3 -m pip --version >>/var/log/jawaInstall.log 2>&1
   if [ $? -eq 0 ]; then
     /bin/echo "python3-pip installed." >>/var/log/jawaInstall.log 2>&1
   else
@@ -412,13 +727,23 @@ install() {
   /bin/echo -ne '[############            ](60%) Cloning the JAWA project from GitHub... '
   /bin/echo '[############            ](60%) Cloning the JAWA project from GitHub... ' >>/var/log/jawaInstall.log 2>&1
 
-  git clone --branch "$branch" https://github.com/jamf/JAWA.git jawa >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  git clone --branch "$branch" "$repoUrl" jawa >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  cloneStatus=$?
+  # spinner propagates the background job's exit code; also confirm the clone actually landed
+  if [ "$cloneStatus" -ne 0 ] || [ ! -d "$installDir/jawa/.git" ]; then
+    /usr/bin/clear
+    /bin/echo "Unable to clone the JAWA project (branch '$branch') from $repoUrl."
+    /bin/echo "Check your network connection and that the branch exists, then see /var/log/jawaInstall.log for details."
+    /bin/echo "Unable to clone the JAWA project (branch '$branch') from GitHub." >>/var/log/jawaInstall.log 2>&1
+    exit 2
+  fi
   # Restore backup?
   /usr/bin/clear
   /bin/echo -ne '[#############           ](64%) Checking for backups... '
   /bin/echo '[#############           ](64%) Checking for backups... ' >>/var/log/jawaInstall.log 2>&1
   /bin/sleep 1  & spinner $! ""
 if [ -d "$currentDir/jawabackup-$timenow" ]; then
+    backupJAWA="$currentDir/jawabackup-$timenow"
     while true; do
       /bin/echo ""
       if [ "$upgradeOption" == "yes" ]; then
@@ -440,8 +765,8 @@ if [ -d "$currentDir/jawabackup-$timenow" ]; then
   # for gzip support in uwsgi
   #/usr/bin/apt-get install --no-install-recommends -y -q libpcre3-dev libz-dev
 
-  /bin/echo -ne '[#############           ](65%) Setting permissions for $installDir/jawa... '
-  /bin/echo '[#############           ](65%) Setting permissions for $installDir/jawa ' >>/var/log/jawaInstall.log 2>&1
+  /bin/echo -ne "[#############           ](65%) Setting permissions for $installDir/jawa... "
+  /bin/echo "[#############           ](65%) Setting permissions for $installDir/jawa " >>/var/log/jawaInstall.log 2>&1
   chown -R jawa "$installDir/jawa" & spinner $! ""
 
 
@@ -451,13 +776,12 @@ if [ -d "$currentDir/jawabackup-$timenow" ]; then
   /usr/bin/clear
   /bin/echo -ne '[##############          ](70%) Creating venv... '
   /bin/echo '[##############          ](70%) Creating venv... ' >>/var/log/jawaInstall.log 2>&1
-  python3 -m venv venv & spinner $! ""
-  chown -R jawa "$installDir/jawa/venv"
+  "$jawaPythonBin" -m venv venv & spinner $! ""
   source "$installDir/jawa/venv/bin/activate"
   /usr/bin/clear
-  /bin/echo -ne '[###############         ](75%) Upgrading pip and setuptools in venv... '
-  /bin/echo '[###############         ](75%) Upgrading pip and setuptools in venv... ' >>/var/log/jawaInstall.log 2>&1
-  "$installDir/jawa/venv/bin/python" -m pip install --upgrade pip setuptools >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  /bin/echo -ne '[###############         ](75%) Upgrading pip in venv... '
+  /bin/echo '[###############         ](75%) Upgrading pip in venv... ' >>/var/log/jawaInstall.log 2>&1
+  "$installDir/jawa/venv/bin/python" -m pip install --upgrade pip >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
   /usr/bin/clear
   /bin/echo -ne '[################        ](80%) pip installing support modules (httpie and glances) in venv... '
   /bin/echo '[################        ](80%) pip installing support modules (httpie and glances) in venv... ' >>/var/log/jawaInstall.log 2>&1
@@ -466,7 +790,88 @@ if [ -d "$currentDir/jawabackup-$timenow" ]; then
   /usr/bin/clear
   /bin/echo -ne '[#################       ](85%) pip installing jawa requirements.txt file in venv... '
   /bin/echo '[#################       ](85%) pip installing jawa requirements.txt file in venv... ' >>/var/log/jawaInstall.log 2>&1
-  "$installDir/jawa/venv/bin/python" -m pip install -r "$installDir/jawa/requirements.txt" >>/var/log/jawaInstall.log 2>&1 & spinner $! "" #
+  "$installDir/jawa/venv/bin/python" -m pip install -r "$installDir/jawa/requirements.txt" >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
+  # spinner propagates the background job's exit code (see the clone step).
+  # Unchecked, a failed resolve here marched on to "100% Installation
+  # complete!" and enabled a systemd unit that crash-looped on
+  # ModuleNotFoundError -- the dependency failure was only visible in the log.
+  requirementsStatus=$?
+  # pip runs as root, so a hardened umask (077) leaves the packages unreadable
+  # to the service user; take ownership after installing and test as jawa.
+  chown -R jawa "$installDir/jawa/venv"
+  if [ "$requirementsStatus" -ne 0 ] || ! /usr/sbin/runuser -u jawa -- "$installDir/jawa/venv/bin/python" -c 'import flask' >/dev/null 2>&1; then
+    /usr/bin/clear
+    /bin/echo ""
+    /bin/echo "JAWA's Python dependencies failed to install, so the service cannot start."
+    /bin/echo "This is NOT a missing python3/pip/git/curl -- those are present."
+    /bin/echo ""
+    /bin/echo "The failing lines are in /var/log/jawaInstall.log. To see them:"
+    /bin/echo "    grep -E 'ERROR|No matching distribution' /var/log/jawaInstall.log | tail"
+    /bin/echo ""
+    /bin/echo "Aborting before the service is created." 
+    /bin/echo "Python dependency install FAILED (status $requirementsStatus); flask not importable. Aborting." >>/var/log/jawaInstall.log 2>&1
+    exit 2
+  fi #
+  # Pin the Jamf Pro URL before the service starts. Until one is pinned,
+  # the console refuses every sign-in.
+  /usr/bin/clear
+  # An upgrade keeps the values already pinned in server.json.
+  pinnedValue() {
+    "$installDir/jawa/venv/bin/python" -c 'import json, sys; print(json.load(open(sys.argv[1])).get(sys.argv[2], ""))' \
+      "$installDir/jawa/data/server.json" "$1" 2>/dev/null
+  }
+  jamfUrl="${JAWA_JPS_URL:-$(pinnedValue jps_url)}"
+  jawaAddress="${JAWA_ADDRESS:-$(pinnedValue jawa_address)}"
+  while [ -z "$jamfUrl" ]; do
+    read -r -p "Jamf Pro URL (for example https://jamf.example.com):  " jamfUrl
+  done
+  if [ -z "$jawaAddress" ]; then
+    read -r -p "JAWA address that Jamf Pro will call (for example https://jawa.example.com):  " jawaAddress
+  fi
+  /bin/mkdir -p "$installDir/jawa/data"
+  JAWA_SERVER_JSON="$installDir/jawa/data/server.json" JAWA_PIN_URL="$jamfUrl" JAWA_PIN_ADDRESS="$jawaAddress" \
+    "$installDir/jawa/venv/bin/python" - <<'PYEOF' >>/var/log/jawaInstall.log 2>&1
+import json, os
+path = os.environ["JAWA_SERVER_JSON"]
+try:
+    with open(path) as handle:
+        config = json.load(handle)
+except (OSError, ValueError):
+    config = {}
+config["jps_url"] = os.environ["JAWA_PIN_URL"].rstrip("/")
+if os.environ["JAWA_PIN_ADDRESS"]:
+    config["jawa_address"] = os.environ["JAWA_PIN_ADDRESS"].rstrip("/")
+with open(path, "w") as handle:
+    json.dump(config, handle)
+PYEOF
+  chown jawa "$installDir/jawa/data/server.json"
+  chmod 600 "$installDir/jawa/data/server.json"
+  # Ban addresses that repeatedly fail the console login. The sign-in code
+  # writes one "LOGIN FAILED user=<name> ip=<address>" line per failure to
+  # data/jawa-auth.log, a file that holds nothing else.
+  if [ -d /etc/fail2ban ]; then
+    /usr/bin/touch "$installDir/jawa/data/jawa-auth.log"
+    chown jawa "$installDir/jawa/data/jawa-auth.log"
+    /bin/mkdir -p /etc/fail2ban/filter.d /etc/fail2ban/jail.d
+    cat > /etc/fail2ban/filter.d/jawa.conf <<'F2BEOF'
+[Definition]
+failregex = ^(?:\S+ \S+ - )?jawa\.auth - WARNING - LOGIN FAILED user=\S+ ip=<HOST>$
+ignoreregex =
+F2BEOF
+    cat > /etc/fail2ban/jail.d/jawa.conf <<F2BEOF
+[jawa]
+enabled  = true
+filter   = jawa
+logpath  = $installDir/jawa/data/jawa-auth.log
+maxretry = 5
+findtime = 10m
+bantime  = 30m
+port     = 443
+F2BEOF
+    /bin/systemctl enable fail2ban >>/var/log/jawaInstall.log 2>&1
+    /bin/systemctl restart fail2ban >>/var/log/jawaInstall.log 2>&1 || \
+      /bin/echo "Could not restart fail2ban; see the log." >>/var/log/jawaInstall.log 2>&1
+  fi
   #pip install --upgrade uwsgi
   /usr/bin/clear
   /bin/echo -ne '[##################      ](90%) Creating jawa service in systemd... '
@@ -488,6 +893,24 @@ User=jawa
 WorkingDirectory=$installDir
 ExecStart="$installDir/jawa/venv/bin/python3" $(pwd)/app.py
 Restart=always
+# Hardening (security audit: plaintext-secrets-data-dir). The app stores
+# credential material under data/ (webhooks.json, .secret_key); the app itself
+# tightens those files to 0600 at startup, and the umask here keeps anything
+# the app creates from being group/world-readable in the first place.
+UMask=0077
+# The app only needs to write inside its own tree; /tmp is a private
+# per-service tmpfs so other local users cannot race files the app writes
+# there.
+ProtectSystem=strict
+ProtectHome=true
+# Timed automations are written to the jawa user's crontab, so the spool
+# must stay writable (crontabs/ on Ubuntu, the directory itself on RHEL).
+# "-" skips it where cron is not installed instead of failing the unit.
+ReadWritePaths=$installDir -/var/spool/cron
+PrivateTmp=true
+# No NoNewPrivileges and no PrivateDevices: crontab is setgid (Ubuntu) or
+# setuid (RHEL), and both settings stop it working. On systemd < 254 (RHEL 9)
+# PrivateDevices turns on NoNewPrivileges for a non-root User=.
 
 
 [Install]
@@ -513,22 +936,73 @@ EOF
   /bin/echo '[######################  ](98%) Restarting services... ' >>/var/log/jawaInstall.log 2>&1
   /bin/systemctl enable jawa.service >>/var/log/jawaInstall.log 2>&1
   /bin/systemctl restart jawa.service >>/var/log/jawaInstall.log 2>&1
+  jawaRestart=$?
+  [ "$jawaRestart" -ne 0 ] && /bin/echo "systemctl restart jawa.service exited $jawaRestart" >>/var/log/jawaInstall.log 2>&1
   /usr/bin/clear
   /bin/echo -ne '[####################### ](99%) Restarting services... \r'
   /bin/echo '[####################### ](99%) Restarting services... ' >>/var/log/jawaInstall.log 2>&1
-  /bin/systemctl restart nginx.service >>/var/log/jawaInstall.log 2>&1
+  # Validate before restarting. `systemctl restart` on a bad config takes
+  # nginx DOWN -- not just JAWA -- whereas `nginx -t` catches the problem
+  # first and names the offending file and line. Without this the installer
+  # wrote a config, restarted into it, and reported success while the console
+  # was unreachable, which is precisely how an upgrade lost a working site.
+  nginxBin=$(command -v nginx 2>/dev/null || /bin/echo /usr/sbin/nginx)
+  if ! "$nginxBin" -t >>/var/log/jawaInstall.log 2>&1; then
+    nginxTest=$("$nginxBin" -t 2>&1)
+    /bin/echo ""
+    /bin/echo "${cRed}ERROR${cReset}    the nginx configuration is invalid; not restarting nginx."
+    /bin/echo "         Leaving the running configuration in place so the host stays up."
+    /bin/echo ""
+    /bin/echo "$nginxTest" | while IFS= read -r line; do /bin/echo "         $line"; done
+    /bin/echo ""
+    /bin/echo "ERROR: nginx -t failed, skipped restart" >>/var/log/jawaInstall.log 2>&1
+    nginxRestart=1
+  else
+    /bin/systemctl restart nginx.service >>/var/log/jawaInstall.log 2>&1
+    nginxRestart=$?
+  fi
+  [ "$nginxRestart" -ne 0 ] && /bin/echo "systemctl restart nginx.service exited $nginxRestart" >>/var/log/jawaInstall.log 2>&1
   /usr/bin/clear
   /bin/echo -ne '[########################](100%) Installation complete! \r'
   /bin/echo '[########################](100%) Restarting services... untini! ' >>/var/log/jawaInstall.log 2>&1
   /bin/sleep 1.5
 
   /usr/bin/clear
-  status=$(/bin/systemctl is-active --quiet jawa && echo Service is running)
-  if [ "$status" != "Service is running" ]; then
-      echo "Uh oh!  The jawa service is not running. Check /var/log/jawaInstall.log for errors and restart the service."
-      echo "Uh oh!  The jawa service is not running. Check /var/log/jawaInstall.log for errors and restart the service." >>/var/log/jawaInstall.log 2>&1
-      echo "Double-check your dependencies (python3, python3-pip, git, curl, etc.) and try again."
-      echo "Double-check your dependencies (python3, python3-pip, git, curl, etc.) and try again." >>/var/log/jawaInstall.log 2>&1
+  # Check every unit the install depends on and name the ones that failed.
+  # Only jawa was ever verified, so a broken nginx reported "Installation
+  # complete!" with an unreachable console -- and real installs failed nginx
+  # repeatedly while this said nothing. The diagnostic differs per unit:
+  # jawa's reason is in journalctl, nginx's is almost always a config or
+  # certificate error, which `nginx -t` prints with the offending line.
+  failedUnits=""
+  for unit in jawa nginx; do
+    if ! /bin/systemctl is-active --quiet "$unit"; then
+      failedUnits="$failedUnits $unit"
+    fi
+  done
+  if [ -n "$failedUnits" ]; then
+      echo "Uh oh!  The installation finished, but these services are NOT running:$failedUnits"
+      echo "Uh oh!  Services not running after install:$failedUnits" >>/var/log/jawaInstall.log 2>&1
+      echo ""
+      for unit in $failedUnits; do
+        case "$unit" in
+        jawa)
+          echo "  jawa.service - the JAWA application itself."
+          echo "    JAWA will not answer at all until this starts."
+          echo "    See why:  journalctl -u jawa.service -n 50 --no-pager"
+          ;;
+        nginx)
+          echo "  nginx.service - the TLS reverse proxy in front of JAWA."
+          echo "    The web console is unreachable without it, even if jawa is healthy."
+          echo "    Usually a config or certificate problem. Check the config first,"
+          echo "    which names the offending file and line:"
+          echo "      nginx -t"
+          echo "    Then:  journalctl -u nginx.service -n 30 --no-pager"
+          ;;
+        esac
+        echo ""
+      done
+      echo "The full installer log is at /var/log/jawaInstall.log"
       echo ""
       if [[ $jawaPassword != "" ]]; then
         /bin/echo "The following service account was created on your OS for running the JAWA application, and for creating the cron tasks."
@@ -538,7 +1012,7 @@ EOF
       fi
       exit 2
   else
-      echo "Jawa service is running!" >>/var/log/jawaInstall.log 2>&1
+      echo "jawa.service and nginx.service are both running." >>/var/log/jawaInstall.log 2>&1
   fi
 
   if [ -e "$installDir/jawa/static/jawadone.txt" ]; then
@@ -713,30 +1187,22 @@ function spinner() {
   return $?
 }
 
-("$@") &
-
-
-
 displayMenu() {
   while true; do
     read -r -p "Please select from the following options:
 
 1. Install
-2. Upgrade from V2
-3. Cancel
+2. Cancel
  " opt
     case "$opt" in
     1)
       install
       ;;
     2)
-      upgradeFromV2
-      ;;
-    3)
       exit
       ;;
     *)
-      /bin/echo "Please choose an option:[ 1 | 2 | 3 ]:"
+      /bin/echo "Please choose an option:[ 1 | 2 ]:"
       continue
       ;;
     esac
@@ -764,56 +1230,38 @@ certsMenu() {
 }
 selfsigned() {
   /bin/echo "Creating SSL cert" >>/var/log/jawaInstall.log 2>&1
-  /usr/bin/openssl req -x509 -nodes -days 365 -newkey rsa:2048 -subj "/C=US/ST=MN/L=Minneapolis/CN=jawa" -keyout "$installDir/jawa.key" -out "$installDir/jawa.crt" >>/var/log/jawaInstall.log 2>&1
+  # Must land in $currentDir, not $installDir: install() re-checks ./jawa.crt
+  # in the current directory, so writing elsewhere sent the operator back to
+  # certsMenu forever unless they happened to be running from /usr/local.
+  /usr/bin/openssl req -x509 -nodes -days 365 -newkey rsa:2048 -subj "/C=US/ST=MN/L=Minneapolis/CN=jawa" -keyout "$currentDir/jawa.key" -out "$currentDir/jawa.crt" >>/var/log/jawaInstall.log 2>&1
   install
 }
-upgradeFromV2() {
-  if [ ! -d "/usr/local/jawa/data" ]; then
-    /bin/mkdir /usr/local/jawa/data
-  fi
-  /bin/echo "Disabling webhook.service..."
-  /bin/sleep 1
-  /bin/systemctl disable webhook.service
-  /bin/systemctl stop webhook.service
-  if [ ! -d "$currentDir/jawabackup-$timenow/v2" ]; then
-    mkdir -p "$currentDir/jawabackup-$timenow/v2"
-  fi
-  if [ -e /usr/local/jawa/cron.json ]; then
-    /bin/cp /usr/local/jawa/cron.json "$currentDir/jawabackup-$timenow/v2/"
-  fi
-  if [ -e /usr/local/jawa/jp_webhooks.json ]; then
-    /bin/cp /usr/local/jawa/jp_webhooks.json "$currentDir/jawabackup-$timenow/v2/"
-  fi
-  if [ -e /usr/local/jawa/webapp/server.json ]; then
-    /bin/cp /usr/local/jawa/webapp/server.json "$currentDir/jawabackup-$timenow/v2/"
-  fi
-  if [ -e /etc/webhook.conf ]; then
-    /bin/cp /etc/webhook.conf "$currentDir/jawabackup-$timenow/v2/"
-  fi
-  /bin/echo "To complete the upgrade enter /usr/local when prompted for JAWA's installation directory..."
-  installDir=/usr/local
-  sleep 3
-  install
-
-}
-
 restoreBackup() {
           local currentDir=$1
           local installDir=$2
-          if [ -d "$currentDir/jawabackup-$timenow/v2/" ]; then
-            if [ -e "$currentDir/jawabackup-$timenow/v2/cron.json" ]; then
-              /bin/echo "Migrating cron..."
-              /bin/cp "$currentDir/jawabackup-$timenow/v2/cron.json" "$currentDir/jawabackup-$timenow/data/"
-            fi
-            if [ -e "$currentDir/jawabackup-$timenow/v2/webhook.conf" -o "$currentDir/jawabackup-$timenow/v2/jp_webhooks.json" ]; then
-              /bin/echo "Migrating webhooks..."
-              /usr/bin/python3 "$installDir/jawa/bin/v2_upgrade.py" "$currentDir/jawabackup-$timenow" >>/var/log/jawaInstall.log 2>&1 & spinner $! ""
-            fi
+        # Guarded and logged, to match the backup half above. These four
+        # copies previously ran bare: an upgrade from an install that
+        # never had a scripts/ or resources/ directory -- the common
+        # case, since neither is tracked -- printed "cp: ... No such
+        # file or directory" straight onto the operator's terminal in
+        # the middle of the progress bar.
+        #
+        # "$item/." rather than "$item/": the trailing-slash form means
+        # different things to GNU and BSD cp (contents vs. the directory
+        # itself), and "/." is the explicit contents-merge on both.
+        for item in data resources scripts; do
+          if [ -d "$currentDir/jawabackup-$timenow/$item" ]; then
+            /bin/mkdir -p "$installDir/jawa/$item" >>/var/log/jawaInstall.log 2>&1
+            /bin/cp -R "$currentDir/jawabackup-$timenow/$item/." "$installDir/jawa/$item/" >>/var/log/jawaInstall.log 2>&1
           fi
-        /bin/cp -R "$currentDir/jawabackup-$timenow/data/" $installDir/jawa/
-        /bin/cp -R "$currentDir/jawabackup-$timenow/resources/" $installDir/jawa/
-        /bin/cp -R "$currentDir/jawabackup-$timenow/scripts/" $installDir/jawa/
-        /bin/cp -R "$currentDir/jawabackup-$timenow/jawa_icon.png" $installDir/jawa/static/img/jawa_icon.png
+        done
+        # The backup holds the OLD release's shipped content under data/
+        # (template scripts, catalog, event schemas, wallrender). Put this
+        # release's tracked copies back; untracked operator state stays.
+        git -C "$installDir/jawa" checkout -- data >>/var/log/jawaInstall.log 2>&1
+        if [ -e "$currentDir/jawabackup-$timenow/jawa_icon.png" ]; then
+          /bin/cp "$currentDir/jawabackup-$timenow/jawa_icon.png" "$installDir/jawa/static/img/jawa_icon.png" >>/var/log/jawaInstall.log 2>&1
+        fi
 }
 
 
@@ -822,7 +1270,7 @@ configure_nginx_redhat() {
   cat << EOF > /etc/nginx/conf.d/jawa.conf
 
 upstream jawa {
-    server 0.0.0.0:8000       weight=5;
+    server 127.0.0.1:8000       weight=5;
 }
 server {
         #listen 80 default_server;
@@ -838,9 +1286,11 @@ server {
 
         server_name localhost;
         server_name_in_redirect off;
+        client_max_body_size 16m;
         location / {
                 # First attempt to serve request as file, then
                 proxy_pass http://jawa;
+                proxy_read_timeout 150s;
                 proxy_redirect     off;
                 proxy_set_header   Host                 \$host;
                 proxy_set_header   X-Real-IP            \$remote_addr;
@@ -852,6 +1302,41 @@ server {
    }
 }
 EOF
+
+  # SELinux denies nginx (httpd_t) name_connect to JAWA's port 8000 by default,
+  # so a stock RHEL/Rocky install reports success and then serves 502 for every
+  # request. Verified on RHEL 9.8: the audit log shows nginx in httpd_t denied
+  # name_connect to port 8000, and the console only came up after this boolean
+  # was set by hand. Nothing about it is visible from the install output, which
+  # is why it has to be set here rather than documented.
+  #
+  # -P persists it across reboots and is slow (it rebuilds policy), hence the
+  # progress line. Skipped entirely when SELinux is disabled or the tools are
+  # absent, so a host without SELinux is unaffected.
+  if command -v getenforce >/dev/null 2>&1 && [ "$(getenforce 2>/dev/null)" != "Disabled" ]; then
+    selinuxTool=$(command -v setsebool 2>/dev/null)
+    if [ -n "$selinuxTool" ]; then
+      /bin/echo "Allowing nginx to reach JAWA through SELinux (httpd_can_network_connect)..." >>/var/log/jawaInstall.log 2>&1
+      "$selinuxTool" -P httpd_can_network_connect 1 >>/var/log/jawaInstall.log 2>&1
+      if [ $? -eq 0 ]; then
+        /bin/echo "SELinux httpd_can_network_connect enabled." >>/var/log/jawaInstall.log 2>&1
+      else
+        /bin/echo ""
+        /bin/echo "${cYellow}NOTE${cReset}     could not set the SELinux boolean httpd_can_network_connect."
+        /bin/echo "         nginx will return 502 until it is allowed to reach port 8000. Run:"
+        /bin/echo "             sudo setsebool -P httpd_can_network_connect 1"
+        /bin/echo ""
+        /bin/echo "WARNING: setsebool httpd_can_network_connect failed" >>/var/log/jawaInstall.log 2>&1
+      fi
+    else
+      /bin/echo ""
+      /bin/echo "${cYellow}NOTE${cReset}     SELinux is enabled but setsebool is missing (install policycoreutils)."
+      /bin/echo "         nginx will return 502 until you run:"
+      /bin/echo "             sudo setsebool -P httpd_can_network_connect 1"
+      /bin/echo ""
+      /bin/echo "WARNING: SELinux enabled but setsebool absent" >>/var/log/jawaInstall.log 2>&1
+    fi
+  fi
 }
 
 
@@ -860,9 +1345,21 @@ configure_nginx_ubuntu() {
     nginx_path="/etc/nginx/sites-available"
     nginx_enabled="/etc/nginx/sites-enabled"
     # Creating the nginx site
-    if [ -e ${nginx_path}/jawa ]; then
-      rm -f ${nginx_enabled}/jawa
-      rm -f ${nginx_path}/jawa
+    # Clear each side independently. This used to gate BOTH removals on
+    # `[ -e $nginx_path/jawa ]` -- the availability file deciding whether the
+    # *enabled* symlink was cleaned, although they are separate files. Two ways
+    # that bites on an upgrade: `-e` is false for a dangling symlink, so a
+    # stale sites-enabled/jawa survived; and an older installer that wrote a
+    # regular file there left it in place. Either way the `ln` below then
+    # failed with "File exists" and nginx went on loading the old file -- or
+    # no JAWA site at all. -L catches the broken-symlink case that -e misses.
+    if [ -e "${nginx_enabled}/jawa" ] || [ -L "${nginx_enabled}/jawa" ]; then
+      /bin/echo "Removing existing ${nginx_enabled}/jawa" >>/var/log/jawaInstall.log 2>&1
+      rm -f "${nginx_enabled}/jawa" >>/var/log/jawaInstall.log 2>&1
+    fi
+    if [ -e "${nginx_path}/jawa" ] || [ -L "${nginx_path}/jawa" ]; then
+      /bin/echo "Removing existing ${nginx_path}/jawa" >>/var/log/jawaInstall.log 2>&1
+      rm -f "${nginx_path}/jawa" >>/var/log/jawaInstall.log 2>&1
     fi
     cat << EOF > ${nginx_path}/jawa
       server {
@@ -879,9 +1376,11 @@ configure_nginx_ubuntu() {
 
           server_name localhost;
           server_name_in_redirect off;
+          client_max_body_size 16m;
           location / {
                   # First attempt to serve request as file, then
-                  proxy_pass http://localhost:8000;
+                  proxy_pass http://127.0.0.1:8000;
+                  proxy_read_timeout 150s;
                   proxy_redirect     off;
                   proxy_set_header   Host                 \$host;
                   proxy_set_header   X-Real-IP            \$remote_addr;
@@ -892,8 +1391,20 @@ configure_nginx_ubuntu() {
 
 EOF
 
-    # Enabling nginx
-    /bin/ln -s ${nginx_path}/jawa ${nginx_enabled}
+    # Enabling nginx. This was `ln -s <target> <dir>` with no exit check and
+    # no redirect, so a failure printed "File exists" to the terminal and the
+    # `clear` on the next line of install() erased it -- the install then
+    # reported success with an unreachable console. Name the destination
+    # explicitly and use -f -n so an existing file or symlink is replaced
+    # rather than being a fatal collision.
+    if ! /bin/ln -sfn "${nginx_path}/jawa" "${nginx_enabled}/jawa" >>/var/log/jawaInstall.log 2>&1; then
+      /bin/echo ""
+      /bin/echo "${cRed}ERROR${cReset}    could not enable the JAWA nginx site."
+      /bin/echo "         ${nginx_enabled}/jawa could not be created."
+      /bin/echo "         The console will NOT be reachable. See /var/log/jawaInstall.log."
+      /bin/echo ""
+      /bin/echo "ERROR: failed to link ${nginx_enabled}/jawa -> ${nginx_path}/jawa" >>/var/log/jawaInstall.log 2>&1
+    fi
 
     if [ -e ${nginx_path}/default ]; then
       while true; do
@@ -924,16 +1435,21 @@ EOF
 currentDir=$(pwd)
 installDir=/usr/local
 timenow=$(date +%m-%d-%y_%T)
+initColour
 
 #branch="main"  # Default branch name if no arguments are provided
-​
+
 while [[ $# -gt 0 ]]; do
   key="$1"
-​
+
   case $key in
     b|branch)
       branch="$2"
       shift 2  # Shift to the next argument
+      ;;
+    r|repo)
+      repoUrl="$2"
+      shift 2
       ;;
     *)
       # Handle unknown options or arguments
@@ -942,12 +1458,18 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
-​
-# If no branch argument was provided, default to "develop"
+
+# If no branch argument was provided, default to "main" (production install path)
 if [ -z "$branch" ]; then
   branch="main"
 fi
-​
+
+# Clone from jamf/JAWA by default. Pass "repo <git url>" to install from
+# another repository, such as a fork.
+if [ -z "$repoUrl" ]; then
+  repoUrl="https://github.com/jamf/JAWA.git"
+fi
+
 
 
 # Checking for sudo
@@ -956,6 +1478,21 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+# 47 `clear` calls and 3 `tput` calls assume the host's terminfo knows
+# $TERM. A modern terminal forwarded over SSH (ghostty, kitty, wezterm) is
+# often absent from a server's terminfo, and every one of them then fails --
+# which also breaks the carriage-return progress redraw, so lines arrive
+# mangled ("'xterm-ghostty': unknown terminal type.ing services...").
+if ! tput clear >/dev/null 2>&1; then
+  /bin/echo "TERM='${TERM:-}' is unknown to this host's terminfo; falling back to TERM=xterm." >>/var/log/jawaInstall.log 2>&1
+  export TERM=xterm
+fi
+
+# JAWA 4 cannot migrate a v2 install (webhook.service + /etc/webhook.conf).
+if [ -e /etc/webhook.conf ] || [ -d /usr/local/jawa/webapp ]; then
+  /bin/echo "This host has JAWA v2. Upgrade it to JAWA 3.1.1 first, then run this installer."
+  exit 1
+fi
 readme
 displayMenu
 

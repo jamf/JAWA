@@ -5,7 +5,7 @@
 
 JAWA allows an IT Administrator to focus on providing the best end user experience through automation.
 
-> **Prefer a hosted option?** JAWA is self-hosted — you run and maintain the server yourself. If you'd rather not operate infrastructure, **[Jamf Routines](https://learn.jamf.com/r/en-US/prerelease-routines-beta/Routines)** is a Jamf-hosted, Jamf-supported automation service. You can run both — see [JAWA vs. Jamf Routines](#jawa-vs-jamf-routines) below.
+> **Prefer a hosted option?** JAWA is self-hosted — you run and maintain the server yourself. If you'd rather not operate infrastructure, **[Jamf Routines](https://learn.jamf.com/r/en-US/jamf-routines-documentation/jamf_workflow_automation)** is a Jamf-hosted, Jamf-supported automation service. You can run both — see [JAWA vs. Jamf Routines](#jawa-vs-jamf-routines) below.
 
 ***[!]** NOTE: Always test automations in a dev/eval environment before deploying to production.*
 
@@ -20,7 +20,7 @@ JAWA, the Jamf Automation and Webhook Assistant, is a web server designed to str
 
 ## JAWA vs. Jamf Routines
 
-JAWA and [Jamf Routines](https://learn.jamf.com/r/en-US/prerelease-routines-beta/Routines) both automate Jamf Pro workflows, in different ways.
+JAWA and [Jamf Routines](https://learn.jamf.com/r/en-US/jamf-routines-documentation/jamf_workflow_automation) both automate Jamf Pro workflows, in different ways.
 
 | | **JAWA** | **Jamf Routines** |
 |---|---|---|
@@ -30,7 +30,7 @@ JAWA and [Jamf Routines](https://learn.jamf.com/r/en-US/prerelease-routines-beta
 | **Automation model** | Your own scripts, triggered by webhooks or a schedule | Template-based workflows that connect tools to Jamf Pro |
 | **Setup effort** | Provision a server, certificate, and DNS | Sign in and go |
 
-**Choose JAWA** if you want full control, custom scripting, and don't mind running a server. **Choose Jamf Routines** if you'd rather not manage infrastructure and want a Jamf-supported, hosted experience. You can run both — they complement each other. For Jamf Routines availability and pricing, see the [Jamf Routines documentation](https://learn.jamf.com/r/en-US/prerelease-routines-beta/Routines).
+**Choose JAWA** if you want full control, custom scripting, and don't mind running a server. **Choose Jamf Routines** if you'd rather not manage infrastructure and want a Jamf-supported, hosted experience. You can run both — they complement each other. For Jamf Routines availability and pricing, see the [Jamf Routines documentation](https://learn.jamf.com/r/en-US/jamf-routines-documentation/jamf_workflow_automation).
 
 ## Quick start
 

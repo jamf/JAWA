@@ -526,6 +526,8 @@ def healthz() -> Tuple[Dict[str, str], int]:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 json.load(f)
+        except FileNotFoundError:
+            continue  # a fresh install has no stores until the first save
         except (OSError, ValueError):
             return {"status": "fail", "check": os.path.basename(path)}, 503
     if not os.path.isdir(data_store.SCRIPTS_DIR):
